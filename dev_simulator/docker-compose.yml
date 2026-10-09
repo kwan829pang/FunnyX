@@ -1,0 +1,174 @@
+# FunnyX local dev tools — simulators + Core Engine for matching pressure tests.
+# From this folder:
+#   docker compose up --build
+#   docker compose down
+#
+# Host ports: payment-gate 18100 · message-queue 18101 · company-a-server 18102
+#             market-bot 18103 · core-engine 18200
+
+name: funnyx-dev-simulator
+
+networks:
+  funnyx-dev-simulator:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+volumes:
+  core_engine_data:
+
+services:
+  payment-gate:
+    build:
+      context: ./payment-gate
+      dockerfile: ../Dockerfile
+      args:
+        BIN_NAME: payment-gate
+    image: funnyx/payment-gate:local
+    container_name: funnyx-payment-gate
+    networks: [funnyx-dev-simulator]
+    ports:
+      - "18100:18100"
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18100"
+      PUBLIC_BASE_URL: "http://127.0.0.1:18100"
+      CALLBACK_SIGNATURE: "test-signature"
+      PAYMENT_TTL_SECS: "1800"
+      RUST_LOG: info
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18100/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  message-queue:
+    build:
+      context: ./message-queue
+      dockerfile: ../Dockerfile
+      args:
+        BIN_NAME: message-queue
+    image: funnyx/message-queue:local
+    container_name: funnyx-message-queue
+    networks: [funnyx-dev-simulator]
+    ports:
+      - "18101:18101"
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18101"
+      RUST_LOG: info
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18101/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  company-a-server:
+    build:
+      context: ./company-a-server
+      dockerfile: ../Dockerfile
+      args:
+        BIN_NAME: company-a-server
+    image: funnyx/company-a-server:local
+    container_name: funnyx-company-a-server
+    networks: [funnyx-dev-simulator]
+    ports:
+      - "18102:18102"
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18102"
+      PUBLIC_BASE_URL: "http://127.0.0.1:18102"
+      PARTNER_ID: "partner_2001"
+      COMPANY_NAME: "Company A Game Partner"
+      API_KEY: "demo-api-key"
+      OAUTH_CLIENT_ID: "company_a_client"
+      OAUTH_CLIENT_SECRET: "company_a_secret"
+      RUST_LOG: info
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18102/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  core-engine:
+    build:
+      context: ../backend/core_engine
+      dockerfile: Dockerfile
+      args:
+        BIN_NAME: funnyx-core-engine
+    image: funnyx/core-engine:local
+    container_name: funnyx-core-engine
+    networks: [funnyx-dev-simulator]
+    ports:
+      - "18200:18200"
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18200"
+      ENGINE_ID: "core-engine-usdt-1"
+      QUOTE_ASSET: "USDT"
+      BOOTSTRAP_PAIRS: "BTC/USDT,ETH/USDT"
+      DATA_DIR: "/data"
+      SNAPSHOT_INTERVAL_SECS: "30"
+      ADMIN_API_KEY: "demo-admin-key"
+      MESSAGE_CENTER_URL: "http://message-queue:18101"
+      PARTNER_NOTICE_URL: "http://company-a-server:18102/api/callback"
+      RUST_LOG: info
+    volumes:
+      - core_engine_data:/data
+    depends_on:
+      message-queue:
+        condition: service_healthy
+      company-a-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18200/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  market-bot:
+    build:
+      context: ./market-bot
+      dockerfile: ../Dockerfile
+      args:
+        BIN_NAME: market-bot
+    image: funnyx/market-bot:local
+    container_name: funnyx-market-bot
+    networks: [funnyx-dev-simulator]
+    ports:
+      - "18103:18103"
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18103"
+      CORE_ENGINE_URL: "http://core-engine:18200"
+      SYMBOLS: "BTC/USDT,ETH/USDT"
+      POLL_INTERVAL_MS: "800"
+      JITTER_MS: "1200"
+      MIN_QTY: "1"
+      MAX_QTY: "3"
+      DEFAULT_PRICE: "50000"
+      TAKE_PARTIAL_PCT: "40"
+      TAKE_FULL_PCT: "25"
+      MAKE_PCT: "25"
+      ACCOUNT_ID: "market_bot"
+      END_USER_ID: "9001"
+      RUST_LOG: info
+    depends_on:
+      core-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18103/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
