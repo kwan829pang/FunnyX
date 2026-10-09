@@ -1,0 +1,24 @@
+[package]
+name = "funnyx-admin-api"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "FunnyX Admin API — admin auth via Session Token Server"
+authors = ["FunnyX"]
+
+[dependencies]
+anyhow = "1"
+axum = "0.8"
+dotenvy = "0.15"
+funnyx-config = { path = "../../common/funnyx-config" }
+funnyx-health = { path = "../../common/funnyx-health" }
+funnyx-heartbeat = { path = "../../common/funnyx-heartbeat" }
+funnyx-net-api = { path = "../../common/funnyx-net-api" }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "sync", "time", "signal"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

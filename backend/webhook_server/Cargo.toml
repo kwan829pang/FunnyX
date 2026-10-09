@@ -1,0 +1,28 @@
+[package]
+name = "funnyx-webhook-server"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "FunnyX Webhook Server — partner ingest, Corp endpoints, settle retry"
+authors = ["FunnyX"]
+
+[dependencies]
+anyhow = "1"
+axum = "0.8"
+dotenvy = "0.15"
+funnyx-config = { path = "../../common/funnyx-config" }
+funnyx-health = { path = "../../common/funnyx-health" }
+funnyx-heartbeat = { path = "../../common/funnyx-heartbeat" }
+funnyx-net-api = { path = "../../common/funnyx-net-api" }
+funnyx-socket = { path = "../../common/funnyx-socket" }
+hex = "0.4"
+hmac = "0.12"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util", "sync", "time", "signal"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
