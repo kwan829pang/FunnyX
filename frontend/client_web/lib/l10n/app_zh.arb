@@ -1,0 +1,81 @@
+{
+  "@@locale": "zh",
+  "appTitle": "FunnyX",
+  "login": "登录",
+  "register": "注册",
+  "username": "账号",
+  "password": "密码",
+  "home": "首页",
+  "shop": "商店",
+  "logout": "登出",
+  "loginHint": "密码登录、注册或合作方 OAuth。会话接口需要 Token Server 令牌。",
+  "registerOauthHint": "先在 FunnyX 注册（路径 A）。合作方可使用平台 OAuth 让您在游戏内登录。若已有合作方账号，可使用合作方 OAuth（路径 B）。",
+  "noAccount": "没有账号？注册",
+  "haveAccount": "已有账号？登录",
+  "oauthCompareTitle": "OAuth 2.0 — 两种方向",
+  "oauthPathBTitle": "路径 B — 合作方 → 平台",
+  "oauthPathBBody": "您已在合作方游戏/网站注册。Client Web 发起合作方 OAuth；Session Token Server 交换 code/userinfo 并签发 FunnyX 会话（sts_…）。",
+  "oauthPathCTitle": "路径 C — 平台 → 合作方",
+  "oauthPathCBody": "您先在 Client Web 注册。合作方跳转到 FunnyX 平台 OAuth（/v1/oauth/authorize）。授权后合作方用 code 在其游戏内登录您。",
+  "oauthContinuePartner": "使用合作方 OAuth 继续",
+  "oauthPlatformAuthorizeHint": "合作方嵌入的授权 URL（路径 C 演示）：",
+  "oauthCopyAuthorize": "复制授权 URL",
+  "oauthCopied": "已复制",
+  "oauthCompleting": "正在完成合作方 OAuth…",
+  "oauthSuccess": "合作方 OAuth 登录完成",
+  "oauthFailed": "合作方 OAuth 失败",
+  "linkPartnerAccount": "绑定合作方账号（OAuth）",
+  "shopCart": "购物车",
+  "shopOrders": "订单",
+  "shopCheckout": "结账",
+  "shopPayment": "支付",
+  "shopRetry": "重试",
+  "shopEmptyCatalog": "暂无商品。",
+  "shopBaseCurrency": "标价币种 {currency}",
+  "@shopBaseCurrency": {
+    "placeholders": {
+      "currency": {"type": "String"}
+    }
+  },
+  "shopSellerPlatform": "平台",
+  "shopSellerCorp": "企业",
+  "shopAddedToCart": "已加入购物车",
+  "shopCartEmpty": "购物车为空。",
+  "shopColItem": "商品",
+  "shopColUnitPrice": "单价",
+  "shopColQty": "数量",
+  "shopColLineTotal": "小计",
+  "shopColActions": "操作",
+  "shopColOrderId": "订单",
+  "shopColSeller": "卖家",
+  "shopColFiat": "法币",
+  "shopColStatus": "状态",
+  "shopColExpires": "过期",
+  "shopSubtotal": "合计：{amount}",
+  "@shopSubtotal": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "shopSelectGameAccount": "选择用于到账的游戏账号",
+  "shopGameAccount": "游戏账号",
+  "shopNoGameAccount": "没有可用的游戏账号绑定。请先绑定游戏账号（首页或合作方 OAuth）。",
+  "shopOrderSummary": "订单摘要",
+  "shopPlaceOrder": "下单",
+  "shopPaymentHint": "待支付订单保留 24 小时。请通过合作方收银台付款，然后刷新状态。",
+  "shopNoPendingOrders": "没有待支付订单。",
+  "shopNoOrders": "暂无订单。",
+  "shopPay": "去支付",
+  "shopCancel": "取消",
+  "shopCancelled": "订单已取消",
+  "shopOrderDetail": "订单 #{id}",
+  "@shopOrderDetail": {
+    "placeholders": {
+      "id": {"type": "int"}
+    }
+  },
+  "shopOrderNotFound": "订单不存在",
+  "shopCredit": "到账",
+  "shopCreatedAt": "创建时间",
+  "shopPartnerOrder": "合作方单号"
+}

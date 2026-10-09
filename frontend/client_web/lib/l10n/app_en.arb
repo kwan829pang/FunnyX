@@ -1,0 +1,81 @@
+{
+  "@@locale": "en",
+  "appTitle": "FunnyX",
+  "login": "Login",
+  "register": "Register",
+  "username": "Username",
+  "password": "Password",
+  "home": "Home",
+  "shop": "E-shop",
+  "logout": "Logout",
+  "loginHint": "Password login, register, or Partner OAuth. Session APIs need a Token Server token.",
+  "registerOauthHint": "Register on FunnyX (Path A). Partners can then use Platform OAuth so you login in their game. Or continue with Partner OAuth if you already have a partner account (Path B).",
+  "noAccount": "No account? Register",
+  "haveAccount": "Have an account? Login",
+  "oauthCompareTitle": "OAuth 2.0 — two directions",
+  "oauthPathBTitle": "Path B — Partner → Platform",
+  "oauthPathBBody": "You registered on the Partner game/site. Client Web starts Partner OAuth; Session Token Server brokers code/userinfo and issues your FunnyX session (sts_…).",
+  "oauthPathCTitle": "Path C — Platform → Partner",
+  "oauthPathCBody": "You registered on Client Web first. The Partner redirects to FunnyX Platform OAuth (/v1/oauth/authorize). After you consent, the Partner receives a code and logs you into their game.",
+  "oauthContinuePartner": "Continue with Partner OAuth",
+  "oauthPlatformAuthorizeHint": "Authorize URL Partners embed (Path C demo):",
+  "oauthCopyAuthorize": "Copy authorize URL",
+  "oauthCopied": "Copied",
+  "oauthCompleting": "Completing Partner OAuth…",
+  "oauthSuccess": "Partner OAuth login complete",
+  "oauthFailed": "Partner OAuth failed",
+  "linkPartnerAccount": "Link Partner account (OAuth)",
+  "shopCart": "Cart",
+  "shopOrders": "Orders",
+  "shopCheckout": "Checkout",
+  "shopPayment": "Payment",
+  "shopRetry": "Retry",
+  "shopEmptyCatalog": "No products available.",
+  "shopBaseCurrency": "Prices in {currency}",
+  "@shopBaseCurrency": {
+    "placeholders": {
+      "currency": {"type": "String"}
+    }
+  },
+  "shopSellerPlatform": "Platform",
+  "shopSellerCorp": "Corp",
+  "shopAddedToCart": "Added to cart",
+  "shopCartEmpty": "Your cart is empty.",
+  "shopColItem": "Item",
+  "shopColUnitPrice": "Unit price",
+  "shopColQty": "Qty",
+  "shopColLineTotal": "Line total",
+  "shopColActions": "Actions",
+  "shopColOrderId": "Order",
+  "shopColSeller": "Seller",
+  "shopColFiat": "Fiat",
+  "shopColStatus": "Status",
+  "shopColExpires": "Expires",
+  "shopSubtotal": "Subtotal: {amount}",
+  "@shopSubtotal": {
+    "placeholders": {
+      "amount": {"type": "String"}
+    }
+  },
+  "shopSelectGameAccount": "Select game account for fulfillment",
+  "shopGameAccount": "Game account",
+  "shopNoGameAccount": "No active game account binding. Bind a game account first (home or partner OAuth).",
+  "shopOrderSummary": "Order summary",
+  "shopPlaceOrder": "Place order",
+  "shopPaymentHint": "Pending orders stay payable for 24 hours. Pay via partner checkout, then refresh status.",
+  "shopNoPendingOrders": "No pending payment orders.",
+  "shopNoOrders": "No orders yet.",
+  "shopPay": "Pay",
+  "shopCancel": "Cancel",
+  "shopCancelled": "Order cancelled",
+  "shopOrderDetail": "Order #{id}",
+  "@shopOrderDetail": {
+    "placeholders": {
+      "id": {"type": "int"}
+    }
+  },
+  "shopOrderNotFound": "Order not found",
+  "shopCredit": "Credit",
+  "shopCreatedAt": "Created",
+  "shopPartnerOrder": "Partner order"
+}
