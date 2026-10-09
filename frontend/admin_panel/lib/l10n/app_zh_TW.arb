@@ -1,0 +1,12 @@
+{
+  "@@locale": "zh_TW",
+  "appTitle": "FunnyX 管理後台",
+  "login": "登入",
+  "username": "帳號",
+  "password": "密碼",
+  "dashboard": "儀表板",
+  "markets": "市場",
+  "logout": "登出",
+  "commandPalette": "搜尋",
+  "loginHint": "公開登入。其他頁面需工作階段權杖。"
+}

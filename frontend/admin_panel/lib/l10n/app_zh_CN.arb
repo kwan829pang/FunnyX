@@ -1,0 +1,12 @@
+{
+  "@@locale": "zh_CN",
+  "appTitle": "FunnyX 管理后台",
+  "login": "登录",
+  "username": "账号",
+  "password": "密码",
+  "dashboard": "仪表盘",
+  "markets": "市场",
+  "logout": "登出",
+  "commandPalette": "搜索",
+  "loginHint": "公开登录。其他页面需要会话令牌。"
+}
