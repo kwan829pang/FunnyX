@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
 import '../controllers/corp_products_controller.dart';
+import '../controllers/markets_controller.dart';
 import '../controllers/packages_controller.dart';
 import '../controllers/setup_controller.dart';
 
@@ -37,5 +38,6 @@ class AppBinding extends Bindings {
       () => CorpProductsController(),
       fenix: true,
     );
+    Get.lazyPut<MarketsController>(() => MarketsController(), fenix: true);
   }
 }

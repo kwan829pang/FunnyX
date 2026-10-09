@@ -5,12 +5,18 @@ use axum::routing::{get, patch, post, put};
 use axum::{Json, Router};
 use funnyx_health::HealthPayload;
 use funnyx_net_api::paths;
+use reqwest::Client;
 
 use crate::admins::{AdminDirectory, AdminUser};
 use crate::auth;
 use crate::cbt;
 use crate::cbt_store::BasicTokenStore;
 use crate::config::Config;
+use crate::engine::EngineClient;
+use crate::game_coin_store::GameCoinStore;
+use crate::game_coins;
+use crate::market_store::AdminMarketStore;
+use crate::markets;
 use crate::models::ErrorBody;
 use crate::shop;
 use crate::shop_store::CorpProductStore;
@@ -26,6 +32,11 @@ pub struct AppState {
     pub shop: CorpProductStore,
     pub cbt: BasicTokenStore,
     pub system: SystemStore,
+    pub game_coins: GameCoinStore,
+    pub markets: AdminMarketStore,
+    pub engine: EngineClient,
+    #[allow(dead_code)]
+    pub http: Client,
 }
 
 pub fn router(state: AppState) -> Router {
@@ -62,6 +73,19 @@ pub fn router(state: AppState) -> Router {
             paths::ADMIN_SHOP_PACKAGE_STATUS,
             patch(system::patch_package_status),
         )
+        .route(
+            paths::ADMIN_GAME_COINS,
+            get(game_coins::list_coins).post(game_coins::create_coin),
+        )
+        .route(paths::ADMIN_GAME_COIN, put(game_coins::update_coin))
+        .route(
+            paths::ADMIN_GAME_COIN_STATUS,
+            patch(game_coins::patch_status),
+        )
+        .route(paths::ADMIN_MARKETS, get(markets::list_markets))
+        .route(paths::ADMIN_MARKET, get(markets::get_market))
+        .route(paths::ADMIN_MARKET_APPROVE, post(markets::approve))
+        .route(paths::ADMIN_MARKET_REJECT, post(markets::reject))
         .with_state(state)
 }
 

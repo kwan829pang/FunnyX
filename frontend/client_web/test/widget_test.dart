@@ -10,7 +10,7 @@ void main() {
     AppBinding(
       config: const AppConfig(
         appName: 'FunnyX',
-        apiBaseUrl: 'http://127.0.0.1:8083',
+        apiBaseUrl: 'http://127.0.0.1:8080',
       ),
     ).dependencies();
   });

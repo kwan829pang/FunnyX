@@ -20,6 +20,9 @@ pub struct Config {
     pub partner_a_base_url: String,
     pub partner_a_api_key: String,
     pub postgres_url: Option<String>,
+    /// Dedicated Client Center MongoDB for `chat_messages` (required in prod).
+    pub mongo_url: Option<String>,
+    pub mongo_db: String,
     pub payment_gate_url: String,
     pub shop_payment_callback_url: String,
     pub demo_master_code: String,
@@ -73,6 +76,11 @@ impl Config {
                 .ok()
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty() && !s.contains("xxx.xxx.xxx.xxx")),
+            mongo_url: env::var("MONGO_URL")
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty() && !s.contains("xxx.xxx.xxx.xxx")),
+            mongo_db: env::var("MONGO_DB").unwrap_or_else(|_| "funnyx_client".into()),
             payment_gate_url: env::var("PAYMENT_GATE_URL")
                 .unwrap_or_else(|_| "http://127.0.0.1:18100".into())
                 .trim_end_matches('/')

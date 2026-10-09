@@ -148,11 +148,7 @@ impl SystemStore {
 
     pub async fn list_packages(&self) -> Vec<PackageView> {
         if let Some(pool) = &self.pool {
-            let rows = sqlx::query(
-                "SELECT id, code, name, game_coin_id, coin_amount::float8 AS coin_amount, \
-                        fiat_price::float8 AS fiat_price, status \
-                 FROM fx_shop.shop_packages ORDER BY id",
-            )
+            let rows = sqlx::query(crate::query::system::LIST_PACKAGES)
             .fetch_all(pool)
             .await
             .unwrap_or_default();
@@ -197,14 +193,7 @@ impl SystemStore {
         let game_coin_id = self.platform_token_coin_id().await?;
 
         if let Some(pool) = &self.pool {
-            let row = sqlx::query(
-                "INSERT INTO fx_shop.shop_packages ( \
-                    code, name, game_coin_id, coin_amount, fiat_price, seller_type, status, \
-                    created_by_admin_id, created_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4, $5, 'platform', $6, $7, $8, 0) \
-                 RETURNING id, code, name, game_coin_id, coin_amount::float8 AS coin_amount, \
-                           fiat_price::float8 AS fiat_price, status",
-            )
+            let row = sqlx::query(crate::query::system::INSERT_PACKAGE)
             .bind(&code)
             .bind(name)
             .bind(game_coin_id)
@@ -261,12 +250,7 @@ impl SystemStore {
         }
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            let row = sqlx::query(
-                "UPDATE fx_shop.shop_packages SET status = $1, updated_at = $2 \
-                 WHERE id = $3 \
-                 RETURNING id, code, name, game_coin_id, coin_amount::float8 AS coin_amount, \
-                           fiat_price::float8 AS fiat_price, status",
-            )
+            let row = sqlx::query(crate::query::system::UPDATE_PACKAGE_STATUS)
             .bind(status)
             .bind(now)
             .bind(id)
@@ -287,11 +271,8 @@ impl SystemStore {
 
     async fn platform_token_coin_id(&self) -> Result<i64, String> {
         if let Some(pool) = &self.pool {
-            let id: Option<i64> = sqlx::query_scalar(
-                "SELECT id FROM fx_game.game_coins \
-                 WHERE is_platform_token = TRUE AND status = 'active' \
-                 ORDER BY id LIMIT 1",
-            )
+            let id: Option<i64> =
+                sqlx::query_scalar(crate::query::system::SELECT_PLATFORM_TOKEN_COIN_ID)
             .fetch_optional(pool)
             .await
             .map_err(|e| e.to_string())?;
@@ -317,16 +298,7 @@ impl SystemStore {
         }
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            let row = sqlx::query(
-                "UPDATE fx_shop.shop_packages SET \
-                    fiat_price = $1, \
-                    name = COALESCE($2, name), \
-                    status = COALESCE($3, status), \
-                    updated_at = $4 \
-                 WHERE id = $5 \
-                 RETURNING id, code, name, game_coin_id, coin_amount::float8 AS coin_amount, \
-                           fiat_price::float8 AS fiat_price, status",
-            )
+            let row = sqlx::query(crate::query::system::UPDATE_PACKAGE_PRICE)
             .bind(fiat_price)
             .bind(name.map(|s| s.trim()).filter(|s| !s.is_empty()))
             .bind(status)
@@ -367,9 +339,7 @@ impl SystemStore {
 
     async fn get_setting(&self, key: &str) -> Option<String> {
         if let Some(pool) = &self.pool {
-            return sqlx::query_scalar::<_, String>(
-                "SELECT setting_value FROM fx_config.system_settings WHERE setting_key = $1",
-            )
+            return sqlx::query_scalar::<_, String>(crate::query::system::SELECT_SETTING)
             .bind(key)
             .fetch_optional(pool)
             .await
@@ -388,15 +358,7 @@ impl SystemStore {
     ) -> Result<(), String> {
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            sqlx::query(
-                "INSERT INTO fx_config.system_settings \
-                    (setting_key, setting_value, updated_by_admin_id, created_at, updated_at) \
-                 VALUES ($1, $2, $3, $4, $4) \
-                 ON CONFLICT (setting_key) DO UPDATE SET \
-                    setting_value = EXCLUDED.setting_value, \
-                    updated_by_admin_id = EXCLUDED.updated_by_admin_id, \
-                    updated_at = EXCLUDED.updated_at",
-            )
+            sqlx::query(crate::query::system::UPSERT_SETTING)
             .bind(key)
             .bind(value)
             .bind(admin_id)

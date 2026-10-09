@@ -3,6 +3,8 @@ mod auth;
 mod bindings;
 mod cbt;
 mod cbt_store;
+mod chat;
+mod chat_store;
 mod config;
 mod corp;
 mod corp_cbt;
@@ -18,11 +20,14 @@ mod oauth;
 mod partner;
 mod password;
 mod pay;
+mod query;
 mod sessions;
 mod shop;
 mod shop_store;
 mod sts;
 mod users;
+mod wallet;
+mod wallet_store;
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -33,6 +38,7 @@ use tracing_subscriber::EnvFilter;
 
 use api::{router, AppState};
 use bindings::GameAccountStore;
+use chat_store::ChatStore;
 use config::Config;
 use games::GameCatalog;
 use cbt_store::CbtStore;
@@ -42,6 +48,7 @@ use pay::PaymentGateClient;
 use shop_store::ShopStore;
 use sts::StsClient;
 use users::UserDirectory;
+use wallet_store::WalletStore;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -86,6 +93,8 @@ async fn main() -> anyhow::Result<()> {
     };
     let markets = MarketStore::new(pool.clone());
     let cbt = CbtStore::new(pool.clone());
+    let wallets = WalletStore::new(pool.clone());
+    let chat = ChatStore::connect(&config).await;
 
     let sock_addr: SocketAddr = format!("{}:{}", config.socket_host, config.socket_port).parse()?;
     funnyx_heartbeat::spawn_ping_pong_listener(sock_addr);
@@ -113,6 +122,8 @@ async fn main() -> anyhow::Result<()> {
         shop,
         markets,
         cbt,
+        wallets,
+        chat,
         pool,
         config: config.clone(),
     })
@@ -121,12 +132,13 @@ async fn main() -> anyhow::Result<()> {
 
     let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
     tracing::info!(
-        "funnyx-client-center listening on http://{addr} socket={} public_base={} sts={} partner_a={} pay={}",
+        "funnyx-client-center listening on http://{addr} socket={} public_base={} sts={} partner_a={} pay={} mongo={}",
         config.socket_port,
         config.public_base_url,
         config.session_token_server_url,
         config.partner_a_base_url,
-        config.payment_gate_url
+        config.payment_gate_url,
+        config.mongo_url.as_deref().unwrap_or("(unset)")
     );
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app)

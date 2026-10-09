@@ -86,8 +86,7 @@ impl UserDirectory {
             return Ok(());
         };
         let rows = sqlx::query(
-            "SELECT id, username, password_hash FROM fx_user.end_users \
-             WHERE username IN ('demo_user', 'alice_plat')",
+            crate::query::users::DEMO_PASSWORD_HASHES,
         )
         .fetch_all(pool)
         .await?;
@@ -99,7 +98,7 @@ impl UserDirectory {
             let id: i64 = row.get("id");
             let hashed = hash_password("demo").map_err(|e| anyhow::anyhow!(e))?;
             sqlx::query(
-                "UPDATE fx_user.end_users SET password_hash = $1, updated_at = $2 WHERE id = $3",
+                crate::query::users::UPDATE_PASSWORD_HASH,
             )
             .bind(&hashed)
             .bind(now_ms())
@@ -127,8 +126,7 @@ impl UserDirectory {
         if let Some(pool) = &self.pool {
             return fetch_user(
                 sqlx::query(
-                    "SELECT id, username, email, password_hash, status \
-                     FROM fx_user.end_users WHERE id = $1",
+                    crate::query::users::BY_ID,
                 )
                 .bind(end_user_id)
                 .fetch_optional(pool)
@@ -147,8 +145,7 @@ impl UserDirectory {
         if let Some(pool) = &self.pool {
             return fetch_user(
                 sqlx::query(
-                    "SELECT id, username, email, password_hash, status \
-                     FROM fx_user.end_users WHERE username = $1",
+                    crate::query::users::BY_USERNAME,
                 )
                 .bind(username)
                 .fetch_optional(pool)
@@ -176,9 +173,7 @@ impl UserDirectory {
             }
             let now = now_ms();
             let row = sqlx::query(
-                "INSERT INTO fx_user.end_users (username, email, password_hash, status, created_at, updated_at) \
-                 VALUES ($1, $2, $3, 'active', $4, 0) \
-                 RETURNING id, username, email, password_hash, status",
+                crate::query::users::INSERT_REGISTER,
             )
             .bind(&username)
             .bind(&email)
@@ -251,11 +246,7 @@ impl UserDirectory {
         let user = if let Some(pool) = &self.pool {
             let now = now_ms();
             match sqlx::query(
-                "INSERT INTO fx_user.end_users \
-                    (id, username, email, password_hash, status, created_at, updated_at) \
-                 VALUES ($1, $2, NULL, NULL, 'active', $3, 0) \
-                 ON CONFLICT (id) DO UPDATE SET updated_at = EXCLUDED.updated_at \
-                 RETURNING id, username, email, password_hash, status",
+                crate::query::users::UPSERT_FROM_SESSION,
             )
             .bind(end_user_id)
             .bind(&username)
@@ -326,14 +317,7 @@ impl UserDirectory {
         if let Some(pool) = &self.pool {
             let now = now_ms();
             let _ = sqlx::query(
-                "INSERT INTO fx_user.oauth_identities \
-                    (end_user_id, provider, partner_id, partner_user_id, game_id, game_account_id, status, created_at, updated_at) \
-                 VALUES ($1, 'partner', $2, $3, $4, $5, 'active', $6, 0) \
-                 ON CONFLICT (provider, partner_id, partner_user_id) DO UPDATE SET \
-                    end_user_id = EXCLUDED.end_user_id, \
-                    game_id = COALESCE(EXCLUDED.game_id, fx_user.oauth_identities.game_id), \
-                    game_account_id = COALESCE(EXCLUDED.game_account_id, fx_user.oauth_identities.game_account_id), \
-                    updated_at = $6",
+                crate::query::users::UPSERT_OAUTH_IDENTITY,
             )
             .bind(end_user_id)
             .bind(pid)
@@ -361,9 +345,7 @@ impl UserDirectory {
     pub async fn links_for_user(&self, end_user_id: i64) -> Vec<PartnerLink> {
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT partner_id, partner_user_id, end_user_id, game_id, game_account_id \
-                 FROM fx_user.oauth_identities \
-                 WHERE end_user_id = $1 AND status = 'active'",
+                crate::query::users::LINKS_FOR_USER,
             )
             .bind(end_user_id)
             .fetch_all(pool)
@@ -401,8 +383,7 @@ impl UserDirectory {
     ) -> Option<i64> {
         let pool = self.pool.as_ref()?;
         sqlx::query_scalar(
-            "SELECT id FROM fx_user.oauth_identities \
-             WHERE provider = 'partner' AND partner_id = $1 AND partner_user_id = $2",
+            crate::query::users::OAUTH_IDENTITY_ID,
         )
         .bind(partner_id)
         .bind(partner_user_id)

@@ -10,6 +10,8 @@ use crate::auth;
 use crate::bindings::GameAccountStore;
 use crate::cbt;
 use crate::cbt_store::CbtStore;
+use crate::chat;
+use crate::chat_store::ChatStore;
 use crate::config::Config;
 use crate::corp_cbt;
 use crate::corp_markets;
@@ -26,6 +28,8 @@ use crate::shop;
 use crate::shop_store::ShopStore;
 use crate::sts::StsClient;
 use crate::users::UserDirectory;
+use crate::wallet;
+use crate::wallet_store::WalletStore;
 use sqlx::PgPool;
 
 #[derive(Clone)]
@@ -39,6 +43,8 @@ pub struct AppState {
     pub shop: ShopStore,
     pub markets: MarketStore,
     pub cbt: CbtStore,
+    pub wallets: WalletStore,
+    pub chat: ChatStore,
     pub pay: PaymentGateClient,
     pub pool: Option<PgPool>,
 }
@@ -55,6 +61,14 @@ pub fn router(state: AppState) -> Router {
         .route(
             paths::CLIENT_GAME_ACCOUNTS_BIND,
             post(game_accounts::bind_game_account),
+        )
+        .route(paths::CLIENT_WALLET, get(wallet::get_wallet))
+        .route(paths::CLIENT_DEPOSIT, post(wallet::deposit))
+        .route(paths::CLIENT_WITHDRAW, post(wallet::withdraw))
+        .route(paths::CLIENT_TRANSACTIONS, get(wallet::list_transactions))
+        .route(
+            paths::CLIENT_CHAT_MESSAGES,
+            get(chat::list_messages).post(chat::send_message),
         )
         // Partner OAuth (brokered by Session Token Server)
         .route(

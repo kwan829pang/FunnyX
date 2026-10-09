@@ -3,6 +3,7 @@ mod config;
 mod corp;
 mod ingest;
 mod models;
+mod query;
 mod settle;
 mod socket;
 mod store;

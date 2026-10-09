@@ -4,7 +4,13 @@ mod auth;
 mod cbt;
 mod cbt_store;
 mod config;
+mod engine;
+mod game_coin_store;
+mod game_coins;
+mod market_store;
+mod markets;
 mod models;
+mod query;
 mod shop;
 mod shop_store;
 mod sts;
@@ -22,6 +28,9 @@ use admins::AdminDirectory;
 use api::{router, AppState};
 use cbt_store::BasicTokenStore;
 use config::Config;
+use engine::EngineClient;
+use game_coin_store::GameCoinStore;
+use market_store::AdminMarketStore;
 use shop_store::CorpProductStore;
 use sts::StsClient;
 use system_store::SystemStore;
@@ -49,14 +58,19 @@ async fn main() -> anyhow::Result<()> {
                 Some(p)
             }
             Err(e) => {
-                tracing::warn!("POSTGRES_URL failed ({e}); corp products in memory");
+                tracing::warn!("POSTGRES_URL failed ({e}); using memory stores");
                 None
             }
         }
     } else {
-        tracing::info!("no POSTGRES_URL; corp products in memory (DEMO_PACK_100)");
+        tracing::info!("no POSTGRES_URL; admin stores in memory");
         None
     };
+
+    let markets = AdminMarketStore::new(pool.clone());
+    if pool.is_none() {
+        markets.seed_pending_demo().await;
+    }
 
     let sock_addr: SocketAddr = format!("{}:{}", config.socket_host, config.socket_port).parse()?;
     funnyx_heartbeat::spawn_ping_pong_listener(sock_addr);
@@ -74,12 +88,17 @@ async fn main() -> anyhow::Result<()> {
         },
     );
 
+    let engine = EngineClient::new(&config, http.clone());
     let app = router(AppState {
-        sts: StsClient::new(&config, http),
+        sts: StsClient::new(&config, http.clone()),
         admins: AdminDirectory::with_demo_admins(),
         shop: CorpProductStore::new(pool.clone()),
         cbt: BasicTokenStore::new(pool.clone()),
-        system: SystemStore::new(pool),
+        system: SystemStore::new(pool.clone()),
+        game_coins: GameCoinStore::new(pool.clone()),
+        markets,
+        engine,
+        http,
         config: config.clone(),
     })
     .layer(CorsLayer::permissive())
@@ -87,10 +106,11 @@ async fn main() -> anyhow::Result<()> {
 
     let addr: SocketAddr = format!("{}:{}", config.host, config.port).parse()?;
     tracing::info!(
-        "funnyx-admin-api listening on http://{addr} socket={} public_base={} sts={}",
+        "funnyx-admin-api listening on http://{addr} socket={} public_base={} sts={} engine={}",
         config.socket_port,
         config.public_base_url,
-        config.session_token_server_url
+        config.session_token_server_url,
+        config.core_engine_url
     );
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app)

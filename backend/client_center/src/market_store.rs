@@ -86,17 +86,7 @@ impl MarketStore {
     pub async fn list(&self, corporate_user_id: i64) -> Vec<MarketPairView> {
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT p.id, p.corporate_user_id, p.game_id, p.base_game_coin_id, p.quote_game_coin_id, \
-                        p.market_name, p.funding_source, p.status, p.created_at, p.updated_at, \
-                        po.id AS pool_id, po.pool_depth::float8 AS pool_depth, \
-                        po.initial_price::float8 AS initial_price, po.base_amount::float8 AS base_amount, \
-                        po.quote_amount::float8 AS quote_amount, po.status AS pool_status, \
-                        l.game_coin_id AS lock_game_coin_id, l.locked_amount::float8 AS lock_amount \
-                 FROM fx_market.market_pairs p \
-                 LEFT JOIN fx_market.market_pools po ON po.market_pair_id = p.id \
-                 LEFT JOIN fx_market.market_balance_locks l ON l.market_pair_id = p.id AND l.status = 'locked' \
-                 WHERE p.corporate_user_id = $1 \
-                 ORDER BY p.id",
+                crate::query::market::LIST_FOR_CORP,
             )
             .bind(corporate_user_id)
             .fetch_all(pool)
@@ -141,7 +131,7 @@ impl MarketStore {
         let now = now_ms();
         if let Some(pool) = &self.pool {
             let owned: Option<i64> = sqlx::query_scalar(
-                "SELECT id FROM fx_game.games WHERE id = $1 AND corporate_user_id = $2",
+                crate::query::market::OWNED_GAME,
             )
             .bind(req.game_id)
             .bind(corporate_user_id)
@@ -152,7 +142,7 @@ impl MarketStore {
                 return Err("game not found for this corporate user".into());
             }
             let coins: i64 = sqlx::query_scalar(
-                "SELECT COUNT(*) FROM fx_game.game_coins WHERE id IN ($1, $2) AND status = 'active'",
+                crate::query::market::ACTIVE_COINS_COUNT,
             )
             .bind(req.base_game_coin_id)
             .bind(req.quote_game_coin_id)
@@ -163,15 +153,14 @@ impl MarketStore {
                 return Err("base_game_coin_id and quote_game_coin_id must be active game coins".into());
             }
             let existing: i64 = sqlx::query_scalar(
-                "SELECT COUNT(*) FROM fx_market.market_pairs WHERE game_id = $1 \
-                 AND status NOT IN ('rejected', 'inactive')",
+                crate::query::market::EXISTING_PAIRS_COUNT,
             )
             .bind(req.game_id)
             .fetch_one(pool)
             .await
             .unwrap_or(0);
             let base_plt: bool = sqlx::query_scalar(
-                "SELECT COALESCE(is_platform_token, FALSE) FROM fx_game.game_coins WHERE id = $1",
+                crate::query::market::IS_PLATFORM_TOKEN,
             )
             .bind(req.base_game_coin_id)
             .fetch_optional(pool)
@@ -180,7 +169,7 @@ impl MarketStore {
             .flatten()
             .unwrap_or(false);
             let quote_plt: bool = sqlx::query_scalar(
-                "SELECT COALESCE(is_platform_token, FALSE) FROM fx_game.game_coins WHERE id = $1",
+                crate::query::market::IS_PLATFORM_TOKEN,
             )
             .bind(req.quote_game_coin_id)
             .fetch_optional(pool)
@@ -194,9 +183,7 @@ impl MarketStore {
             let (lock_coin, lock_amt) = lock_side(&req, base_plt);
             let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
             let upd = sqlx::query(
-                "UPDATE fx_game.game_balances SET available_balance = available_balance - $1, \
-                    locked_balance = locked_balance + $1, updated_at = $2 \
-                 WHERE game_id = $3 AND game_coin_id = $4 AND available_balance >= $1",
+                crate::query::market::LOCK_BALANCE,
             )
             .bind(lock_amt)
             .bind(now)
@@ -209,10 +196,7 @@ impl MarketStore {
                 return Err("insufficient Game Partner Game Coin available_balance to lock pool".into());
             }
             let pair = sqlx::query(
-                "INSERT INTO fx_market.market_pairs ( \
-                    corporate_user_id, game_id, base_game_coin_id, quote_game_coin_id, market_name, \
-                    funding_source, status, created_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4, $5, $6, 'pending_locked', $7, 0) RETURNING id",
+                crate::query::market::INSERT_PAIR,
             )
             .bind(corporate_user_id)
             .bind(req.game_id)
@@ -226,9 +210,7 @@ impl MarketStore {
             .map_err(|e| e.to_string())?;
             let pair_id: i64 = pair.get("id");
             sqlx::query(
-                "INSERT INTO fx_market.market_balance_locks ( \
-                    market_pair_id, game_id, game_coin_id, locked_amount, status, created_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4, 'locked', $5, 0)",
+                crate::query::market::INSERT_BALANCE_LOCK,
             )
             .bind(pair_id)
             .bind(req.game_id)
@@ -239,9 +221,7 @@ impl MarketStore {
             .await
             .map_err(|e| e.to_string())?;
             let pool_row = sqlx::query(
-                "INSERT INTO fx_market.market_pools ( \
-                    market_pair_id, pool_depth, initial_price, base_amount, quote_amount, status, created_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4, $5, 'pending', $6, 0) RETURNING id",
+                crate::query::market::INSERT_POOL,
             )
             .bind(pair_id)
             .bind(req.pool_depth)
@@ -255,9 +235,7 @@ impl MarketStore {
             let pool_id: i64 = pool_row.get("id");
             for coin in [req.base_game_coin_id, req.quote_game_coin_id] {
                 sqlx::query(
-                    "INSERT INTO fx_market.pool_wallets (market_pool_id, game_coin_id, balance, wallet_type, status) \
-                     VALUES ($1, $2, 0, 'market_pool', 'active') \
-                     ON CONFLICT (market_pool_id, game_coin_id) DO NOTHING",
+                    crate::query::market::INSERT_POOL_WALLET,
                 )
                 .bind(pool_id)
                 .bind(coin)
@@ -266,8 +244,7 @@ impl MarketStore {
                 .map_err(|e| e.to_string())?;
             }
             sqlx::query(
-                "INSERT INTO fx_market.market_status_logs (market_pair_id, old_status, new_status, updated_at, created_at) \
-                 VALUES ($1, 'submitted', 'pending_locked', $2, $2)",
+                crate::query::market::INSERT_STATUS_LOG,
             )
             .bind(pair_id)
             .bind(now)
@@ -350,9 +327,7 @@ impl MarketStore {
         let now = now_ms();
         if let Some(pool) = &self.pool {
             let row = sqlx::query(
-                "INSERT INTO fx_market.market_pools ( \
-                    market_pair_id, pool_depth, initial_price, base_amount, quote_amount, status, created_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4, $5, 'pending', $6, 0) RETURNING id",
+                crate::query::market::INSERT_POOL,
             )
             .bind(pair_id)
             .bind(pool_depth)
@@ -366,8 +341,7 @@ impl MarketStore {
             let pool_id: i64 = row.get("id");
             for coin in [pair.base_game_coin_id, pair.quote_game_coin_id] {
                 let _ = sqlx::query(
-                    "INSERT INTO fx_market.pool_wallets (market_pool_id, game_coin_id, balance, wallet_type, status) \
-                     ON CONFLICT (market_pool_id, game_coin_id) DO NOTHING",
+                    crate::query::market::INSERT_POOL_WALLET_ENSURE,
                 )
                 .bind(pool_id)
                 .bind(coin)

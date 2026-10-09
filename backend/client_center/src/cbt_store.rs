@@ -117,9 +117,7 @@ impl CbtStore {
     pub async fn has_approved_for_coin(&self, corp_id: i64, game_coin_id: i64) -> bool {
         if let Some(pool) = &self.pool {
             let ok: Option<bool> = sqlx::query_scalar(
-                "SELECT EXISTS(SELECT 1 FROM fx_corp_token.company_basic_tokens \
-                 WHERE corporate_user_id = $1 AND game_coin_id = $2 \
-                   AND status = 'approved' AND buyable = TRUE)",
+                crate::query::cbt::HAS_APPROVED_FOR_COIN,
             )
             .bind(corp_id)
             .bind(game_coin_id)
@@ -147,11 +145,7 @@ impl CbtStore {
     pub async fn list_for_corp(&self, corp_id: i64) -> Vec<BasicTokenView> {
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT id, corporate_user_id, game_id, game_coin_id, token_code, token_name, \
-                        status, buyable, buy_fee_rate::float8 AS buy_fee_rate, \
-                        approved_by_admin_id, approved_at, created_at, updated_at \
-                 FROM fx_corp_token.company_basic_tokens \
-                 WHERE corporate_user_id = $1 ORDER BY id",
+                crate::query::cbt::LIST_FOR_CORP,
             )
             .bind(corp_id)
             .fetch_all(pool)
@@ -183,10 +177,7 @@ impl CbtStore {
     pub async fn get(&self, id: i64) -> Option<BasicTokenView> {
         if let Some(pool) = &self.pool {
             let row = sqlx::query(
-                "SELECT id, corporate_user_id, game_id, game_coin_id, token_code, token_name, \
-                        status, buyable, buy_fee_rate::float8 AS buy_fee_rate, \
-                        approved_by_admin_id, approved_at, created_at, updated_at \
-                 FROM fx_corp_token.company_basic_tokens WHERE id = $1",
+                crate::query::cbt::BY_ID,
             )
             .bind(id)
             .fetch_optional(pool)
@@ -219,13 +210,7 @@ impl CbtStore {
         let now = now_ms();
         if let Some(pool) = &self.pool {
             let row = sqlx::query(
-                "INSERT INTO fx_corp_token.company_basic_tokens ( \
-                    corporate_user_id, game_id, game_coin_id, token_code, token_name, \
-                    status, buyable, buy_fee_rate, approved_at, created_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7, 0, $8, 0) \
-                 RETURNING id, corporate_user_id, game_id, game_coin_id, token_code, token_name, \
-                           status, buyable, buy_fee_rate::float8 AS buy_fee_rate, \
-                           approved_by_admin_id, approved_at, created_at, updated_at",
+                crate::query::cbt::INSERT_TOKEN,
             )
             .bind(corp_id)
             .bind(game_id)
@@ -320,14 +305,7 @@ impl CbtStore {
         rec.updated_at = now;
         if let Some(pool) = &self.pool {
             let row = sqlx::query(
-                "UPDATE fx_corp_token.company_basic_tokens SET \
-                    game_id = $1, game_coin_id = $2, token_code = $3, token_name = $4, \
-                    status = $5, buyable = FALSE, approved_by_admin_id = NULL, approved_at = 0, \
-                    updated_at = $6 \
-                 WHERE id = $7 AND corporate_user_id = $8 \
-                 RETURNING id, corporate_user_id, game_id, game_coin_id, token_code, token_name, \
-                           status, buyable, buy_fee_rate::float8 AS buy_fee_rate, \
-                           approved_by_admin_id, approved_at, created_at, updated_at",
+                crate::query::cbt::UPDATE_TOKEN,
             )
             .bind(rec.game_id)
             .bind(rec.game_coin_id)
@@ -351,11 +329,7 @@ impl CbtStore {
     pub async fn list_buyable(&self) -> Vec<BasicTokenView> {
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT id, corporate_user_id, game_id, game_coin_id, token_code, token_name, \
-                        status, buyable, buy_fee_rate::float8 AS buy_fee_rate, \
-                        approved_by_admin_id, approved_at, created_at, updated_at \
-                 FROM fx_corp_token.company_basic_tokens \
-                 WHERE status = 'approved' AND buyable = TRUE ORDER BY id",
+                crate::query::cbt::LIST_BUYABLE,
             )
             .fetch_all(pool)
             .await
@@ -405,16 +379,7 @@ impl CbtStore {
 
         if let Some(pool) = &self.pool {
             let row = sqlx::query(
-                "INSERT INTO fx_corp_token.corp_token_orders ( \
-                    company_basic_token_id, end_user_id, game_account_id, partner_order_no, \
-                    pay_amount, pay_game_coin_id, coin_amount, fee_coin_amount, credited_coin_amount, \
-                    game_coin_id, status, expires_at, paid_at, created_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4, $5, $6, $5, $7, $8, $6, 'pending', $9, 0, $10, 0) \
-                 RETURNING id, company_basic_token_id, end_user_id, game_account_id, partner_order_no, \
-                           pay_amount::float8 AS pay_amount, pay_game_coin_id, \
-                           coin_amount::float8 AS coin_amount, fee_coin_amount::float8 AS fee_coin_amount, \
-                           credited_coin_amount::float8 AS credited_coin_amount, game_coin_id, \
-                           status, expires_at, paid_at, created_at, updated_at",
+                crate::query::cbt::INSERT_ORDER,
             )
             .bind(token_id)
             .bind(end_user_id)
@@ -464,15 +429,7 @@ impl CbtStore {
         self.expire_pending().await;
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT o.id, o.company_basic_token_id, o.end_user_id, o.game_account_id, o.partner_order_no, \
-                        o.pay_amount::float8 AS pay_amount, o.pay_game_coin_id, \
-                        o.coin_amount::float8 AS coin_amount, o.fee_coin_amount::float8 AS fee_coin_amount, \
-                        o.credited_coin_amount::float8 AS credited_coin_amount, o.game_coin_id, \
-                        o.status, o.expires_at, o.paid_at, o.created_at, o.updated_at, \
-                        t.token_code, t.corporate_user_id \
-                 FROM fx_corp_token.corp_token_orders o \
-                 JOIN fx_corp_token.company_basic_tokens t ON t.id = o.company_basic_token_id \
-                 WHERE o.end_user_id = $1 ORDER BY o.id DESC",
+                crate::query::cbt::LIST_ORDERS_FOR_USER,
             )
             .bind(end_user_id)
             .fetch_all(pool)
@@ -499,15 +456,7 @@ impl CbtStore {
         self.expire_pending().await;
         if let Some(pool) = &self.pool {
             let row = sqlx::query(
-                "SELECT o.id, o.company_basic_token_id, o.end_user_id, o.game_account_id, o.partner_order_no, \
-                        o.pay_amount::float8 AS pay_amount, o.pay_game_coin_id, \
-                        o.coin_amount::float8 AS coin_amount, o.fee_coin_amount::float8 AS fee_coin_amount, \
-                        o.credited_coin_amount::float8 AS credited_coin_amount, o.game_coin_id, \
-                        o.status, o.expires_at, o.paid_at, o.created_at, o.updated_at, \
-                        t.token_code, t.corporate_user_id \
-                 FROM fx_corp_token.corp_token_orders o \
-                 JOIN fx_corp_token.company_basic_tokens t ON t.id = o.company_basic_token_id \
-                 WHERE o.id = $1",
+                crate::query::cbt::ORDER_BY_ID,
             )
             .bind(order_id)
             .fetch_optional(pool)
@@ -534,7 +483,7 @@ impl CbtStore {
         let now = now_ms();
         if let Some(pool) = &self.pool {
             sqlx::query(
-                "UPDATE fx_corp_token.corp_token_orders SET status = 'cancelled', updated_at = $1 WHERE id = $2",
+                crate::query::cbt::CANCEL_ORDER,
             )
             .bind(now)
             .bind(order_id)
@@ -566,15 +515,7 @@ impl CbtStore {
             .ok_or_else(|| "token not found".to_string())?;
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT o.id, o.company_basic_token_id, o.end_user_id, o.game_account_id, o.partner_order_no, \
-                        o.pay_amount::float8 AS pay_amount, o.pay_game_coin_id, \
-                        o.coin_amount::float8 AS coin_amount, o.fee_coin_amount::float8 AS fee_coin_amount, \
-                        o.credited_coin_amount::float8 AS credited_coin_amount, o.game_coin_id, \
-                        o.status, o.expires_at, o.paid_at, o.created_at, o.updated_at, \
-                        t.token_code, t.corporate_user_id \
-                 FROM fx_corp_token.corp_token_orders o \
-                 JOIN fx_corp_token.company_basic_tokens t ON t.id = o.company_basic_token_id \
-                 WHERE o.company_basic_token_id = $1 ORDER BY o.id DESC",
+                crate::query::cbt::LIST_ORDERS_FOR_TOKEN,
             )
             .bind(token_id)
             .fetch_all(pool)
@@ -606,12 +547,7 @@ impl CbtStore {
             .ok_or_else(|| "token not found".to_string())?;
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT id, corporate_user_id, company_basic_token_id, corp_token_order_id, game_coin_id, \
-                        fee_rate::float8 AS fee_rate, gross_coin_amount::float8 AS gross_coin_amount, \
-                        fee_coin_amount::float8 AS fee_coin_amount, net_coin_amount::float8 AS net_coin_amount, \
-                        created_at \
-                 FROM fx_corp_token.coin_fee_ledger \
-                 WHERE company_basic_token_id = $1 ORDER BY id DESC",
+                crate::query::cbt::LIST_FEES_FOR_TOKEN,
             )
             .bind(token_id)
             .fetch_all(pool)
@@ -675,9 +611,7 @@ impl CbtStore {
         if let Some(pool) = &self.pool {
             let paid_at = if new_status == "paid" { now } else { 0_i64 };
             sqlx::query(
-                "UPDATE fx_corp_token.corp_token_orders SET status = $1, paid_at = $2, \
-                    partner_order_no = COALESCE($3, partner_order_no), updated_at = $4 \
-                 WHERE id = $5",
+                crate::query::cbt::SETTLE_ORDER,
             )
             .bind(new_status)
             .bind(paid_at)
@@ -693,10 +627,7 @@ impl CbtStore {
             .map_err(|e| e.to_string())?;
 
             let _ = sqlx::query(
-                "INSERT INTO fx_corp_token.corp_token_payment_events \
-                    (corp_token_order_id, event_id, event_type, partner_order_no, status, payload, received_at, created_at) \
-                 VALUES ($1, $2, 'corp_token_payment', $3, $4, $5::jsonb, $6, $6) \
-                 ON CONFLICT (event_id) DO NOTHING",
+                crate::query::cbt::INSERT_PAYMENT_EVENT,
             )
             .bind(corp_token_order_id)
             .bind(event_id)
@@ -715,11 +646,7 @@ impl CbtStore {
 
             if new_status == "paid" {
                 sqlx::query(
-                    "INSERT INTO fx_user.user_wallets (game_account_id, game_coin_id, available, locked, updated_at) \
-                     VALUES ($1, $2, $3, 0, $4) \
-                     ON CONFLICT (game_account_id, game_coin_id) DO UPDATE SET \
-                        available = fx_user.user_wallets.available + EXCLUDED.available, \
-                        updated_at = EXCLUDED.updated_at",
+                    crate::query::cbt::UPSERT_WALLET_CREDIT,
                 )
                 .bind(order.game_account_id)
                 .bind(order.game_coin_id)
@@ -730,10 +657,7 @@ impl CbtStore {
                 .map_err(|e| e.to_string())?;
 
                 let _ = sqlx::query(
-                    "INSERT INTO fx_corp_token.coin_fee_ledger ( \
-                        corporate_user_id, company_basic_token_id, corp_token_order_id, game_coin_id, \
-                        fee_rate, gross_coin_amount, fee_coin_amount, net_coin_amount, created_at \
-                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                    crate::query::cbt::INSERT_FEE_LEDGER,
                 )
                 .bind(corp_id)
                 .bind(token_id)
@@ -797,9 +721,7 @@ impl CbtStore {
         }
         if let Some(pool) = &self.pool {
             if let Ok(Some(url)) = sqlx::query_scalar::<_, String>(
-                "SELECT callback_url FROM fx_events.webhook_endpoints \
-                 WHERE corporate_user_id = $1 AND kind = 'corp_token' AND status = 'active' \
-                 LIMIT 1",
+                crate::query::cbt::WEBHOOK_CALLBACK_URL,
             )
             .bind(corporate_user_id)
             .fetch_optional(pool)
@@ -808,9 +730,7 @@ impl CbtStore {
                 return Some(url);
             }
             if let Ok(Some(url)) = sqlx::query_scalar::<_, String>(
-                "SELECT endpoint FROM fx_corp.partner_endpoints \
-                 WHERE corporate_user_id = $1 AND type = 'callback' AND status = 'active' \
-                 LIMIT 1",
+                crate::query::cbt::PARTNER_CALLBACK_URL,
             )
             .bind(corporate_user_id)
             .fetch_optional(pool)
@@ -828,8 +748,7 @@ impl CbtStore {
         let now = now_ms();
         if let Some(pool) = &self.pool {
             let _ = sqlx::query(
-                "UPDATE fx_corp_token.corp_token_orders SET status = 'expired', updated_at = $1 \
-                 WHERE status = 'pending' AND expires_at <= $1",
+                crate::query::cbt::EXPIRE_PENDING,
             )
             .bind(now)
             .execute(pool)

@@ -61,6 +61,11 @@ pub mod paths {
     pub const CLIENT_GAMES: &str = "/v1/client/games";
     pub const CLIENT_GAME_ACCOUNTS: &str = "/v1/client/game-accounts";
     pub const CLIENT_GAME_ACCOUNTS_BIND: &str = "/v1/client/game-accounts/bind";
+    pub const CLIENT_WALLET: &str = "/v1/client/wallet";
+    pub const CLIENT_DEPOSIT: &str = "/v1/client/deposit";
+    pub const CLIENT_WITHDRAW: &str = "/v1/client/withdraw";
+    pub const CLIENT_TRANSACTIONS: &str = "/v1/client/transactions";
+    pub const CLIENT_CHAT_MESSAGES: &str = "/v1/client/chat/messages";
     pub const SESSION_TOKEN: &str = "/v1/session/token";
     pub const SESSION_VALIDATE: &str = "/v1/session/validate";
     pub const SESSION_REVOKE: &str = "/v1/session/revoke";
@@ -89,6 +94,15 @@ pub mod paths {
     pub const ADMIN_SHOP_PACKAGES: &str = "/v1/admin/shop/packages";
     pub const ADMIN_SHOP_PACKAGE: &str = "/v1/admin/shop/packages/{id}";
     pub const ADMIN_SHOP_PACKAGE_STATUS: &str = "/v1/admin/shop/packages/{id}/status";
+
+    pub const ADMIN_GAME_COINS: &str = "/v1/admin/game-coins";
+    pub const ADMIN_GAME_COIN: &str = "/v1/admin/game-coins/{id}";
+    pub const ADMIN_GAME_COIN_STATUS: &str = "/v1/admin/game-coins/{id}/status";
+
+    pub const ADMIN_MARKETS: &str = "/v1/admin/markets";
+    pub const ADMIN_MARKET: &str = "/v1/admin/markets/{id}";
+    pub const ADMIN_MARKET_APPROVE: &str = "/v1/admin/markets/{id}/approve";
+    pub const ADMIN_MARKET_REJECT: &str = "/v1/admin/markets/{id}/reject";
 
     pub const CONFIG_RELOAD: &str = "/reload";
     pub const CONFIG_WHITELIST: &str = "/v1/config/whitelist";

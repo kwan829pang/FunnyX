@@ -116,8 +116,7 @@ impl ShopStore {
     pub async fn base_fiat(&self) -> String {
         if let Some(pool) = &self.pool {
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
-                "SELECT setting_value FROM fx_config.system_settings \
-                 WHERE setting_key = 'base_fiat_currency'",
+                crate::query::shop::BASE_FIAT,
             )
             .fetch_optional(pool)
             .await
@@ -137,13 +136,7 @@ impl ShopStore {
     pub async fn list_packages(&self) -> Vec<PackageView> {
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT p.id, p.code, p.name, p.game_coin_id, c.code AS credit_game_coin, \
-                        p.coin_amount::float8 AS coin_amount, p.fiat_price::float8 AS fiat_price, \
-                        p.seller_type, p.status \
-                 FROM fx_shop.shop_packages p \
-                 JOIN fx_game.game_coins c ON c.id = p.game_coin_id \
-                 WHERE p.status = 'active' \
-                 ORDER BY p.id",
+                crate::query::shop::LIST_PACKAGES,
             )
             .fetch_all(pool)
             .await
@@ -163,14 +156,7 @@ impl ShopStore {
     pub async fn list_corp_products(&self) -> Vec<CorpProductView> {
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT pr.id, pr.corporate_user_id, pr.game_id, pr.code, pr.name, pr.product_type, \
-                        pr.credit_game_coin_id, gc.code AS credit_game_coin, \
-                        pr.credit_amount::float8 AS credit_amount, pr.item_code, \
-                        pr.fiat_price::float8 AS fiat_price, pr.seller_type, pr.status \
-                 FROM fx_shop.corp_shop_products pr \
-                 LEFT JOIN fx_game.game_coins gc ON gc.id = pr.credit_game_coin_id \
-                 WHERE pr.status = 'active' \
-                 ORDER BY pr.id",
+                crate::query::shop::LIST_CORP_PRODUCTS_ACTIVE,
             )
             .fetch_all(pool)
             .await
@@ -202,14 +188,7 @@ impl ShopStore {
     pub async fn list_corp_products_owned(&self, corporate_user_id: i64) -> Vec<CorpProductView> {
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT pr.id, pr.corporate_user_id, pr.game_id, pr.code, pr.name, pr.product_type, \
-                        pr.credit_game_coin_id, gc.code AS credit_game_coin, \
-                        pr.credit_amount::float8 AS credit_amount, pr.item_code, \
-                        pr.fiat_price::float8 AS fiat_price, pr.seller_type, pr.status \
-                 FROM fx_shop.corp_shop_products pr \
-                 LEFT JOIN fx_game.game_coins gc ON gc.id = pr.credit_game_coin_id \
-                 WHERE pr.corporate_user_id = $1 \
-                 ORDER BY pr.id",
+                crate::query::shop::LIST_CORP_PRODUCTS_OWNED,
             )
             .bind(corporate_user_id)
             .fetch_all(pool)
@@ -255,11 +234,7 @@ impl ShopStore {
         if let Some(pool) = &self.pool {
             let now = now_ms();
             let row = sqlx::query(
-                "INSERT INTO fx_shop.corp_shop_products ( \
-                    corporate_user_id, game_id, code, name, product_type, credit_game_coin_id, \
-                    credit_amount, item_code, fiat_price, seller_type, status, created_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'corp', $10, $11, 0) \
-                 RETURNING id",
+                crate::query::shop::INSERT_CORP_PRODUCT,
             )
             .bind(rec.corporate_user_id)
             .bind(rec.game_id)
@@ -311,9 +286,7 @@ impl ShopStore {
         validate_corp_product(&rec, false)?;
         if let Some(pool) = &self.pool {
             sqlx::query(
-                "UPDATE fx_shop.corp_shop_products SET game_id = $1, code = $2, name = $3, product_type = $4, \
-                    credit_game_coin_id = $5, credit_amount = $6, item_code = $7, fiat_price = $8, updated_at = $9 \
-                 WHERE id = $10 AND corporate_user_id = $11",
+                crate::query::shop::UPDATE_CORP_PRODUCT,
             )
             .bind(rec.game_id)
             .bind(&rec.code)
@@ -355,8 +328,7 @@ impl ShopStore {
         }
         if let Some(pool) = &self.pool {
             sqlx::query(
-                "UPDATE fx_shop.corp_shop_products SET status = $1, updated_at = $2 \
-                 WHERE id = $3 AND corporate_user_id = $4",
+                crate::query::shop::SET_CORP_PRODUCT_STATUS,
             )
             .bind(status)
             .bind(now_ms())
@@ -383,7 +355,7 @@ impl ShopStore {
     pub async fn list_orders(&self, end_user_id: i64) -> Vec<ShopOrderView> {
         self.expire_pending().await;
         if let Some(pool) = &self.pool {
-            let rows = sqlx::query(&format!("{ORDER_SELECT} ORDER BY o.id DESC"))
+            let rows = sqlx::query(&format!("{} ORDER BY o.id DESC", crate::query::shop::ORDER_SELECT))
                 .bind(end_user_id)
                 .fetch_all(pool)
                 .await
@@ -408,7 +380,7 @@ impl ShopStore {
     pub async fn get_order(&self, end_user_id: i64, id: i64) -> Option<ShopOrderView> {
         self.expire_pending().await;
         if let Some(pool) = &self.pool {
-            return sqlx::query(&format!("{ORDER_SELECT} AND o.id = $2"))
+            return sqlx::query(&format!("{} AND o.id = $2", crate::query::shop::ORDER_SELECT))
                 .bind(end_user_id)
                 .bind(id)
                 .fetch_optional(pool)
@@ -426,16 +398,7 @@ impl ShopStore {
         self.expire_pending().await;
         if let Some(pool) = &self.pool {
             return sqlx::query(
-                "SELECT o.id, o.end_user_id, o.game_account_id, o.seller_type, \
-                        o.package_id, o.corp_product_id, p.code AS package_code, c.code AS product_code, \
-                        gc.code AS credit_game_coin, o.credit_amount::float8 AS credit_amount, o.item_code, \
-                        o.fiat_currency, o.fiat_price::float8 AS fiat_price, o.partner_order_no, \
-                        o.status, o.expires_at, o.paid_at, o.created_at, o.game_coin_id, o.corporate_user_id \
-                 FROM fx_shop.shop_orders o \
-                 LEFT JOIN fx_shop.shop_packages p ON p.id = o.package_id \
-                 LEFT JOIN fx_shop.corp_shop_products c ON c.id = o.corp_product_id \
-                 LEFT JOIN fx_game.game_coins gc ON gc.id = o.game_coin_id \
-                 WHERE o.id = $1",
+                crate::query::shop::ORDER_BY_ID,
             )
             .bind(id)
             .fetch_optional(pool)
@@ -512,8 +475,7 @@ impl ShopStore {
         if let Some(pool) = &self.pool {
             let paid_at = if new_status == "paid" { now } else { 0_i64 };
             sqlx::query(
-                "UPDATE fx_shop.shop_orders SET status = $1, paid_at = $2, partner_order_no = COALESCE($3, partner_order_no), updated_at = $4 \
-                 WHERE id = $5",
+                crate::query::shop::SETTLE_ORDER,
             )
             .bind(new_status)
             .bind(paid_at)
@@ -528,10 +490,7 @@ impl ShopStore {
             .await
             .map_err(|e| e.to_string())?;
             let _ = sqlx::query(
-                "INSERT INTO fx_shop.shop_payment_events \
-                    (shop_order_id, event_id, event_type, partner_order_no, status, payload, received_at, created_at) \
-                 VALUES ($1, $2, 'shop_payment', $3, $4, $5::jsonb, $6, $6) \
-                 ON CONFLICT (event_id) DO NOTHING",
+                crate::query::shop::INSERT_PAYMENT_EVENT,
             )
             .bind(shop_order_id)
             .bind(event_id)
@@ -546,11 +505,7 @@ impl ShopStore {
                     let amt = order.credit_amount.unwrap_or(0.0);
                     if amt > 0.0 {
                         sqlx::query(
-                            "INSERT INTO fx_user.user_wallets (game_account_id, game_coin_id, available, locked, updated_at) \
-                             VALUES ($1, $2, $3, 0, $4) \
-                             ON CONFLICT (game_account_id, game_coin_id) DO UPDATE SET \
-                                available = fx_user.user_wallets.available + EXCLUDED.available, \
-                                updated_at = EXCLUDED.updated_at",
+                            crate::query::shop::UPSERT_WALLET_CREDIT,
                         )
                         .bind(order.game_account_id)
                         .bind(coin_id)
@@ -606,14 +561,7 @@ impl ShopStore {
     pub async fn insert_order(&self, mut order: ShopOrderView) -> Result<ShopOrderView, String> {
         if let Some(pool) = &self.pool {
             let row = sqlx::query(
-                "INSERT INTO fx_shop.shop_orders ( \
-                    game_account_id, end_user_id, seller_type, package_id, corp_product_id, \
-                    corporate_user_id, partner_order_no, fiat_currency, fiat_price, \
-                    credit_amount, game_coin_id, item_code, status, expires_at, paid_at, \
-                    created_at, updated_at \
-                 ) VALUES ( \
-                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', $13, 0, $14, 0 \
-                 ) RETURNING id",
+                crate::query::shop::INSERT_ORDER,
             )
             .bind(order.game_account_id)
             .bind(order.end_user_id)
@@ -650,8 +598,7 @@ impl ShopStore {
     ) -> Result<(), String> {
         if let Some(pool) = &self.pool {
             sqlx::query(
-                "UPDATE fx_shop.shop_orders \
-                 SET partner_order_no = $1, updated_at = $2 WHERE id = $3",
+                crate::query::shop::SET_PAYMENT,
             )
             .bind(partner_order_no)
             .bind(now_ms())
@@ -680,8 +627,7 @@ impl ShopStore {
         rec.checkout_url = rec.checkout_url.clone();
         if let Some(pool) = &self.pool {
             sqlx::query(
-                "UPDATE fx_shop.shop_orders SET status = 'cancelled', updated_at = $1 WHERE id = $2 \
-                 AND end_user_id = $3 AND status = 'pending'",
+                crate::query::shop::CANCEL_ORDER,
             )
             .bind(now_ms())
             .bind(id)
@@ -700,8 +646,7 @@ impl ShopStore {
         let now = now_ms();
         if let Some(pool) = &self.pool {
             let _ = sqlx::query(
-                "UPDATE fx_shop.shop_orders SET status = 'expired', updated_at = $1 \
-                 WHERE status = 'pending' AND expires_at <= $1",
+                crate::query::shop::EXPIRE_PENDING,
             )
             .bind(now)
             .execute(pool)
@@ -737,9 +682,7 @@ async fn insert_money_txn_with_status_log(
     now: i64,
 ) -> Result<i64, String> {
     if let Some(existing_id) = sqlx::query_scalar::<_, i64>(
-        "SELECT id FROM fx_money.deposit_withdrawal_txns \
-         WHERE shop_order_id = $1 AND transaction_type = $2 \
-         ORDER BY id LIMIT 1",
+        crate::query::shop::TXN_BY_SHOP_ORDER,
     )
     .bind(shop_order_id)
     .bind(transaction_type)
@@ -753,11 +696,7 @@ async fn insert_money_txn_with_status_log(
 
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
     let txn_id: i64 = sqlx::query_scalar(
-        "INSERT INTO fx_money.deposit_withdrawal_txns ( \
-            end_user_id, game_account_id, corporate_user_id, shop_order_id, \
-            transaction_type, amount, game_coin_id, status, created_at, updated_at \
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'completed', $8, 0) \
-         RETURNING id",
+        crate::query::shop::INSERT_COMPLETED_TXN,
     )
     .bind(end_user_id)
     .bind(game_account_id)
@@ -800,10 +739,7 @@ async fn ensure_completed_status_log(
     now: i64,
 ) -> Result<(), String> {
     let exists: bool = sqlx::query_scalar(
-        "SELECT EXISTS( \
-            SELECT 1 FROM fx_money.deposit_withdrawal_status_logs \
-            WHERE deposit_withdrawal_txn_id = $1 AND event_type = 'completed' \
-         )",
+        crate::query::shop::COMPLETED_LOG_EXISTS,
     )
     .bind(txn_id)
     .fetch_one(pool)
@@ -850,9 +786,7 @@ where
     });
     let note = format!("shop settle paid → {transaction_type} (order {shop_order_id})");
     sqlx::query(
-        "INSERT INTO fx_money.deposit_withdrawal_status_logs ( \
-            deposit_withdrawal_txn_id, old_status, new_status, event_type, note, payload, created_at \
-         ) VALUES ($1, NULL, 'completed', 'completed', $2, $3::jsonb, $4)",
+        crate::query::shop::INSERT_STATUS_LOG_COMPLETED,
     )
     .bind(txn_id)
     .bind(&note)
@@ -927,17 +861,6 @@ fn demo_corp_products() -> Vec<CorpProductView> {
         status: "active".into(),
     }]
 }
-
-const ORDER_SELECT: &str = "SELECT o.id, o.end_user_id, o.game_account_id, o.seller_type, \
-    o.package_id, o.corp_product_id, p.code AS package_code, c.code AS product_code, \
-    gc.code AS credit_game_coin, o.credit_amount::float8 AS credit_amount, o.item_code, \
-    o.fiat_currency, o.fiat_price::float8 AS fiat_price, o.partner_order_no, \
-    o.status, o.expires_at, o.paid_at, o.created_at \
- FROM fx_shop.shop_orders o \
- LEFT JOIN fx_shop.shop_packages p ON p.id = o.package_id \
- LEFT JOIN fx_shop.corp_shop_products c ON c.id = o.corp_product_id \
- LEFT JOIN fx_game.game_coins gc ON gc.id = o.game_coin_id \
- WHERE o.end_user_id = $1";
 
 fn map_package(row: sqlx::postgres::PgRow) -> PackageView {
     PackageView {

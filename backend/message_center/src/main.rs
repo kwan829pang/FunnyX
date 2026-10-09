@@ -4,6 +4,7 @@ mod drain;
 mod models;
 mod mongo;
 mod partner;
+mod query;
 mod store;
 mod sts;
 

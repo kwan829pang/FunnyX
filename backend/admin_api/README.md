@@ -2,7 +2,7 @@
 
 Admin Panel backend. After Admin API verifies credentials, **Session Token Server** issues an admin session (`actor_type=admin`, scope includes `admin`).
 
-Default port: **18300**. Requires STS on **8082**.
+Default port: **18300**. Requires STS on **8082**. Public ingress: [Gateway](../gateway/) on **8080**.
 
 ## Run
 
@@ -34,9 +34,19 @@ Admin Panel
 | `POST` | `/v1/admin/login` | Public | Verify admin → STS token |
 | `POST` | `/v1/admin/logout` | Bearer / body | Revoke via STS |
 | `GET` | `/v1/admin/me` | Bearer | Profile after STS validate |
-| `GET` | `/v1/admin/shop/corp-products` | Bearer (admin) | List Corp e-shop products (any status; query `status`, `corporate_user_id`) |
-| `GET` | `/v1/admin/shop/corp-products/{id}` | Bearer (admin) | Corp product detail |
-| `PATCH` | `/v1/admin/shop/corp-products/{id}/status` | Bearer (admin) | Set `active` / `inactive` / `archived` (suspend) |
+| `GET`/`POST` | `/v1/admin/game-coins` | Bearer | List / create Game Partner Game Coin |
+| `PUT` | `/v1/admin/game-coins/{id}` | Bearer | Update name / asset_kind |
+| `PATCH` | `/v1/admin/game-coins/{id}/status` | Bearer | `active` / `inactive` |
+| `GET` | `/v1/admin/markets` | Bearer | List market pairs (+ pool/lock); `?status=` |
+| `GET` | `/v1/admin/markets/{id}` | Bearer | Market detail |
+| `POST` | `/v1/admin/markets/{id}/approve` | Bearer | Transfer lock → pool; activate; Core Engine `POST /v1/admin/pairs` |
+| `POST` | `/v1/admin/markets/{id}/reject` | Bearer | Unlock client lock; reject pair |
+| `GET` | `/v1/admin/shop/corp-products` | Bearer | List Corp e-shop products |
+| `GET` | `/v1/admin/shop/corp-products/{id}` | Bearer | Corp product detail |
+| `PATCH` | `/v1/admin/shop/corp-products/{id}/status` | Bearer | Set `active` / `inactive` / `archived` |
+| `GET`/`POST`/`PUT`/`PATCH` | `/v1/admin/shop/packages*` | Bearer | PLT packages |
+| `GET`/`POST`/`PUT` | `/v1/admin/system/*` | Bearer | Setup wizard + base currency |
+| `GET`/`POST` | `/v1/admin/basic-tokens*` | Bearer | CBT approve / reject |
 
 Demo admins: `seed_admin` / `admin` (password `demo`).
 
@@ -45,17 +55,16 @@ TOKEN=$(curl -s http://127.0.0.1:18300/v1/admin/login \
   -H "content-type: application/json" \
   -d '{"username":"seed_admin","password":"demo"}' | jq -r .access_token)
 
-curl -s http://127.0.0.1:18300/v1/admin/shop/corp-products \
+curl -s http://127.0.0.1:18300/v1/admin/game-coins -H "authorization: Bearer $TOKEN"
+curl -s "http://127.0.0.1:18300/v1/admin/markets?status=pending_locked" \
   -H "authorization: Bearer $TOKEN"
-
-curl -s -X PATCH http://127.0.0.1:18300/v1/admin/shop/corp-products/1/status \
-  -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
-  -d '{"status":"inactive"}'
+curl -s -X POST http://127.0.0.1:18300/v1/admin/markets/1/approve \
+  -H "authorization: Bearer $TOKEN"
 ```
 
-Without `POSTGRES_URL`, a demo product `DEMO_PACK_100` is in memory. Set `POSTGRES_URL` to list/suspend rows in `fx_shop.corp_shop_products`. Status changes write `fx_admin.admin_action_logs` when Postgres is up.
+Market approve resolves Core Engine via Config Server registry (`CONFIG_SERVER_URL`) or `CORE_ENGINE_URL` / `CORE_ENGINE_ADMIN_KEY` fallback.
 
-Corp **create** of products is `/v1/corp/shop/products` (not this service).
+Without `POSTGRES_URL`, game-coins + a demo pending market run in memory. Set `POSTGRES_URL` for shared `fx_game` / `fx_market` with Client Center.
 
 ## Env
 

@@ -54,15 +54,7 @@ impl NoticeStore {
         }
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            let row = sqlx::query_as::<_, NoticeRow>(
-                "INSERT INTO fx_events.outbound_notices ( \
-                    end_user_id, source_type, source_id, event_type, title, body, payload, \
-                    delivery_status, retry_count, scheduled_at, sent_at, created_at, updated_at \
-                 ) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,'pending',0,$8,0,$9,0) \
-                 RETURNING id, end_user_id, source_type, source_id, event_type, title, body, \
-                    payload, delivery_status, retry_count, scheduled_at, sent_at, notification_id, \
-                    created_at, updated_at",
-            )
+            let row = sqlx::query_as::<_, NoticeRow>(crate::query::outbound_notices::INSERT)
             .bind(end_user_id)
             .bind(source_type)
             .bind(source_id)
@@ -103,21 +95,7 @@ impl NoticeStore {
     pub async fn claim_pending(&self, limit: i64, now: i64) -> Result<Vec<OutboundNotice>, String> {
         if let Some(pool) = &self.pool {
             let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
-            let rows = sqlx::query_as::<_, NoticeRow>(
-                "UPDATE fx_events.outbound_notices n SET \
-                    delivery_status = 'sending', updated_at = $1 \
-                 WHERE n.id IN ( \
-                    SELECT id FROM fx_events.outbound_notices \
-                    WHERE delivery_status = 'pending' \
-                      AND (scheduled_at = 0 OR scheduled_at <= $1) \
-                    ORDER BY scheduled_at ASC, created_at ASC \
-                    FOR UPDATE SKIP LOCKED \
-                    LIMIT $2 \
-                 ) \
-                 RETURNING id, end_user_id, source_type, source_id, event_type, title, body, \
-                    payload, delivery_status, retry_count, scheduled_at, sent_at, notification_id, \
-                    created_at, updated_at",
-            )
+            let rows = sqlx::query_as::<_, NoticeRow>(crate::query::outbound_notices::CLAIM_PENDING)
             .bind(now)
             .bind(limit)
             .fetch_all(&mut *tx)
@@ -156,11 +134,7 @@ impl NoticeStore {
         now: i64,
     ) -> Result<(), String> {
         if let Some(pool) = &self.pool {
-            sqlx::query(
-                "UPDATE fx_events.outbound_notices SET \
-                    delivery_status = 'sent', notification_id = $2, sent_at = $3, updated_at = $3 \
-                 WHERE id = $1",
-            )
+            sqlx::query(crate::query::outbound_notices::MARK_SENT)
             .bind(notice_id)
             .bind(notification_id)
             .bind(now)
@@ -192,12 +166,7 @@ impl NoticeStore {
         let status = if failed { "failed" } else { "pending" };
         let scheduled = if failed { 0 } else { now + backoff_ms };
         if let Some(pool) = &self.pool {
-            sqlx::query(
-                "UPDATE fx_events.outbound_notices SET \
-                    delivery_status = $2, retry_count = $3, scheduled_at = $4, updated_at = $5, \
-                    payload = payload || $6::jsonb \
-                 WHERE id = $1",
-            )
+            sqlx::query(crate::query::outbound_notices::MARK_RETRY_OR_FAILED)
             .bind(notice_id)
             .bind(status)
             .bind(retry_count)
@@ -237,11 +206,7 @@ impl NoticeStore {
         now: i64,
     ) -> Result<i64, String> {
         if let Some(pool) = &self.pool {
-            let id: i64 = sqlx::query_scalar(
-                "INSERT INTO fx_events.notifications ( \
-                    end_user_id, type, payload, read_at, created_at, updated_at \
-                 ) VALUES ($1, $2, $3::jsonb, 0, $4, 0) RETURNING id",
-            )
+            let id: i64 = sqlx::query_scalar(crate::query::notifications::INSERT)
             .bind(end_user_id)
             .bind(type_str)
             .bind(payload.to_string())
@@ -270,12 +235,7 @@ impl NoticeStore {
         limit: i64,
     ) -> Result<Vec<NotificationView>, String> {
         if let Some(pool) = &self.pool {
-            let rows = sqlx::query_as::<_, NotifRow>(
-                "SELECT id, end_user_id, type, payload, read_at, created_at \
-                 FROM fx_events.notifications \
-                 WHERE end_user_id = $1 \
-                 ORDER BY created_at DESC LIMIT $2",
-            )
+            let rows = sqlx::query_as::<_, NotifRow>(crate::query::notifications::LIST_FOR_USER)
             .bind(end_user_id)
             .bind(limit.max(1).min(200))
             .fetch_all(pool)
@@ -304,11 +264,7 @@ impl NoticeStore {
     ) -> Result<Option<NotificationView>, String> {
         let read_at = if read { now } else { 0 };
         if let Some(pool) = &self.pool {
-            let row = sqlx::query_as::<_, NotifRow>(
-                "UPDATE fx_events.notifications SET read_at = $3, updated_at = $3 \
-                 WHERE id = $1 AND end_user_id = $2 \
-                 RETURNING id, end_user_id, type, payload, read_at, created_at",
-            )
+            let row = sqlx::query_as::<_, NotifRow>(crate::query::notifications::MARK_READ)
             .bind(id)
             .bind(end_user_id)
             .bind(read_at)
@@ -335,26 +291,13 @@ impl NoticeStore {
     ) -> Result<Vec<OutboundNotice>, String> {
         if let Some(pool) = &self.pool {
             let rows = if let Some(st) = delivery_status.filter(|s| !s.is_empty()) {
-                sqlx::query_as::<_, NoticeRow>(
-                    "SELECT id, end_user_id, source_type, source_id, event_type, title, body, \
-                        payload, delivery_status, retry_count, scheduled_at, sent_at, notification_id, \
-                        created_at, updated_at \
-                     FROM fx_events.outbound_notices \
-                     WHERE delivery_status = $1 \
-                     ORDER BY created_at DESC LIMIT $2",
-                )
+                sqlx::query_as::<_, NoticeRow>(crate::query::outbound_notices::LIST_BY_STATUS)
                 .bind(st)
                 .bind(limit.max(1).min(500))
                 .fetch_all(pool)
                 .await
             } else {
-                sqlx::query_as::<_, NoticeRow>(
-                    "SELECT id, end_user_id, source_type, source_id, event_type, title, body, \
-                        payload, delivery_status, retry_count, scheduled_at, sent_at, notification_id, \
-                        created_at, updated_at \
-                     FROM fx_events.outbound_notices \
-                     ORDER BY created_at DESC LIMIT $1",
-                )
+                sqlx::query_as::<_, NoticeRow>(crate::query::outbound_notices::LIST_ALL)
                 .bind(limit.max(1).min(500))
                 .fetch_all(pool)
                 .await
@@ -380,12 +323,7 @@ impl NoticeStore {
 
     pub async fn get_notice(&self, id: i64) -> Result<Option<OutboundNotice>, String> {
         if let Some(pool) = &self.pool {
-            let row = sqlx::query_as::<_, NoticeRow>(
-                "SELECT id, end_user_id, source_type, source_id, event_type, title, body, \
-                    payload, delivery_status, retry_count, scheduled_at, sent_at, notification_id, \
-                    created_at, updated_at \
-                 FROM fx_events.outbound_notices WHERE id = $1",
-            )
+            let row = sqlx::query_as::<_, NoticeRow>(crate::query::outbound_notices::GET)
             .bind(id)
             .fetch_optional(pool)
             .await
@@ -397,10 +335,8 @@ impl NoticeStore {
 
     pub async fn stats(&self) -> Result<NoticeStats, String> {
         if let Some(pool) = &self.pool {
-            let rows: Vec<(String, i64)> = sqlx::query_as(
-                "SELECT delivery_status, COUNT(*)::bigint FROM fx_events.outbound_notices \
-                 GROUP BY delivery_status",
-            )
+            let rows: Vec<(String, i64)> =
+                sqlx::query_as(crate::query::outbound_notices::STATS_BY_STATUS)
             .fetch_all(pool)
             .await
             .map_err(|e| e.to_string())?;
@@ -448,10 +384,7 @@ impl NoticeStore {
         kind: &str,
     ) -> Option<String> {
         let pool = self.pool.as_ref()?;
-        sqlx::query_scalar::<_, String>(
-            "SELECT callback_url FROM fx_events.webhook_endpoints \
-             WHERE corporate_user_id = $1 AND kind = $2 AND status = 'active' LIMIT 1",
-        )
+        sqlx::query_scalar::<_, String>(crate::query::webhook_endpoints::RESOLVE_CALLBACK)
         .bind(corporate_user_id)
         .bind(kind)
         .fetch_optional(pool)
@@ -472,16 +405,7 @@ impl NoticeStore {
             return;
         };
         let now = now_ms();
-        let _ = sqlx::query(
-            "INSERT INTO fx_events.webhook_events ( \
-                event_id, source, event_type, payload, delivery_status, retry_count, \
-                last_error, next_retry_at, received_at, updated_at \
-             ) VALUES ($1, 'message_center', $2, $3::jsonb, $4, 0, $5, 0, $6, 0) \
-             ON CONFLICT (event_id) DO UPDATE SET \
-                delivery_status = EXCLUDED.delivery_status, \
-                last_error = EXCLUDED.last_error, \
-                updated_at = EXCLUDED.received_at",
-        )
+        let _ = sqlx::query(crate::query::webhook_events::UPSERT_DELIVERY)
         .bind(event_id)
         .bind(event_type)
         .bind(payload.to_string())

@@ -15,6 +15,9 @@ pub struct Config {
     pub config_server_url: String,
     pub internal_api_key: String,
     pub postgres_url: Option<String>,
+    /// Fallback when Config Server has no core-engine instance.
+    pub core_engine_url: String,
+    pub core_engine_admin_key: String,
 }
 
 impl Config {
@@ -52,6 +55,13 @@ impl Config {
                 .ok()
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty() && !s.contains("xxx.xxx.xxx.xxx")),
+            core_engine_url: env::var("CORE_ENGINE_URL")
+                .unwrap_or_else(|_| "http://127.0.0.1:18200".into())
+                .trim_end_matches('/')
+                .to_string(),
+            core_engine_admin_key: env::var("CORE_ENGINE_ADMIN_KEY")
+                .or_else(|_| env::var("ADMIN_API_KEY"))
+                .unwrap_or_else(|_| "demo-admin-key".into()),
         })
     }
 }

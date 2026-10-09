@@ -4,7 +4,7 @@ Flutter Web end-user UI for auth, wallet, trade, and e-shop flows. Shared code l
 
 ## Auth (register / login / OAuth)
 
-Client Web calls **Client Center** (default `http://127.0.0.1:8083`). Sessions (`sts_…`) come from **Session Token Server**.
+Client Web calls **Gateway** (default `http://127.0.0.1:8080`), which proxies to Client Center. Sessions (`sts_…`) come from **Session Token Server**.
 
 | UI | API / flow |
 | --- | --- |
@@ -36,6 +36,7 @@ Demo Partner Path B needs `company-a-server` on `18102`.
 ```bash
 cd backend/session_token_server && cargo run
 cd backend/client_center && cargo run
+cd backend/gateway && cargo run                  # HTTP_PORT=8080
 cd dev_simulator/company-a-server && cargo run   # HTTP_PORT=18102
 ```
 

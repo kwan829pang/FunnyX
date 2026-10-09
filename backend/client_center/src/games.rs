@@ -44,12 +44,7 @@ impl GameCatalog {
     pub async fn list_active(&self) -> Vec<GameRecord> {
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT id, game_code, game_name, status, \
-                        COALESCE(partner_code, '') AS partner_id, \
-                        COALESCE(partner_game_id, '') AS partner_game_id \
-                 FROM fx_game.games \
-                 WHERE status = 'active' \
-                 ORDER BY id",
+                crate::query::games::LIST_ACTIVE,
             )
             .fetch_all(pool)
             .await
@@ -66,10 +61,7 @@ impl GameCatalog {
     pub async fn get(&self, game_id: i64) -> Option<GameRecord> {
         if let Some(pool) = &self.pool {
             return sqlx::query(
-                "SELECT id, game_code, game_name, status, \
-                        COALESCE(partner_code, '') AS partner_id, \
-                        COALESCE(partner_game_id, '') AS partner_game_id \
-                 FROM fx_game.games WHERE id = $1",
+                crate::query::games::BY_ID,
             )
             .bind(game_id)
             .fetch_optional(pool)
@@ -84,10 +76,7 @@ impl GameCatalog {
     pub async fn get_by_code(&self, game_code: &str) -> Option<GameRecord> {
         if let Some(pool) = &self.pool {
             return sqlx::query(
-                "SELECT id, game_code, game_name, status, \
-                        COALESCE(partner_code, '') AS partner_id, \
-                        COALESCE(partner_game_id, '') AS partner_game_id \
-                 FROM fx_game.games WHERE lower(game_code) = lower($1)",
+                crate::query::games::BY_CODE,
             )
             .bind(game_code)
             .fetch_optional(pool)
@@ -105,10 +94,7 @@ impl GameCatalog {
     pub async fn get_by_partner_game_id(&self, partner_game_id: &str) -> Option<GameRecord> {
         if let Some(pool) = &self.pool {
             return sqlx::query(
-                "SELECT id, game_code, game_name, status, \
-                        COALESCE(partner_code, '') AS partner_id, \
-                        COALESCE(partner_game_id, '') AS partner_game_id \
-                 FROM fx_game.games WHERE partner_game_id = $1",
+                crate::query::games::BY_PARTNER_GAME_ID,
             )
             .bind(partner_game_id)
             .fetch_optional(pool)
@@ -126,12 +112,7 @@ impl GameCatalog {
     pub async fn get_by_partner_code(&self, partner_id: &str) -> Option<GameRecord> {
         if let Some(pool) = &self.pool {
             return sqlx::query(
-                "SELECT id, game_code, game_name, status, \
-                        COALESCE(partner_code, '') AS partner_id, \
-                        COALESCE(partner_game_id, '') AS partner_game_id \
-                 FROM fx_game.games \
-                 WHERE partner_code = $1 AND status = 'active' \
-                 ORDER BY id LIMIT 1",
+                crate::query::games::BY_PARTNER_CODE,
             )
             .bind(partner_id)
             .fetch_optional(pool)

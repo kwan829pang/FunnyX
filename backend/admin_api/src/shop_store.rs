@@ -55,18 +55,7 @@ impl CorpProductStore {
         corporate_user_id: Option<i64>,
     ) -> Vec<AdminCorpProduct> {
         if let Some(pool) = &self.pool {
-            let rows = sqlx::query(
-                "SELECT pr.id, pr.corporate_user_id, pr.game_id, pr.code, pr.name, pr.product_type, \
-                        pr.credit_game_coin_id, gc.code AS credit_game_coin, \
-                        pr.credit_amount::float8 AS credit_amount, pr.item_code, \
-                        pr.fiat_price::float8 AS fiat_price, pr.seller_type, pr.status, \
-                        pr.created_at, pr.updated_at \
-                 FROM fx_shop.corp_shop_products pr \
-                 LEFT JOIN fx_game.game_coins gc ON gc.id = pr.credit_game_coin_id \
-                 WHERE ($1::text IS NULL OR pr.status = $1) \
-                   AND ($2::bigint IS NULL OR pr.corporate_user_id = $2) \
-                 ORDER BY pr.id",
-            )
+            let rows = sqlx::query(crate::query::shop::LIST)
             .bind(status)
             .bind(corporate_user_id)
             .fetch_all(pool)
@@ -91,16 +80,7 @@ impl CorpProductStore {
 
     pub async fn get(&self, id: i64) -> Option<AdminCorpProduct> {
         if let Some(pool) = &self.pool {
-            return sqlx::query(
-                "SELECT pr.id, pr.corporate_user_id, pr.game_id, pr.code, pr.name, pr.product_type, \
-                        pr.credit_game_coin_id, gc.code AS credit_game_coin, \
-                        pr.credit_amount::float8 AS credit_amount, pr.item_code, \
-                        pr.fiat_price::float8 AS fiat_price, pr.seller_type, pr.status, \
-                        pr.created_at, pr.updated_at \
-                 FROM fx_shop.corp_shop_products pr \
-                 LEFT JOIN fx_game.game_coins gc ON gc.id = pr.credit_game_coin_id \
-                 WHERE pr.id = $1",
-            )
+            return sqlx::query(crate::query::shop::GET)
             .bind(id)
             .fetch_optional(pool)
             .await
@@ -124,9 +104,7 @@ impl CorpProductStore {
         }
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            let n = sqlx::query(
-                "UPDATE fx_shop.corp_shop_products SET status = $1, updated_at = $2 WHERE id = $3",
-            )
+            let n = sqlx::query(crate::query::shop::UPDATE_STATUS)
             .bind(status)
             .bind(now)
             .bind(id)
@@ -137,10 +115,7 @@ impl CorpProductStore {
             if n == 0 {
                 return Err("product not found".into());
             }
-            let _ = sqlx::query(
-                "INSERT INTO fx_admin.admin_action_logs (admin_id, action, metadata, created_at, updated_at) \
-                 VALUES ($1, 'shop.corp_product.status', $2::jsonb, $3, 0)",
-            )
+            let _ = sqlx::query(crate::query::shop::INSERT_ACTION_LOG)
             .bind(admin_id)
             .bind(
                 serde_json::json!({ "corp_product_id": id, "status": status }).to_string(),

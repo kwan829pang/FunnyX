@@ -83,11 +83,7 @@ impl EventStore {
     ) -> Result<InsertOutcome, String> {
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            let existing = sqlx::query(
-                "SELECT id, event_id, source, event_type, payload::text AS payload, delivery_status, retry_count, \
-                        last_error, next_retry_at, shop_order_id, partner_order_no, received_at, updated_at \
-                 FROM fx_events.webhook_events WHERE event_id = $1",
-            )
+            let existing = sqlx::query(crate::query::events::BY_EVENT_ID)
             .bind(event_id)
             .fetch_optional(pool)
             .await
@@ -95,14 +91,7 @@ impl EventStore {
             if let Some(row) = existing {
                 return Ok(InsertOutcome::Duplicate(map_event(row)));
             }
-            let insert = sqlx::query(
-                "INSERT INTO fx_events.webhook_events ( \
-                    event_id, source, event_type, payload, delivery_status, retry_count, \
-                    last_error, next_retry_at, shop_order_id, partner_order_no, received_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4::jsonb, 'received', 0, NULL, 0, $5, $6, $7, $7) \
-                 RETURNING id, event_id, source, event_type, payload::text AS payload, delivery_status, retry_count, \
-                           last_error, next_retry_at, shop_order_id, partner_order_no, received_at, updated_at",
-            )
+            let insert = sqlx::query(crate::query::events::INSERT)
             .bind(event_id)
             .bind(source)
             .bind(event_type)
@@ -117,14 +106,7 @@ impl EventStore {
                     if shop_order_id.is_some()
                         && (msg.contains("foreign key") || msg.contains("23503"))
                     {
-                        sqlx::query(
-                            "INSERT INTO fx_events.webhook_events ( \
-                                event_id, source, event_type, payload, delivery_status, retry_count, \
-                                last_error, next_retry_at, shop_order_id, partner_order_no, received_at, updated_at \
-                             ) VALUES ($1, $2, $3, $4::jsonb, 'received', 0, NULL, 0, NULL, $5, $6, $6) \
-                             RETURNING id, event_id, source, event_type, payload::text AS payload, delivery_status, retry_count, \
-                                       last_error, next_retry_at, shop_order_id, partner_order_no, received_at, updated_at",
-                        )
+                        sqlx::query(crate::query::events::INSERT_WITHOUT_SHOP_ORDER)
                         .bind(event_id)
                         .bind(source)
                         .bind(event_type)
@@ -141,12 +123,7 @@ impl EventStore {
             };
             if event_type == "shop_payment" {
                 if let Some(oid) = shop_order_id {
-                    let _ = sqlx::query(
-                        "INSERT INTO fx_shop.shop_payment_events \
-                            (shop_order_id, event_id, event_type, partner_order_no, status, payload, received_at, created_at) \
-                         VALUES ($1, $2, 'shop_payment', $3, $4, $5::jsonb, $6, $6) \
-                         ON CONFLICT (event_id) DO NOTHING",
-                    )
+                    let _ = sqlx::query(crate::query::shop::INSERT_PAYMENT_EVENT)
                     .bind(oid)
                     .bind(event_id)
                     .bind(partner_order_no.unwrap_or(""))
@@ -188,11 +165,7 @@ impl EventStore {
 
     pub async fn get_by_event_id(&self, event_id: &str) -> Option<WebhookEvent> {
         if let Some(pool) = &self.pool {
-            return sqlx::query(
-                "SELECT id, event_id, source, event_type, payload::text AS payload, delivery_status, retry_count, \
-                        last_error, next_retry_at, shop_order_id, partner_order_no, received_at, updated_at \
-                 FROM fx_events.webhook_events WHERE event_id = $1",
-            )
+            return sqlx::query(crate::query::events::BY_EVENT_ID)
             .bind(event_id)
             .fetch_optional(pool)
             .await
@@ -232,11 +205,7 @@ impl EventStore {
     ) -> Result<(), String> {
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            sqlx::query(
-                "UPDATE fx_events.webhook_events SET delivery_status = $1, last_error = $2, retry_count = $3, \
-                    next_retry_at = COALESCE($4, next_retry_at), updated_at = $5 \
-                 WHERE event_id = $6",
-            )
+            sqlx::query(crate::query::events::SET_STATUS)
             .bind(status)
             .bind(last_error)
             .bind(retry_count)
@@ -264,13 +233,7 @@ impl EventStore {
     pub async fn due_retries(&self) -> Vec<WebhookEvent> {
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            return sqlx::query(
-                "SELECT id, event_id, source, event_type, payload::text AS payload, delivery_status, retry_count, \
-                        last_error, next_retry_at, shop_order_id, partner_order_no, received_at, updated_at \
-                 FROM fx_events.webhook_events \
-                 WHERE delivery_status = 'failed' AND next_retry_at <= $1 \
-                 ORDER BY next_retry_at ASC LIMIT 50",
-            )
+            return sqlx::query(crate::query::events::DUE_RETRIES)
             .bind(now)
             .fetch_all(pool)
             .await
@@ -326,12 +289,7 @@ impl EventStore {
         let Some(pool) = &self.pool else {
             return Ok(());
         };
-        sqlx::query(
-            "INSERT INTO fx_events.outbound_notices ( \
-                end_user_id, source_type, source_id, event_type, title, body, payload, \
-                delivery_status, retry_count, scheduled_at, sent_at, created_at, updated_at \
-             ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, 'pending', 0, 0, 0, $8, 0)",
-        )
+        sqlx::query(crate::query::notices::INSERT_OUTBOUND)
         .bind(end_user_id)
         .bind(source_type)
         .bind(source_id)
@@ -355,9 +313,7 @@ impl EventStore {
         }
         if let Some(pool) = &self.pool {
             if let Ok(Some(url)) = sqlx::query_scalar::<_, String>(
-                "SELECT callback_url FROM fx_events.webhook_endpoints \
-                 WHERE corporate_user_id = $1 AND kind = 'corp_token' AND status = 'active' \
-                 LIMIT 1",
+                crate::query::endpoints::CORP_TOKEN_CALLBACK_URL,
             )
             .bind(corporate_user_id)
             .fetch_optional(pool)
@@ -366,9 +322,7 @@ impl EventStore {
                 return Some(url);
             }
             if let Ok(Some(url)) = sqlx::query_scalar::<_, String>(
-                "SELECT endpoint FROM fx_corp.partner_endpoints \
-                 WHERE corporate_user_id = $1 AND type = 'callback' AND status = 'active' \
-                 LIMIT 1",
+                crate::query::endpoints::PARTNER_CALLBACK_ENDPOINT,
             )
             .bind(corporate_user_id)
             .fetch_optional(pool)
@@ -390,12 +344,7 @@ impl EventStore {
         let Some(pool) = &self.pool else {
             return Ok(());
         };
-        sqlx::query(
-            "INSERT INTO fx_corp.corp_partner_notices ( \
-                corporate_user_id, notice_type, title, body, deadline_at, \
-                created_by_admin_id, read_at, created_at \
-             ) VALUES ($1, 'other', $2, $3, 0, NULL, 0, $4)",
-        )
+        sqlx::query(crate::query::notices::INSERT_CORP_PARTNER)
         .bind(corporate_user_id)
         .bind(title)
         .bind(body)
@@ -408,10 +357,7 @@ impl EventStore {
 
     pub async fn list_endpoints(&self, corporate_user_id: i64) -> Result<Vec<WebhookEndpoint>, String> {
         if let Some(pool) = &self.pool {
-            let rows = sqlx::query(
-                "SELECT id, corporate_user_id, kind, callback_url, auth_type, secret_hint, status, created_at, updated_at \
-                 FROM fx_events.webhook_endpoints WHERE corporate_user_id = $1 ORDER BY id",
-            )
+            let rows = sqlx::query(crate::query::endpoints::LIST)
             .bind(corporate_user_id)
             .fetch_all(pool)
             .await
@@ -440,18 +386,7 @@ impl EventStore {
     ) -> Result<WebhookEndpoint, String> {
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            let row = sqlx::query(
-                "INSERT INTO fx_events.webhook_endpoints ( \
-                    corporate_user_id, kind, callback_url, auth_type, secret_hint, status, created_at, updated_at \
-                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0) \
-                 ON CONFLICT (corporate_user_id, kind) DO UPDATE SET \
-                    callback_url = EXCLUDED.callback_url, \
-                    auth_type = EXCLUDED.auth_type, \
-                    secret_hint = EXCLUDED.secret_hint, \
-                    status = EXCLUDED.status, \
-                    updated_at = $7 \
-                 RETURNING id, corporate_user_id, kind, callback_url, auth_type, secret_hint, status, created_at, updated_at",
-            )
+            let row = sqlx::query(crate::query::endpoints::UPSERT)
             .bind(corporate_user_id)
             .bind(kind)
             .bind(callback_url)
@@ -502,16 +437,7 @@ impl EventStore {
     ) -> Result<WebhookEndpoint, String> {
         let now = now_ms();
         if let Some(pool) = &self.pool {
-            let row = sqlx::query(
-                "UPDATE fx_events.webhook_endpoints SET \
-                    callback_url = COALESCE($1, callback_url), \
-                    auth_type = COALESCE($2, auth_type), \
-                    secret_hint = COALESCE($3, secret_hint), \
-                    status = COALESCE($4, status), \
-                    updated_at = $5 \
-                 WHERE id = $6 AND corporate_user_id = $7 \
-                 RETURNING id, corporate_user_id, kind, callback_url, auth_type, secret_hint, status, created_at, updated_at",
-            )
+            let row = sqlx::query(crate::query::endpoints::UPDATE)
             .bind(callback_url)
             .bind(auth_type)
             .bind(secret_hint)

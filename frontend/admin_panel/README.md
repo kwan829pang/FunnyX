@@ -4,7 +4,7 @@ Flutter Web admin UI for the platform control plane. Shared code lives under [`.
 
 ## Auth
 
-Admin Panel calls **Admin API** (default `http://127.0.0.1:18300`):
+Admin Panel calls **Gateway** (default `http://127.0.0.1:8080`), which proxies `/v1/admin/*` to Admin API:
 
 | UI | API |
 | --- | --- |
@@ -16,6 +16,7 @@ Session Token Server issues `sts_…` with `actor_type=admin` after Admin API ve
 ```bash
 cd backend/session_token_server && cargo run
 cd backend/admin_api && cargo run
+cd backend/gateway && cargo run
 ```
 
 Demo: `seed_admin` / `demo` (or `admin` / `demo`).

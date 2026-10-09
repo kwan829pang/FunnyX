@@ -71,14 +71,7 @@ impl BasicTokenStore {
 
     pub async fn list(&self, status: Option<&str>) -> Vec<AdminBasicToken> {
         if let Some(pool) = &self.pool {
-            let rows = sqlx::query(
-                "SELECT id, corporate_user_id, game_id, game_coin_id, token_code, token_name, \
-                        status, buyable, buy_fee_rate::float8 AS buy_fee_rate, \
-                        approved_by_admin_id, approved_at, created_at, updated_at \
-                 FROM fx_corp_token.company_basic_tokens \
-                 WHERE ($1::text IS NULL OR status = $1) \
-                 ORDER BY id",
-            )
+            let rows = sqlx::query(crate::query::cbt::LIST)
             .bind(status)
             .fetch_all(pool)
             .await
@@ -101,12 +94,7 @@ impl BasicTokenStore {
 
     pub async fn get(&self, id: i64) -> Option<AdminBasicToken> {
         if let Some(pool) = &self.pool {
-            let row = sqlx::query(
-                "SELECT id, corporate_user_id, game_id, game_coin_id, token_code, token_name, \
-                        status, buyable, buy_fee_rate::float8 AS buy_fee_rate, \
-                        approved_by_admin_id, approved_at, created_at, updated_at \
-                 FROM fx_corp_token.company_basic_tokens WHERE id = $1",
-            )
+            let row = sqlx::query(crate::query::cbt::GET)
             .bind(id)
             .fetch_optional(pool)
             .await
@@ -139,14 +127,7 @@ impl BasicTokenStore {
             ("rejected", false)
         };
         if let Some(pool) = &self.pool {
-            let row = sqlx::query(
-                "UPDATE fx_corp_token.company_basic_tokens SET \
-                    status = $1, buyable = $2, approved_by_admin_id = $3, approved_at = $4, updated_at = $4 \
-                 WHERE id = $5 AND status IN ('submitted', 'pending', 'rejected') \
-                 RETURNING id, corporate_user_id, game_id, game_coin_id, token_code, token_name, \
-                           status, buyable, buy_fee_rate::float8 AS buy_fee_rate, \
-                           approved_by_admin_id, approved_at, created_at, updated_at",
-            )
+            let row = sqlx::query(crate::query::cbt::UPDATE_DECISION)
             .bind(status)
             .bind(buyable)
             .bind(admin_id)
@@ -168,12 +149,7 @@ impl BasicTokenStore {
                 "Token {} ({}) is now {}.",
                 token.token_code, token.id, token.status
             );
-            let _ = sqlx::query(
-                "INSERT INTO fx_corp.corp_partner_notices ( \
-                    corporate_user_id, notice_type, title, body, deadline_at, \
-                    created_by_admin_id, read_at, created_at \
-                 ) VALUES ($1, $2, $3, $4, 0, $5, 0, $6)",
-            )
+            let _ = sqlx::query(crate::query::cbt::INSERT_PARTNER_NOTICE)
             .bind(token.corporate_user_id)
             .bind(notice_type)
             .bind(title)

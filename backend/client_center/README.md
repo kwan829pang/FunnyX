@@ -1,10 +1,10 @@
 # FunnyX Client Center
 
-Client Web–facing accounts, **login**, **OAuth**, **game-account bind**, and **e-shop** (catalog + pending orders). Session tokens / OAuth IdP+broker: [Session Token Server](../session_token_server/).
+Client Web–facing accounts, **login**, **OAuth**, **game-account bind**, **wallet / deposit / withdraw**, **chat** (`chat_messages`), and **e-shop** (catalog + pending orders). Session tokens / OAuth IdP+broker: [Session Token Server](../session_token_server/). Public ingress: [Gateway](../gateway/) on **8080**.
 
-Default port: **8083**. Requires STS on **8082**. Path A bind also needs `company-a-server` on **18102**.
+Default port: **8083**. Requires STS on **8082**. Path A bind / money also needs `company-a-server` on **18102**.
 
-Set `POSTGRES_URL` to persist users, OAuth identities, sessions, games, and game-account binds. There is **no** separate Game Catalog HTTP API — Client Center queries `fx_game.games` / `fx_game.game_accounts` directly. Without `POSTGRES_URL`, the same APIs run in memory (passwords still Argon2id).
+Set `POSTGRES_URL` to persist users, OAuth identities, sessions, games, game-account binds, and wallets. Deposit/withdraw require Postgres. Set `MONGO_URL` + `MONGO_DB=funnyx_client` for required `chat_messages` persistence (Session chat APIs return **503** if unset). Without `POSTGRES_URL`, auth/bind APIs run in memory (passwords still Argon2id).
 
 ## Run
 
@@ -58,6 +58,29 @@ curl -s http://127.0.0.1:8083/v1/shop/orders \
 
 `game_account_id` is the platform binding row id from `GET /v1/client/game-accounts`.
 
+## Wallet / deposit / withdraw (Session)
+
+Requires `POSTGRES_URL`. Deposit/withdraw call company-a `/api/deposit` / `/api/withdrawal`, then complete after `sim_delay_ms` (v1; webhook settle later).
+
+```bash
+curl -s http://127.0.0.1:8083/v1/client/wallet -H "authorization: Bearer $TOKEN"
+curl -s http://127.0.0.1:8083/v1/client/deposit \
+  -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
+  -d '{"game_account_id":1,"game_coin":"PLT","amount":10}'
+curl -s http://127.0.0.1:8083/v1/client/transactions -H "authorization: Bearer $TOKEN"
+```
+
+## Chat (Session, Mongo)
+
+```bash
+# MONGO_URL=mongodb://127.0.0.1:27017 MONGO_DB=funnyx_client
+curl -s http://127.0.0.1:8083/v1/client/chat/messages \
+  -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
+  -d '{"channel":"public","content":"hello"}'
+curl -s "http://127.0.0.1:8083/v1/client/chat/messages?channel=public" \
+  -H "authorization: Bearer $TOKEN"
+```
+
 ## APIs
 
 | Method | Path | Auth | Purpose |
@@ -70,6 +93,11 @@ curl -s http://127.0.0.1:8083/v1/shop/orders \
 | `GET` | `/v1/client/games` | Public | Active games (`game_id` / `game_code`) |
 | `GET` | `/v1/client/game-accounts` | Bearer | Bindings for current user |
 | `POST` | `/v1/client/game-accounts/bind` | Bearer | `partner_fetch` or `direct` |
+| `GET` | `/v1/client/wallet` | Bearer | Platform wallets (`user_wallets`) for bound accounts |
+| `POST` | `/v1/client/deposit` | Bearer | Deposit via partner → pending txn → async complete |
+| `POST` | `/v1/client/withdraw` | Bearer | Withdraw via partner (requires available balance) |
+| `GET` | `/v1/client/transactions` | Bearer | Money txn history |
+| `GET`/`POST` | `/v1/client/chat/messages` | Bearer | List / send Mongo `chat_messages` |
 | `GET` | `/v1/client/oauth/partner/{partner_id}/start` | Public | Partner OAuth start |
 | `GET` | `/v1/client/oauth/partner/complete` | Public | OAuth complete + **direct bind** |
 | `GET` | `/v1/oauth/authorize` | Public | Platform OAuth → STS |

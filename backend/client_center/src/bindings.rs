@@ -58,13 +58,7 @@ impl GameAccountStore {
     pub async fn list_for_user(&self, end_user_id: i64) -> Vec<GameAccountBinding> {
         if let Some(pool) = &self.pool {
             let rows = sqlx::query(
-                "SELECT a.id, a.end_user_id, a.game_id, g.game_code, a.game_account_id, \
-                        COALESCE(g.partner_code, '') AS partner_id, \
-                        a.partner_user_id, a.bind_source, a.status \
-                 FROM fx_game.game_accounts a \
-                 JOIN fx_game.games g ON g.id = a.game_id \
-                 WHERE a.end_user_id = $1 \
-                 ORDER BY a.id",
+                crate::query::bindings::LIST_FOR_USER,
             )
             .bind(end_user_id)
             .fetch_all(pool)
@@ -150,12 +144,7 @@ async fn upsert_pg(
 ) -> Result<GameAccountBinding, String> {
     let now = now_ms();
     if let Some(row) = sqlx::query(
-        "SELECT a.id, a.end_user_id, a.game_id, g.game_code, a.game_account_id, \
-                COALESCE(g.partner_code, '') AS partner_id, \
-                a.partner_user_id, a.bind_source, a.status \
-         FROM fx_game.game_accounts a \
-         JOIN fx_game.games g ON g.id = a.game_id \
-         WHERE a.end_user_id = $1 AND a.game_id = $2",
+        crate::query::bindings::BY_USER_AND_GAME,
     )
     .bind(end_user_id)
     .bind(game_id)
@@ -165,10 +154,7 @@ async fn upsert_pg(
     {
         let id: i64 = row.get("id");
         sqlx::query(
-            "UPDATE fx_game.game_accounts \
-             SET game_account_id = $1, partner_user_id = $2, bind_source = $3, \
-                 status = 'active', updated_at = $4 \
-             WHERE id = $5",
+            crate::query::bindings::UPDATE,
         )
         .bind(&game_account_id)
         .bind(&partner_user_id)
@@ -179,12 +165,7 @@ async fn upsert_pg(
         .await
         .map_err(|e| e.to_string())?;
         return sqlx::query(
-            "SELECT a.id, a.end_user_id, a.game_id, g.game_code, a.game_account_id, \
-                    COALESCE(g.partner_code, '') AS partner_id, \
-                    a.partner_user_id, a.bind_source, a.status \
-             FROM fx_game.game_accounts a \
-             JOIN fx_game.games g ON g.id = a.game_id \
-             WHERE a.id = $1",
+            crate::query::bindings::BY_ID,
         )
         .bind(id)
         .fetch_one(pool)
@@ -194,15 +175,7 @@ async fn upsert_pg(
     }
 
     sqlx::query(
-        "INSERT INTO fx_game.game_accounts \
-            (game_id, end_user_id, game_account_id, partner_user_id, bind_source, status, created_at, updated_at) \
-         VALUES ($1, $2, $3, $4, $5, 'active', $6, 0) \
-         ON CONFLICT (game_id, game_account_id) DO UPDATE SET \
-            end_user_id = EXCLUDED.end_user_id, \
-            partner_user_id = EXCLUDED.partner_user_id, \
-            bind_source = EXCLUDED.bind_source, \
-            status = 'active', \
-            updated_at = EXCLUDED.created_at",
+        crate::query::bindings::INSERT_UPSERT,
     )
     .bind(game_id)
     .bind(end_user_id)
@@ -215,12 +188,7 @@ async fn upsert_pg(
     .map_err(|e| e.to_string())?;
 
     sqlx::query(
-        "SELECT a.id, a.end_user_id, a.game_id, g.game_code, a.game_account_id, \
-                COALESCE(g.partner_code, '') AS partner_id, \
-                a.partner_user_id, a.bind_source, a.status \
-         FROM fx_game.game_accounts a \
-         JOIN fx_game.games g ON g.id = a.game_id \
-         WHERE a.game_id = $1 AND a.game_account_id = $2",
+        crate::query::bindings::BY_GAME_AND_ACCOUNT,
     )
     .bind(game_id)
     .bind(&game_account_id)

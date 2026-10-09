@@ -39,12 +39,7 @@ pub async fn require_master(
         return Err(err_status(StatusCode::UNAUTHORIZED, "invalid MasterSigned signature"));
     }
     if let Some(pool) = &state.pool {
-        let row = sqlx::query(
-            "SELECT u.id FROM fx_corp.corporate_users u \
-             JOIN fx_corp.corp_api_keys k ON k.corporate_user_id = u.id \
-             WHERE u.master_code = $1 AND u.master_id = $2 AND k.api_key = $3 \
-               AND u.status = 'active' AND k.status = 'active' AND u.api_enabled = TRUE",
-        )
+        let row = sqlx::query(crate::query::corp::SELECT_BY_MASTER)
         .bind(&code)
         .bind(&master_id)
         .bind(&api_key)
