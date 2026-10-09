@@ -1,0 +1,15 @@
+[package]
+name = "funnyx-net-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared HTTP / network API envelopes and path constants for FunnyX"
+readme = false
+
+[dependencies]
+funnyx-error = { workspace = true }
+funnyx-types = { workspace = true }
+funnyx-time = { workspace = true }
+funnyx-auth = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -1,0 +1,16 @@
+[package]
+name = "funnyx-auth"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "FunnyX Session / MasterSigned / OAuth credential types and signing helpers"
+readme = false
+
+[dependencies]
+funnyx-error = { workspace = true }
+funnyx-types = { workspace = true }
+funnyx-time = { workspace = true }
+serde = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }

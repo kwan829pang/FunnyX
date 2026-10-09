@@ -1,0 +1,11 @@
+[package]
+name = "funnyx-error"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared Error / Result types for FunnyX services"
+readme = false
+
+[dependencies]
+thiserror = { workspace = true }
+serde = { workspace = true }

@@ -1,0 +1,45 @@
+[workspace]
+resolver = "2"
+members = [
+    "funnyx-error",
+    "funnyx-types",
+    "funnyx-time",
+    "funnyx-config",
+    "funnyx-health",
+    "funnyx-heartbeat",
+    "funnyx-socket-msg",
+    "funnyx-socket",
+    "funnyx-net-api",
+    "funnyx-auth",
+    "funnyx-prelude",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["FunnyX"]
+repository = "https://github.com/kwan829pang/FunnyX"
+
+[workspace.dependencies]
+funnyx-error = { path = "funnyx-error" }
+funnyx-types = { path = "funnyx-types" }
+funnyx-time = { path = "funnyx-time" }
+funnyx-config = { path = "funnyx-config" }
+funnyx-health = { path = "funnyx-health" }
+funnyx-heartbeat = { path = "funnyx-heartbeat" }
+funnyx-socket-msg = { path = "funnyx-socket-msg" }
+funnyx-socket = { path = "funnyx-socket" }
+funnyx-net-api = { path = "funnyx-net-api" }
+funnyx-auth = { path = "funnyx-auth" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+dotenvy = "0.15"
+bytes = "1"
+lz4_flex = "0.11"
+flate2 = "1"
+tokio = { version = "1", features = ["io-util", "net", "sync", "macros", "rt"] }
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"

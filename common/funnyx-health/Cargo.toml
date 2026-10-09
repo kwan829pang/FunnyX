@@ -1,0 +1,13 @@
+[package]
+name = "funnyx-health"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Public HTTP GET /health payloads (Cloudflare, Game Partners, external LB)"
+readme = false
+
+[dependencies]
+funnyx-error = { workspace = true }
+funnyx-time = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

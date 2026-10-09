@@ -1,0 +1,11 @@
+[package]
+name = "funnyx-types"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "FunnyX system_type enums and domain discriminators"
+readme = false
+
+[dependencies]
+funnyx-error = { workspace = true }
+serde = { workspace = true }

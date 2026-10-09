@@ -1,0 +1,11 @@
+[package]
+name = "funnyx-time"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTC+0 BIGINT timestamp helpers for FunnyX"
+readme = false
+
+[dependencies]
+funnyx-error = { workspace = true }
+serde = { workspace = true }

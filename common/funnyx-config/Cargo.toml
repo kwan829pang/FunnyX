@@ -1,0 +1,13 @@
+[package]
+name = "funnyx-config"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "FunnyX platform constants and GlobalConfig with env defaults"
+readme = false
+
+[dependencies]
+funnyx-error = { workspace = true }
+funnyx-time = { workspace = true }
+dotenvy = { workspace = true }
+serde = { workspace = true }

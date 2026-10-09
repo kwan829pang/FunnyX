@@ -1,0 +1,19 @@
+[package]
+name = "funnyx-prelude"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Re-export facade for FunnyX common crates"
+readme = false
+
+[dependencies]
+funnyx-error = { workspace = true }
+funnyx-types = { workspace = true }
+funnyx-time = { workspace = true }
+funnyx-config = { workspace = true }
+funnyx-health = { workspace = true }
+funnyx-heartbeat = { workspace = true }
+funnyx-socket-msg = { workspace = true }
+funnyx-socket = { workspace = true }
+funnyx-net-api = { workspace = true }
+funnyx-auth = { workspace = true }

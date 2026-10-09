@@ -1,0 +1,17 @@
+[package]
+name = "funnyx-socket"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "FunnyX socket transport: framing, lz4, heartbeat"
+readme = false
+
+[dependencies]
+funnyx-error = { workspace = true }
+funnyx-socket-msg = { workspace = true }
+bytes = { workspace = true }
+lz4_flex = { workspace = true }
+flate2 = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
