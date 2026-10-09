@@ -1,0 +1,15 @@
+-- FunnyX: create all domain schemas
+-- Target: database/ (12 schemas, 43 tables)
+
+CREATE SCHEMA IF NOT EXISTS fx_corp;
+CREATE SCHEMA IF NOT EXISTS fx_game;
+CREATE SCHEMA IF NOT EXISTS fx_user;
+CREATE SCHEMA IF NOT EXISTS fx_market;
+CREATE SCHEMA IF NOT EXISTS fx_market_data;
+CREATE SCHEMA IF NOT EXISTS fx_marketplace;
+CREATE SCHEMA IF NOT EXISTS fx_config;
+CREATE SCHEMA IF NOT EXISTS fx_shop;
+CREATE SCHEMA IF NOT EXISTS fx_corp_token;
+CREATE SCHEMA IF NOT EXISTS fx_money;
+CREATE SCHEMA IF NOT EXISTS fx_admin;
+CREATE SCHEMA IF NOT EXISTS fx_events;
