@@ -1,0 +1,33 @@
+{
+  "server_name": "config_server",
+  "allowlist": [
+    "127.0.0.1",
+    "10.0.0.2",
+    "192.168.1.10",
+    "203.0.113.25"
+  ],
+  "routes": {
+    "admin_api": {
+      "enabled": true,
+      "allowlist_only": true
+    },
+    "gateway": {
+      "enabled": true,
+      "allowlist_only": true
+    },
+    "core_engine": {
+      "enabled": true,
+      "allowlist_only": true
+    }
+  },
+  "heartbeat": {
+    "interval_ms": 5000,
+    "timeout_ms": 30000,
+    "retry_count": 3
+  },
+  "notes": {
+    "purpose": "IP allowlist used by the Config Server for access control and service validation",
+    "reload_behavior": "This file can be reloaded through the config reload API without restarting the service",
+    "format": "JSON object with allowlist entries as IPv4 or IPv6 strings"
+  }
+}
