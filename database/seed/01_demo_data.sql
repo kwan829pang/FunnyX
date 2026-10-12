@@ -99,6 +99,21 @@ SET callback_url = EXCLUDED.callback_url,
     status = EXCLUDED.status,
     updated_at = :demo_ts;
 
+\echo '=== demo: webhook_post_auth (Post_Auth inbound) ==='
+INSERT INTO fx_events.webhook_post_auth (
+    source_code, domain_pattern, auth_key_suffix, ppk, allowed_ips, status, created_at, updated_at
+)
+VALUES
+    ('payment_gate', 'payment-gate.local', 'demo_key', 'ppk_payment_gate', '127.0.0.1,::1', 'active', :demo_ts, 0),
+    ('partner_2001', '*.company-a.local', 'demo_key', 'ppk_partner_2001', '127.0.0.1,::1', 'active', :demo_ts, 0)
+ON CONFLICT (source_code) DO UPDATE
+SET domain_pattern = EXCLUDED.domain_pattern,
+    auth_key_suffix = EXCLUDED.auth_key_suffix,
+    ppk = EXCLUDED.ppk,
+    allowed_ips = EXCLUDED.allowed_ips,
+    status = EXCLUDED.status,
+    updated_at = :demo_ts;
+
 \echo '=== demo: game_coins (company) ==='
 INSERT INTO fx_game.game_coins (
     id, code, name, type, asset_kind, is_platform_token, status, created_at, updated_at

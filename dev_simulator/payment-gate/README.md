@@ -80,4 +80,4 @@ Webhook body matches e-shop callback JSON (`event_id`, `partner_order_no`, `fiat
 
 ## Env
 
-See [`.env.sample`](.env.sample). `CALLBACK_SIGNATURE` is echoed on webhook payloads for local auth stubs.
+See [`.env.sample`](.env.sample). Webhook POSTs include body `signature` (`CALLBACK_SIGNATURE`), `X-Post-Auth` (SHA-256 of `Post_Auth_{POST_AUTH_KEY}`), and optional `X-Callback-Source` / `Host` for FunnyX Post_Auth (§3.1 in [doc/webhook.md](../../doc/webhook.md)).

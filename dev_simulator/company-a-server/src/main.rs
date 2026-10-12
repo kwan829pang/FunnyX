@@ -23,7 +23,7 @@ use models::{
     TransferRequest,
 };
 use sim_status::{SimDirective, SimStatus, HEADER_NAME};
-use state::AppState;
+use state::{AppState, MoneyRecord};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -46,6 +46,16 @@ async fn main() -> anyhow::Result<()> {
     let client_secret =
         std::env::var("OAUTH_CLIENT_SECRET").unwrap_or_else(|_| "company_a_secret".into());
 
+    let funnyx_webhook_url = std::env::var("FUNNYX_WEBHOOK_URL")
+        .unwrap_or_else(|_| "http://127.0.0.1:8084".into());
+    let callback_signature =
+        std::env::var("CALLBACK_SIGNATURE").unwrap_or_else(|_| "test-signature".into());
+    let post_auth_key = std::env::var("POST_AUTH_KEY").unwrap_or_else(|_| "demo_key".into());
+    let callback_source =
+        std::env::var("CALLBACK_SOURCE").unwrap_or_else(|_| "ppk_partner_2001".into());
+    let callback_host =
+        std::env::var("CALLBACK_HOST").unwrap_or_else(|_| "api.company-a.local".into());
+
     let state = AppState::new(
         partner_id,
         company_name,
@@ -53,6 +63,11 @@ async fn main() -> anyhow::Result<()> {
         api_key,
         client_id,
         client_secret,
+        funnyx_webhook_url,
+        callback_signature,
+        post_auth_key,
+        callback_source,
+        callback_host,
     );
 
     let app = Router::new()
@@ -477,13 +492,18 @@ fn schedule_money(
     partner_txn_id: &str,
     directive: Option<SimDirective>,
 ) -> (String, u64, String) {
-    let Some(directive) = directive.filter(|d| d.schedules_change()) else {
+    // Default: SUCCESS after 300ms so CC deposit/withdraw demos settle via Webhook.
+    let directive = directive.unwrap_or(SimDirective {
+        status: SimStatus::Success,
+        delay_ms: 300,
+    });
+    if !directive.schedules_change() {
         return (
             SimStatus::Pending.as_str().into(),
             0,
             format!("{} 0", SimStatus::Pending.as_str()),
         );
-    };
+    }
     let state = state.clone();
     let id = partner_txn_id.to_string();
     let delay_ms = directive.delay_ms;
@@ -493,11 +513,59 @@ fn schedule_money(
             tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         }
         match state.apply_money_status(&id, target).await {
-            Ok(r) => tracing::info!(partner_txn_id = %id, status = %r.status, "money txn finalized"),
+            Ok(r) => {
+                tracing::info!(partner_txn_id = %id, status = %r.status, "money txn finalized");
+                post_money_webhook(&state, &r).await;
+            }
             Err(e) => tracing::warn!(partner_txn_id = %id, error = %e, "money schedule failed"),
         }
     });
     (target.as_str().into(), delay_ms, directive.header_value())
+}
+
+async fn post_money_webhook(state: &AppState, record: &MoneyRecord) {
+    use sha2::{Digest, Sha256};
+    let path = match record.transaction_type.as_str() {
+        "withdrawal" => "/v1/webhook/withdrawal",
+        _ => "/v1/webhook/deposit",
+    };
+    let base = state.funnyx_webhook_url.trim_end_matches('/');
+    let url = format!("{base}{path}");
+    let event_id = format!("money_evt_{}", record.partner_txn_id);
+    let body = serde_json::json!({
+        "event_id": event_id,
+        "request_id": record.request_id,
+        "partner_txn_id": record.partner_txn_id,
+        "transaction_type": record.transaction_type,
+        "status": record.status,
+        "amount": record.amount,
+        "game_coin": record.game_coin,
+        "signature": state.callback_signature,
+    });
+    let post_auth = {
+        let plain = format!("Post_Auth_{}", state.post_auth_key);
+        hex::encode(Sha256::digest(plain.as_bytes()))
+    };
+    let mut req = state
+        .http
+        .post(&url)
+        .header("host", &state.callback_host)
+        .header("x-post-auth", post_auth)
+        .json(&body);
+    if !state.callback_source.is_empty() {
+        req = req.header("x-callback-source", &state.callback_source);
+    }
+    match req.send().await {
+        Ok(resp) if resp.status().is_success() => {
+            tracing::info!(%url, partner_txn_id = %record.partner_txn_id, "posted FunnyX money webhook");
+        }
+        Ok(resp) => {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            tracing::warn!(%url, %status, body = %text, "FunnyX money webhook rejected");
+        }
+        Err(e) => tracing::warn!(%url, error = %e, "FunnyX money webhook failed"),
+    }
 }
 
 fn require_api_key(

@@ -39,6 +39,8 @@ X-Sim-Status: SUCCESS 3000
 X-Sim-Status: REJECTED 5000
 ```
 
+Deposit/withdraw default (no header): **SUCCESS after 300ms**, then POST FunnyX Webhook (`FUNNYX_WEBHOOK_URL`, default `http://127.0.0.1:8084`) `/v1/webhook/deposit` or `/v1/webhook/withdrawal` with `CALLBACK_SIGNATURE`, `X-Post-Auth` (SHA-256 of `Post_Auth_{POST_AUTH_KEY}`), and optional `X-Callback-Source` / `Host` (`CALLBACK_HOST`).
+
 ## Demo data
 
 | User | Password | game_account_id | Items |

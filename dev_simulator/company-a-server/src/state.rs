@@ -71,6 +71,14 @@ pub struct AppState {
     pub api_key: String,
     pub client_id: String,
     pub client_secret: String,
+    /// FunnyX Webhook Server base (e.g. `http://127.0.0.1:8084`).
+    pub funnyx_webhook_url: String,
+    /// Must match Webhook Server `CALLBACK_SIGNATURE`.
+    pub callback_signature: String,
+    pub post_auth_key: String,
+    pub callback_source: String,
+    pub callback_host: String,
+    pub http: reqwest::Client,
     seq: Arc<AtomicU64>,
     users: Arc<RwLock<HashMap<String, DemoUser>>>,
     /// game_account_id -> items
@@ -93,6 +101,11 @@ impl AppState {
         api_key: String,
         client_id: String,
         client_secret: String,
+        funnyx_webhook_url: String,
+        callback_signature: String,
+        post_auth_key: String,
+        callback_source: String,
+        callback_host: String,
     ) -> Self {
         let mut users = HashMap::new();
         users.insert(
@@ -156,6 +169,12 @@ impl AppState {
             api_key,
             client_id,
             client_secret,
+            funnyx_webhook_url,
+            callback_signature,
+            post_auth_key,
+            callback_source,
+            callback_host,
+            http: reqwest::Client::new(),
             seq: Arc::new(AtomicU64::new(1000)),
             users: Arc::new(RwLock::new(users)),
             items: Arc::new(RwLock::new(items)),

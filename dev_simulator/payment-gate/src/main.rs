@@ -37,11 +37,23 @@ async fn main() -> anyhow::Result<()> {
         std::env::var("PUBLIC_BASE_URL").unwrap_or_else(|_| format!("http://127.0.0.1:{port}"));
     let callback_signature =
         std::env::var("CALLBACK_SIGNATURE").unwrap_or_else(|_| "test-signature".into());
+    let post_auth_key = std::env::var("POST_AUTH_KEY").unwrap_or_else(|_| "demo_key".into());
+    let callback_source =
+        std::env::var("CALLBACK_SOURCE").unwrap_or_else(|_| "ppk_payment_gate".into());
+    let callback_host =
+        std::env::var("CALLBACK_HOST").unwrap_or_else(|_| "payment-gate.local".into());
     let payment_ttl_secs: i64 = std::env::var("PAYMENT_TTL_SECS")
         .unwrap_or_else(|_| "1800".into())
         .parse()?;
 
-    let state = AppState::new(public_base_url, callback_signature, payment_ttl_secs);
+    let state = AppState::new(
+        public_base_url,
+        callback_signature,
+        post_auth_key,
+        callback_source,
+        callback_host,
+        payment_ttl_secs,
+    );
     let app = Router::new()
         .route("/health", get(health))
         .route("/v1/shop/payment", post(create_shop_payment))

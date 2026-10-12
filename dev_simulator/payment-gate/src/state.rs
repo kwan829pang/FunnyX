@@ -74,6 +74,12 @@ impl PaymentRecord {
 pub struct AppState {
     pub public_base_url: String,
     pub callback_signature: String,
+    /// Suffix XXX for Post_Auth_XXX → SHA-256 header X-Post-Auth.
+    pub post_auth_key: String,
+    /// Optional X-Callback-Source (ppk / auth-key / IP); empty → Host-based lookup.
+    pub callback_source: String,
+    /// Host header sent to FunnyX Webhook (wild/exact domain match).
+    pub callback_host: String,
     pub payment_ttl_secs: i64,
     pub http: reqwest::Client,
     seq: Arc<AtomicU64>,
@@ -81,15 +87,31 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(public_base_url: String, callback_signature: String, payment_ttl_secs: i64) -> Self {
+    pub fn new(
+        public_base_url: String,
+        callback_signature: String,
+        post_auth_key: String,
+        callback_source: String,
+        callback_host: String,
+        payment_ttl_secs: i64,
+    ) -> Self {
         Self {
             public_base_url,
             callback_signature,
+            post_auth_key,
+            callback_source,
+            callback_host,
             payment_ttl_secs,
             http: reqwest::Client::new(),
             seq: Arc::new(AtomicU64::new(1000)),
             payments: Arc::new(RwLock::new(HashMap::new())),
         }
+    }
+
+    pub fn post_auth_header(&self) -> String {
+        use sha2::{Digest, Sha256};
+        let plain = format!("Post_Auth_{}", self.post_auth_key);
+        hex::encode(Sha256::digest(plain.as_bytes()))
     }
 
     fn next_order_no(&self, prefix: &str) -> String {
@@ -275,7 +297,16 @@ impl AppState {
         };
 
         tracing::info!(%url, order = %record.partner_order_no, "posting webhook callback");
-        let resp = self.http.post(url).json(&body).send().await?;
+        let mut req = self
+            .http
+            .post(url)
+            .header("host", &self.callback_host)
+            .header("x-post-auth", self.post_auth_header())
+            .json(&body);
+        if !self.callback_source.is_empty() {
+            req = req.header("x-callback-source", &self.callback_source);
+        }
+        let resp = req.send().await?;
         let status = resp.status().as_u16();
         let text = resp.text().await.unwrap_or_default();
         tracing::info!(%status, body = %text, "callback response");
