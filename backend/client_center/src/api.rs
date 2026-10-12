@@ -15,11 +15,15 @@ use crate::chat_store::ChatStore;
 use crate::config::Config;
 use crate::corp_cbt;
 use crate::corp_markets;
+use crate::corp_onboard;
+use crate::corp_onboard_store::CorpOnboardStore;
 use crate::corp_shop;
 use crate::game_accounts;
 use crate::games::GameCatalog;
 use crate::internal;
 use crate::market_store::MarketStore;
+use crate::marketplace;
+use crate::marketplace_store::MarketplaceStore;
 use crate::models::ErrorBody;
 use crate::oauth;
 use crate::partner::PartnerClient;
@@ -42,6 +46,8 @@ pub struct AppState {
     pub partner: PartnerClient,
     pub shop: ShopStore,
     pub markets: MarketStore,
+    pub marketplace: MarketplaceStore,
+    pub corp_onboard: CorpOnboardStore,
     pub cbt: CbtStore,
     pub wallets: WalletStore,
     pub chat: ChatStore,
@@ -138,6 +144,24 @@ pub fn router(state: AppState) -> Router {
         )
         .route(paths::CORP_MARKET, get(corp_markets::get_market))
         .route(paths::CORP_MARKET_POOL, post(corp_markets::create_pool))
+        .route(paths::CORP_REGISTER, post(corp_onboard::register))
+        .route(paths::CORP_LOGIN, post(corp_onboard::login))
+        .route(paths::CORP_PROFILE, get(corp_onboard::profile))
+        .route(
+            paths::CORP_GAMES,
+            get(corp_onboard::list_games).post(corp_onboard::submit_game),
+        )
+        .route(paths::CORP_GAME, get(corp_onboard::get_game))
+        .route(paths::CORP_DOCUMENT, get(corp_onboard::download_document))
+        .route(paths::MARKETPLACE_ELIGIBILITY, get(marketplace::eligibility))
+        .route(paths::MARKETPLACE_ITEMS, get(marketplace::list_items))
+        .route(
+            paths::MARKETPLACE_DEALS,
+            get(marketplace::list_deals).post(marketplace::place_deal),
+        )
+        .route(paths::MARKETPLACE_DEAL, get(marketplace::get_deal))
+        .route(paths::MARKETPLACE_DEAL_REQUEST, post(marketplace::take_deal))
+        .route(paths::MARKETPLACE_DEAL_CANCEL, post(marketplace::cancel_deal))
         .with_state(state)
 }
 

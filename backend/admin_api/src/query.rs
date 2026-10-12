@@ -250,6 +250,100 @@ pub mod market {
                  SELECT id, 'market.reject', $2::jsonb, $3, 0 FROM fx_admin.admin_users WHERE id = $1";
 }
 
+/// Corporate onboarding + game document review.
+pub mod corp_onboard {
+    pub const LIST_CORPS: &str =
+        "SELECT id, company_name, master_code, master_id, status, api_enabled, \
+                contact_email, contact_name, reject_reason, approved_at, created_at \
+         FROM fx_corp.corporate_users ORDER BY id DESC";
+
+    pub const LIST_CORPS_FILTER: &str =
+        "SELECT id, company_name, master_code, master_id, status, api_enabled, \
+                contact_email, contact_name, reject_reason, approved_at, created_at \
+         FROM fx_corp.corporate_users WHERE status = $1 ORDER BY id DESC";
+
+    pub const CORP_BY_ID: &str =
+        "SELECT id, company_name, master_code, master_id, status, api_enabled, \
+                contact_email, contact_name, reject_reason, approved_at, created_at \
+         FROM fx_corp.corporate_users WHERE id = $1";
+
+    pub const DOCS_FOR_CORP: &str =
+        "SELECT id, corporate_user_id, game_id, doc_type, file_name, stored_path, \
+                content_type, byte_size, status, created_at \
+         FROM fx_corp.corp_documents WHERE corporate_user_id = $1 ORDER BY id";
+
+    pub const DOCS_FOR_GAME: &str =
+        "SELECT id, corporate_user_id, game_id, doc_type, file_name, stored_path, \
+                content_type, byte_size, status, created_at \
+         FROM fx_corp.corp_documents WHERE game_id = $1 ORDER BY id";
+
+    pub const DOC_BY_ID: &str =
+        "SELECT id, corporate_user_id, game_id, doc_type, file_name, stored_path, \
+                content_type, byte_size, status, created_at \
+         FROM fx_corp.corp_documents WHERE id = $1";
+
+    pub const APPROVE_CORP: &str =
+        "UPDATE fx_corp.corporate_users \
+         SET status = 'active', api_enabled = TRUE, \
+             approved_by_admin_id = $2, approved_at = $3, reject_reason = NULL, updated_at = $3 \
+         WHERE id = $1 AND status = 'pending'";
+
+    pub const REJECT_CORP: &str =
+        "UPDATE fx_corp.corporate_users \
+         SET status = 'rejected', api_enabled = FALSE, reject_reason = $2, updated_at = $3 \
+         WHERE id = $1 AND status = 'pending'";
+
+    pub const ACCEPT_BR_DOCS: &str =
+        "UPDATE fx_corp.corp_documents SET status = 'accepted', updated_at = $2 \
+         WHERE corporate_user_id = $1 AND doc_type = 'business_registration' AND game_id IS NULL";
+
+    pub const LIST_GAMES: &str =
+        "SELECT g.id, g.corporate_user_id, COALESCE(c.company_name,'') AS company_name, \
+                g.game_name, g.game_code, COALESCE(g.partner_code,'') AS partner_code, \
+                COALESCE(g.partner_game_id,'') AS partner_game_id, g.status, \
+                COALESCE(g.description,'') AS description, \
+                COALESCE(g.reject_reason,'') AS reject_reason, \
+                g.approved_at, g.created_at \
+         FROM fx_game.games g \
+         LEFT JOIN fx_corp.corporate_users c ON c.id = g.corporate_user_id \
+         ORDER BY g.id DESC";
+
+    pub const LIST_GAMES_FILTER: &str =
+        "SELECT g.id, g.corporate_user_id, COALESCE(c.company_name,'') AS company_name, \
+                g.game_name, g.game_code, COALESCE(g.partner_code,'') AS partner_code, \
+                COALESCE(g.partner_game_id,'') AS partner_game_id, g.status, \
+                COALESCE(g.description,'') AS description, \
+                COALESCE(g.reject_reason,'') AS reject_reason, \
+                g.approved_at, g.created_at \
+         FROM fx_game.games g \
+         LEFT JOIN fx_corp.corporate_users c ON c.id = g.corporate_user_id \
+         WHERE g.status = $1 ORDER BY g.id DESC";
+
+    pub const GAME_BY_ID: &str =
+        "SELECT g.id, g.corporate_user_id, COALESCE(c.company_name,'') AS company_name, \
+                g.game_name, g.game_code, COALESCE(g.partner_code,'') AS partner_code, \
+                COALESCE(g.partner_game_id,'') AS partner_game_id, g.status, \
+                COALESCE(g.description,'') AS description, \
+                COALESCE(g.reject_reason,'') AS reject_reason, \
+                g.approved_at, g.created_at \
+         FROM fx_game.games g \
+         LEFT JOIN fx_corp.corporate_users c ON c.id = g.corporate_user_id \
+         WHERE g.id = $1";
+
+    pub const APPROVE_GAME: &str =
+        "UPDATE fx_game.games SET status = 'active', approved_at = $2, \
+             reject_reason = NULL, updated_at = $2 \
+         WHERE id = $1 AND status = 'pending'";
+
+    pub const REJECT_GAME: &str =
+        "UPDATE fx_game.games SET status = 'rejected', reject_reason = $2, updated_at = $3 \
+         WHERE id = $1 AND status = 'pending'";
+
+    pub const ACCEPT_GAME_DOCS: &str =
+        "UPDATE fx_corp.corp_documents SET status = 'accepted', updated_at = $2 \
+         WHERE game_id = $1";
+}
+
 /// Game-coin catalog CRUD/status with admin_action_logs.
 pub mod game_coin {
     pub const LIST: &str = "SELECT id, code, name, type, asset_kind, is_platform_token, status, \

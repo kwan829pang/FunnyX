@@ -56,11 +56,24 @@ Session routes under `/shop` (Bearer via Client Center):
 
 Requires an active game-account binding for checkout (`GET /v1/client/game-accounts`).
 
+## Corp onboarding (1A Client Web + 2A multipart)
+
+Public/Corp Bearer routes (not end-user session):
+
+| Route | UI |
+| --- | --- |
+| `/corp/register` | Company + BR file upload |
+| `/corp/login` | Email or master code + password |
+| `/corp/home` | Approval status + game list |
+| `/corp/games/new` | Game + government/approved docs |
+
+Detail: [doc/corp_onboarding.md](../../doc/corp_onboarding.md).
+
 ## App notes
 
-- Public routes: `/login`, `/register`, `/oauth/callback`
-- Session routes: `/home`, `/shop` (+ cart / checkout / payment / orders)
-- State and routing use **GetX** (`ClientCenterAuthProvider`, `ShopDataProvider`, `OauthFlowService`)
+- Public routes: `/login`, `/register`, `/oauth/callback`, `/corp/register`, `/corp/login`
+- Session routes: `/home`, `/shop` (+ cart / checkout / payment / orders); Corp: `/corp/home`, `/corp/games/new`
+- State and routing use **GetX** (`ClientCenterAuthProvider`, `ShopDataProvider`, `OauthFlowService`, `CorpController`)
 - Never store master credentials in the app
 - Locales: `en`, `zh_TW`, `zh_CN`
 

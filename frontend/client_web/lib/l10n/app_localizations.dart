@@ -142,6 +142,12 @@ abstract class AppLocalizations {
   /// **'E-shop'**
   String get shop;
 
+  /// No description provided for @marketplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Marketplace'**
+  String get marketplace;
+
   /// No description provided for @logout.
   ///
   /// In en, this message translates to:
@@ -477,6 +483,420 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Partner order'**
   String get shopPartnerOrder;
+
+  /// No description provided for @marketplacePlaceDeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Place deal'**
+  String get marketplacePlaceDeal;
+
+  /// No description provided for @marketplaceTakeDeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Take deal'**
+  String get marketplaceTakeDeal;
+
+  /// No description provided for @marketplaceCancelDeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel deal'**
+  String get marketplaceCancelDeal;
+
+  /// No description provided for @marketplaceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No open deals yet.'**
+  String get marketplaceEmpty;
+
+  /// No description provided for @marketplaceEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'You can place deals.'**
+  String get marketplaceEligible;
+
+  /// No description provided for @marketplaceNotEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'Place deal blocked until gates pass.'**
+  String get marketplaceNotEligible;
+
+  /// No description provided for @marketplaceListingFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Listing fee: {fee} PLT'**
+  String marketplaceListingFee(String fee);
+
+  /// No description provided for @marketplaceListingFeeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Listing fee'**
+  String get marketplaceListingFeeLabel;
+
+  /// No description provided for @marketplaceGatePlt.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy Platform Token'**
+  String get marketplaceGatePlt;
+
+  /// No description provided for @marketplaceGateGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Bind a listed game'**
+  String get marketplaceGateGame;
+
+  /// No description provided for @marketplaceGateTransfer.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner Transfer API required'**
+  String get marketplaceGateTransfer;
+
+  /// No description provided for @marketplaceWant.
+  ///
+  /// In en, this message translates to:
+  /// **'Want'**
+  String get marketplaceWant;
+
+  /// No description provided for @marketplaceOffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer'**
+  String get marketplaceOffer;
+
+  /// No description provided for @marketplaceGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Game'**
+  String get marketplaceGame;
+
+  /// No description provided for @marketplaceOfferType.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer type'**
+  String get marketplaceOfferType;
+
+  /// No description provided for @marketplaceOfferGameCoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Game coin'**
+  String get marketplaceOfferGameCoin;
+
+  /// No description provided for @marketplaceOfferCompanyCoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Company coin'**
+  String get marketplaceOfferCompanyCoin;
+
+  /// No description provided for @marketplaceOfferGameItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Game item'**
+  String get marketplaceOfferGameItem;
+
+  /// No description provided for @marketplaceOfferCoinId.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer game_coin_id'**
+  String get marketplaceOfferCoinId;
+
+  /// No description provided for @marketplaceOfferAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer amount'**
+  String get marketplaceOfferAmount;
+
+  /// No description provided for @marketplaceWantType.
+  ///
+  /// In en, this message translates to:
+  /// **'Want type'**
+  String get marketplaceWantType;
+
+  /// No description provided for @marketplaceWantPlt.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform Token'**
+  String get marketplaceWantPlt;
+
+  /// No description provided for @marketplaceWantCompanyCoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Company coin'**
+  String get marketplaceWantCompanyCoin;
+
+  /// No description provided for @marketplaceWantCoinId.
+  ///
+  /// In en, this message translates to:
+  /// **'Want game_coin_id'**
+  String get marketplaceWantCoinId;
+
+  /// No description provided for @marketplaceWantAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Want amount (price)'**
+  String get marketplaceWantAmount;
+
+  /// No description provided for @marketplaceItemRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Item'**
+  String get marketplaceItemRef;
+
+  /// No description provided for @marketplacePlaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Deal posted'**
+  String get marketplacePlaced;
+
+  /// No description provided for @marketplaceTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Deal taken and settled'**
+  String get marketplaceTaken;
+
+  /// No description provided for @marketplaceTakeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Take failed'**
+  String get marketplaceTakeFailed;
+
+  /// No description provided for @marketplaceCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Deal cancelled'**
+  String get marketplaceCancelled;
+
+  /// No description provided for @marketplaceDealNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Deal not found'**
+  String get marketplaceDealNotFound;
+
+  /// No description provided for @marketplaceDealTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deal #{id}'**
+  String marketplaceDealTitle(int id);
+
+  /// No description provided for @marketplaceYourGameAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Your game account'**
+  String get marketplaceYourGameAccount;
+
+  /// No description provided for @marketplaceBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get marketplaceBack;
+
+  /// No description provided for @corpRegisterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Company registration'**
+  String get corpRegisterTitle;
+
+  /// No description provided for @corpLoginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Company login'**
+  String get corpLoginTitle;
+
+  /// No description provided for @corpHomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Company portal'**
+  String get corpHomeTitle;
+
+  /// No description provided for @corpRegisterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a company account and upload your Business Registration (BR). An admin must approve before you can submit games.'**
+  String get corpRegisterHint;
+
+  /// No description provided for @corpCompanyName.
+  ///
+  /// In en, this message translates to:
+  /// **'Company name'**
+  String get corpCompanyName;
+
+  /// No description provided for @corpContactName.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact name'**
+  String get corpContactName;
+
+  /// No description provided for @corpContactEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact email'**
+  String get corpContactEmail;
+
+  /// No description provided for @corpUploadBr.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Business Registration (BR)'**
+  String get corpUploadBr;
+
+  /// No description provided for @corpBrSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'BR file'**
+  String get corpBrSelected;
+
+  /// No description provided for @corpBrRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'BR document is required'**
+  String get corpBrRequired;
+
+  /// No description provided for @corpSubmitRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit for approval'**
+  String get corpSubmitRegistration;
+
+  /// No description provided for @corpRegisterSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration submitted — awaiting admin approval'**
+  String get corpRegisterSubmitted;
+
+  /// No description provided for @corpHaveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Already registered? Login'**
+  String get corpHaveAccount;
+
+  /// No description provided for @corpNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'New company? Register'**
+  String get corpNoAccount;
+
+  /// No description provided for @corpLoginField.
+  ///
+  /// In en, this message translates to:
+  /// **'Email or master code'**
+  String get corpLoginField;
+
+  /// No description provided for @corpNeedLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Please login'**
+  String get corpNeedLogin;
+
+  /// No description provided for @corpMasterCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Master code'**
+  String get corpMasterCode;
+
+  /// No description provided for @corpSecretOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'API secret (shown once): {secret}'**
+  String corpSecretOnce(String secret);
+
+  /// No description provided for @corpPendingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Your BR is under review. You can submit games after an admin approves your company.'**
+  String get corpPendingApproval;
+
+  /// No description provided for @corpRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration rejected'**
+  String get corpRejected;
+
+  /// No description provided for @corpSubmitGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit a game'**
+  String get corpSubmitGame;
+
+  /// No description provided for @corpGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Your games'**
+  String get corpGames;
+
+  /// No description provided for @corpNoGames.
+  ///
+  /// In en, this message translates to:
+  /// **'No games submitted yet.'**
+  String get corpNoGames;
+
+  /// No description provided for @corpGameWizardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit game details plus government approval and/or approved materials. Status stays pending until admin review.'**
+  String get corpGameWizardHint;
+
+  /// No description provided for @corpGameName.
+  ///
+  /// In en, this message translates to:
+  /// **'Game name'**
+  String get corpGameName;
+
+  /// No description provided for @corpGameCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Game code'**
+  String get corpGameCode;
+
+  /// No description provided for @corpPartnerCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner code (optional)'**
+  String get corpPartnerCode;
+
+  /// No description provided for @corpPartnerGameId.
+  ///
+  /// In en, this message translates to:
+  /// **'Partner game id (optional)'**
+  String get corpPartnerGameId;
+
+  /// No description provided for @corpGameDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get corpGameDescription;
+
+  /// No description provided for @corpUploadGovDoc.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload government approval document'**
+  String get corpUploadGovDoc;
+
+  /// No description provided for @corpUploadMaterial.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload approved materials'**
+  String get corpUploadMaterial;
+
+  /// No description provided for @corpGovSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Government doc'**
+  String get corpGovSelected;
+
+  /// No description provided for @corpMaterialSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Materials'**
+  String get corpMaterialSelected;
+
+  /// No description provided for @corpGameDocRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload at least one document'**
+  String get corpGameDocRequired;
+
+  /// No description provided for @corpGameSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Game submitted for review'**
+  String get corpGameSubmitted;
 }
 
 class _AppLocalizationsDelegate

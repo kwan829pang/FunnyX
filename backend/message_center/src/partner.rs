@@ -30,6 +30,7 @@ pub async fn resolve_callback_url(
         let kind = match notice.source_type.as_str() {
             "shop_order" => "shop_payment",
             "corp_token_order" => "corp_token",
+            "marketplace_deal" | "marketplace_deal_request" => "marketplace",
             "deposit_withdrawal_txn" => notice
                 .payload
                 .get("transaction_type")

@@ -67,8 +67,8 @@ pub fn classify(path: &str) -> Option<(UpstreamTarget, AuthKind)> {
     }
 
     if p.starts_with("/v1/corp/") || p == "/v1/corp" {
-        // corp/register is Public; other corp paths are MasterSigned
-        if p == "/v1/corp/register" {
+        // Public onboarding; other corp paths accept MasterSigned or Corp Bearer (CC validates).
+        if p == "/v1/corp/register" || p == "/v1/corp/login" {
             return Some((UpstreamTarget::ClientCenter, AuthKind::Public));
         }
         return Some((UpstreamTarget::ClientCenter, AuthKind::Corp));
@@ -104,6 +104,7 @@ fn is_public_client_path(p: &str) -> bool {
             | "/v1/client/oauth/partner/complete"
             | "/v1/client/oauth/partner/callback"
             | "/v1/corp/register"
+            | "/v1/corp/login"
     ) || p.starts_with("/v1/client/oauth/partner/") && p.ends_with("/start")
 }
 

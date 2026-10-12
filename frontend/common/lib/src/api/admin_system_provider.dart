@@ -465,6 +465,90 @@ class AdminSystemProvider {
     }
   }
 
+  Future<List<Map<String, dynamic>>> listCorporateUsers({String? status}) async {
+    try {
+      final res = await api.dio.get<Map<String, dynamic>>(
+        '/v1/admin/corporate-users',
+        queryParameters: <String, dynamic>{
+          if (status != null && status.isNotEmpty) 'status': status,
+        },
+      );
+      final raw = res.data?['corporate_users'];
+      if (raw is! List) return const [];
+      return raw
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> approveCorporateUser(int id) async {
+    try {
+      final res = await api.dio.post<Map<String, dynamic>>(
+        '/v1/admin/corporate-users/$id/approve',
+      );
+      return Map<String, dynamic>.from(res.data ?? const {});
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> rejectCorporateUser(int id, {String reason = ''}) async {
+    try {
+      final res = await api.dio.post<Map<String, dynamic>>(
+        '/v1/admin/corporate-users/$id/reject',
+        data: {'reason': reason},
+      );
+      return Map<String, dynamic>.from(res.data ?? const {});
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> listAdminGames({String? status}) async {
+    try {
+      final res = await api.dio.get<Map<String, dynamic>>(
+        '/v1/admin/games',
+        queryParameters: <String, dynamic>{
+          if (status != null && status.isNotEmpty) 'status': status,
+        },
+      );
+      final raw = res.data?['games'];
+      if (raw is! List) return const [];
+      return raw
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> approveGame(int id) async {
+    try {
+      final res = await api.dio.post<Map<String, dynamic>>(
+        '/v1/admin/games/$id/approve',
+      );
+      return Map<String, dynamic>.from(res.data ?? const {});
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> rejectGame(int id, {String reason = ''}) async {
+    try {
+      final res = await api.dio.post<Map<String, dynamic>>(
+        '/v1/admin/games/$id/reject',
+        data: {'reason': reason},
+      );
+      return Map<String, dynamic>.from(res.data ?? const {});
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
   ApiError _mapDio(DioException e) {
     final status = e.response?.statusCode;
     final body = e.response?.data;

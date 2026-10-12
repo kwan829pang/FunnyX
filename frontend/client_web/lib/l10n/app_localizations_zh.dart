@@ -30,6 +30,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shop => '商店';
 
   @override
+  String get marketplace => '市集';
+
+  @override
   String get logout => '登出';
 
   @override
@@ -205,6 +208,219 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shopPartnerOrder => '合作方单号';
+
+  @override
+  String get marketplacePlaceDeal => '发布交易';
+
+  @override
+  String get marketplaceTakeDeal => '接单';
+
+  @override
+  String get marketplaceCancelDeal => '取消交易';
+
+  @override
+  String get marketplaceEmpty => '暂无开放交易。';
+
+  @override
+  String get marketplaceEligible => '可以发布交易。';
+
+  @override
+  String get marketplaceNotEligible => '未通过门槛，无法发布。';
+
+  @override
+  String marketplaceListingFee(String fee) {
+    return '上架费：$fee PLT';
+  }
+
+  @override
+  String get marketplaceListingFeeLabel => '上架费';
+
+  @override
+  String get marketplaceGatePlt => '需购买平台币';
+
+  @override
+  String get marketplaceGateGame => '需绑定已上架游戏';
+
+  @override
+  String get marketplaceGateTransfer => '需开通合作方 Transfer API';
+
+  @override
+  String get marketplaceWant => '求购';
+
+  @override
+  String get marketplaceOffer => '出售';
+
+  @override
+  String get marketplaceGame => '游戏';
+
+  @override
+  String get marketplaceOfferType => '出售类型';
+
+  @override
+  String get marketplaceOfferGameCoin => '游戏币';
+
+  @override
+  String get marketplaceOfferCompanyCoin => '公司币';
+
+  @override
+  String get marketplaceOfferGameItem => '游戏道具';
+
+  @override
+  String get marketplaceOfferCoinId => '出售 game_coin_id';
+
+  @override
+  String get marketplaceOfferAmount => '出售数量';
+
+  @override
+  String get marketplaceWantType => '求购类型';
+
+  @override
+  String get marketplaceWantPlt => '平台币';
+
+  @override
+  String get marketplaceWantCompanyCoin => '公司币';
+
+  @override
+  String get marketplaceWantCoinId => '求购 game_coin_id';
+
+  @override
+  String get marketplaceWantAmount => '求购数量（价格）';
+
+  @override
+  String get marketplaceItemRef => '道具';
+
+  @override
+  String get marketplacePlaced => '交易已发布';
+
+  @override
+  String get marketplaceTaken => '已接单并结算';
+
+  @override
+  String get marketplaceTakeFailed => '接单失败';
+
+  @override
+  String get marketplaceCancelled => '交易已取消';
+
+  @override
+  String get marketplaceDealNotFound => '找不到交易';
+
+  @override
+  String marketplaceDealTitle(int id) {
+    return '交易 #$id';
+  }
+
+  @override
+  String get marketplaceYourGameAccount => '你的游戏账号';
+
+  @override
+  String get marketplaceBack => '返回';
+
+  @override
+  String get corpRegisterTitle => '公司注册';
+
+  @override
+  String get corpLoginTitle => '公司登录';
+
+  @override
+  String get corpHomeTitle => '公司门户';
+
+  @override
+  String get corpRegisterHint => '创建公司账号并上传商业登记证（BR）。管理员批准后才能提交游戏。';
+
+  @override
+  String get corpCompanyName => '公司名称';
+
+  @override
+  String get corpContactName => '联系人';
+
+  @override
+  String get corpContactEmail => '联系邮箱';
+
+  @override
+  String get corpUploadBr => '上传商业登记证（BR）';
+
+  @override
+  String get corpBrSelected => 'BR 文件';
+
+  @override
+  String get corpBrRequired => '必须上传 BR 文件';
+
+  @override
+  String get corpSubmitRegistration => '提交审核';
+
+  @override
+  String get corpRegisterSubmitted => '已提交注册，等待管理员审核';
+
+  @override
+  String get corpHaveAccount => '已有账号？登录';
+
+  @override
+  String get corpNoAccount => '新公司？注册';
+
+  @override
+  String get corpLoginField => '邮箱或 Master Code';
+
+  @override
+  String get corpNeedLogin => '请先登录';
+
+  @override
+  String get corpMasterCode => 'Master Code';
+
+  @override
+  String corpSecretOnce(String secret) {
+    return 'API Secret（仅显示一次）：$secret';
+  }
+
+  @override
+  String get corpPendingApproval => 'BR 审核中。管理员批准后即可提交游戏。';
+
+  @override
+  String get corpRejected => '注册已被拒绝';
+
+  @override
+  String get corpSubmitGame => '提交游戏';
+
+  @override
+  String get corpGames => '我的游戏';
+
+  @override
+  String get corpNoGames => '尚未提交游戏。';
+
+  @override
+  String get corpGameWizardHint => '提交游戏资料及政府批文/核准材料。状态为待审直到管理员确认。';
+
+  @override
+  String get corpGameName => '游戏名称';
+
+  @override
+  String get corpGameCode => '游戏代码';
+
+  @override
+  String get corpPartnerCode => 'Partner code（可选）';
+
+  @override
+  String get corpPartnerGameId => 'Partner game id（可选）';
+
+  @override
+  String get corpGameDescription => '说明';
+
+  @override
+  String get corpUploadGovDoc => '上传政府批文';
+
+  @override
+  String get corpUploadMaterial => '上传核准材料';
+
+  @override
+  String get corpGovSelected => '政府文件';
+
+  @override
+  String get corpMaterialSelected => '核准材料';
+
+  @override
+  String get corpGameDocRequired => '至少上传一份文件';
+
+  @override
+  String get corpGameSubmitted => '游戏已提交审核';
 }
 
 /// The translations for Chinese, as used in China (`zh_CN`).
@@ -233,6 +449,9 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String get shop => '商店';
 
   @override
+  String get marketplace => '市集';
+
+  @override
   String get logout => '登出';
 
   @override
@@ -408,6 +627,219 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
 
   @override
   String get shopPartnerOrder => '合作方单号';
+
+  @override
+  String get marketplacePlaceDeal => '发布交易';
+
+  @override
+  String get marketplaceTakeDeal => '接单';
+
+  @override
+  String get marketplaceCancelDeal => '取消交易';
+
+  @override
+  String get marketplaceEmpty => '暂无开放交易。';
+
+  @override
+  String get marketplaceEligible => '可以发布交易。';
+
+  @override
+  String get marketplaceNotEligible => '未通过门槛，无法发布。';
+
+  @override
+  String marketplaceListingFee(String fee) {
+    return '上架费：$fee PLT';
+  }
+
+  @override
+  String get marketplaceListingFeeLabel => '上架费';
+
+  @override
+  String get marketplaceGatePlt => '需购买平台币';
+
+  @override
+  String get marketplaceGateGame => '需绑定已上架游戏';
+
+  @override
+  String get marketplaceGateTransfer => '需开通合作方 Transfer API';
+
+  @override
+  String get marketplaceWant => '求购';
+
+  @override
+  String get marketplaceOffer => '出售';
+
+  @override
+  String get marketplaceGame => '游戏';
+
+  @override
+  String get marketplaceOfferType => '出售类型';
+
+  @override
+  String get marketplaceOfferGameCoin => '游戏币';
+
+  @override
+  String get marketplaceOfferCompanyCoin => '公司币';
+
+  @override
+  String get marketplaceOfferGameItem => '游戏道具';
+
+  @override
+  String get marketplaceOfferCoinId => '出售 game_coin_id';
+
+  @override
+  String get marketplaceOfferAmount => '出售数量';
+
+  @override
+  String get marketplaceWantType => '求购类型';
+
+  @override
+  String get marketplaceWantPlt => '平台币';
+
+  @override
+  String get marketplaceWantCompanyCoin => '公司币';
+
+  @override
+  String get marketplaceWantCoinId => '求购 game_coin_id';
+
+  @override
+  String get marketplaceWantAmount => '求购数量（价格）';
+
+  @override
+  String get marketplaceItemRef => '道具';
+
+  @override
+  String get marketplacePlaced => '交易已发布';
+
+  @override
+  String get marketplaceTaken => '已接单并结算';
+
+  @override
+  String get marketplaceTakeFailed => '接单失败';
+
+  @override
+  String get marketplaceCancelled => '交易已取消';
+
+  @override
+  String get marketplaceDealNotFound => '找不到交易';
+
+  @override
+  String marketplaceDealTitle(int id) {
+    return '交易 #$id';
+  }
+
+  @override
+  String get marketplaceYourGameAccount => '你的游戏账号';
+
+  @override
+  String get marketplaceBack => '返回';
+
+  @override
+  String get corpRegisterTitle => '公司注册';
+
+  @override
+  String get corpLoginTitle => '公司登录';
+
+  @override
+  String get corpHomeTitle => '公司门户';
+
+  @override
+  String get corpRegisterHint => '创建公司账号并上传商业登记证（BR）。管理员批准后才能提交游戏。';
+
+  @override
+  String get corpCompanyName => '公司名称';
+
+  @override
+  String get corpContactName => '联系人';
+
+  @override
+  String get corpContactEmail => '联系邮箱';
+
+  @override
+  String get corpUploadBr => '上传商业登记证（BR）';
+
+  @override
+  String get corpBrSelected => 'BR 文件';
+
+  @override
+  String get corpBrRequired => '必须上传 BR 文件';
+
+  @override
+  String get corpSubmitRegistration => '提交审核';
+
+  @override
+  String get corpRegisterSubmitted => '已提交注册，等待管理员审核';
+
+  @override
+  String get corpHaveAccount => '已有账号？登录';
+
+  @override
+  String get corpNoAccount => '新公司？注册';
+
+  @override
+  String get corpLoginField => '邮箱或 Master Code';
+
+  @override
+  String get corpNeedLogin => '请先登录';
+
+  @override
+  String get corpMasterCode => 'Master Code';
+
+  @override
+  String corpSecretOnce(String secret) {
+    return 'API Secret（仅显示一次）：$secret';
+  }
+
+  @override
+  String get corpPendingApproval => 'BR 审核中。管理员批准后即可提交游戏。';
+
+  @override
+  String get corpRejected => '注册已被拒绝';
+
+  @override
+  String get corpSubmitGame => '提交游戏';
+
+  @override
+  String get corpGames => '我的游戏';
+
+  @override
+  String get corpNoGames => '尚未提交游戏。';
+
+  @override
+  String get corpGameWizardHint => '提交游戏资料及政府批文/核准材料。状态为待审直到管理员确认。';
+
+  @override
+  String get corpGameName => '游戏名称';
+
+  @override
+  String get corpGameCode => '游戏代码';
+
+  @override
+  String get corpPartnerCode => 'Partner code（可选）';
+
+  @override
+  String get corpPartnerGameId => 'Partner game id（可选）';
+
+  @override
+  String get corpGameDescription => '说明';
+
+  @override
+  String get corpUploadGovDoc => '上传政府批文';
+
+  @override
+  String get corpUploadMaterial => '上传核准材料';
+
+  @override
+  String get corpGovSelected => '政府文件';
+
+  @override
+  String get corpMaterialSelected => '核准材料';
+
+  @override
+  String get corpGameDocRequired => '至少上传一份文件';
+
+  @override
+  String get corpGameSubmitted => '游戏已提交审核';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -434,6 +866,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get shop => '商店';
+
+  @override
+  String get marketplace => '市集';
 
   @override
   String get logout => '登出';
@@ -611,4 +1046,217 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get shopPartnerOrder => '合作方單號';
+
+  @override
+  String get marketplacePlaceDeal => '發布交易';
+
+  @override
+  String get marketplaceTakeDeal => '接單';
+
+  @override
+  String get marketplaceCancelDeal => '取消交易';
+
+  @override
+  String get marketplaceEmpty => '暫無開放交易。';
+
+  @override
+  String get marketplaceEligible => '可以發布交易。';
+
+  @override
+  String get marketplaceNotEligible => '未通過門檻，無法發布。';
+
+  @override
+  String marketplaceListingFee(String fee) {
+    return '上架費：$fee PLT';
+  }
+
+  @override
+  String get marketplaceListingFeeLabel => '上架費';
+
+  @override
+  String get marketplaceGatePlt => '需購買平台幣';
+
+  @override
+  String get marketplaceGateGame => '需綁定已上架遊戲';
+
+  @override
+  String get marketplaceGateTransfer => '需開通合作方 Transfer API';
+
+  @override
+  String get marketplaceWant => '求購';
+
+  @override
+  String get marketplaceOffer => '出售';
+
+  @override
+  String get marketplaceGame => '遊戲';
+
+  @override
+  String get marketplaceOfferType => '出售類型';
+
+  @override
+  String get marketplaceOfferGameCoin => '遊戲幣';
+
+  @override
+  String get marketplaceOfferCompanyCoin => '公司幣';
+
+  @override
+  String get marketplaceOfferGameItem => '遊戲道具';
+
+  @override
+  String get marketplaceOfferCoinId => '出售 game_coin_id';
+
+  @override
+  String get marketplaceOfferAmount => '出售數量';
+
+  @override
+  String get marketplaceWantType => '求購類型';
+
+  @override
+  String get marketplaceWantPlt => '平台幣';
+
+  @override
+  String get marketplaceWantCompanyCoin => '公司幣';
+
+  @override
+  String get marketplaceWantCoinId => '求購 game_coin_id';
+
+  @override
+  String get marketplaceWantAmount => '求購數量（價格）';
+
+  @override
+  String get marketplaceItemRef => '道具';
+
+  @override
+  String get marketplacePlaced => '交易已發布';
+
+  @override
+  String get marketplaceTaken => '已接單並結算';
+
+  @override
+  String get marketplaceTakeFailed => '接單失敗';
+
+  @override
+  String get marketplaceCancelled => '交易已取消';
+
+  @override
+  String get marketplaceDealNotFound => '找不到交易';
+
+  @override
+  String marketplaceDealTitle(int id) {
+    return '交易 #$id';
+  }
+
+  @override
+  String get marketplaceYourGameAccount => '你的遊戲帳號';
+
+  @override
+  String get marketplaceBack => '返回';
+
+  @override
+  String get corpRegisterTitle => '公司註冊';
+
+  @override
+  String get corpLoginTitle => '公司登入';
+
+  @override
+  String get corpHomeTitle => '公司入口';
+
+  @override
+  String get corpRegisterHint => '建立公司帳號並上傳商業登記證（BR）。管理員核准後才能提交遊戲。';
+
+  @override
+  String get corpCompanyName => '公司名稱';
+
+  @override
+  String get corpContactName => '聯絡人';
+
+  @override
+  String get corpContactEmail => '聯絡信箱';
+
+  @override
+  String get corpUploadBr => '上傳商業登記證（BR）';
+
+  @override
+  String get corpBrSelected => 'BR 檔案';
+
+  @override
+  String get corpBrRequired => '必須上傳 BR 檔案';
+
+  @override
+  String get corpSubmitRegistration => '提交審核';
+
+  @override
+  String get corpRegisterSubmitted => '已提交註冊，等待管理員審核';
+
+  @override
+  String get corpHaveAccount => '已有帳號？登入';
+
+  @override
+  String get corpNoAccount => '新公司？註冊';
+
+  @override
+  String get corpLoginField => '信箱或 Master Code';
+
+  @override
+  String get corpNeedLogin => '請先登入';
+
+  @override
+  String get corpMasterCode => 'Master Code';
+
+  @override
+  String corpSecretOnce(String secret) {
+    return 'API Secret（僅顯示一次）：$secret';
+  }
+
+  @override
+  String get corpPendingApproval => 'BR 審核中。管理員核准後即可提交遊戲。';
+
+  @override
+  String get corpRejected => '註冊已被拒絕';
+
+  @override
+  String get corpSubmitGame => '提交遊戲';
+
+  @override
+  String get corpGames => '我的遊戲';
+
+  @override
+  String get corpNoGames => '尚未提交遊戲。';
+
+  @override
+  String get corpGameWizardHint => '提交遊戲資料及政府批文/核准材料。狀態為待審直到管理員確認。';
+
+  @override
+  String get corpGameName => '遊戲名稱';
+
+  @override
+  String get corpGameCode => '遊戲代碼';
+
+  @override
+  String get corpPartnerCode => 'Partner code（選填）';
+
+  @override
+  String get corpPartnerGameId => 'Partner game id（選填）';
+
+  @override
+  String get corpGameDescription => '說明';
+
+  @override
+  String get corpUploadGovDoc => '上傳政府批文';
+
+  @override
+  String get corpUploadMaterial => '上傳核准材料';
+
+  @override
+  String get corpGovSelected => '政府文件';
+
+  @override
+  String get corpMaterialSelected => '核准材料';
+
+  @override
+  String get corpGameDocRequired => '至少上傳一份文件';
+
+  @override
+  String get corpGameSubmitted => '遊戲已提交審核';
 }

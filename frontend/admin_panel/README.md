@@ -21,10 +21,14 @@ cd backend/gateway && cargo run
 
 Demo: `seed_admin` / `demo` (or `admin` / `demo`).
 
+## Corp onboarding
+
+`/corp-onboard` — approve/reject pending companies (BR) and games (government + materials). APIs: `GET/POST /v1/admin/corporate-users…`, `GET/POST /v1/admin/games…`. See [doc/corp_onboarding.md](../../doc/corp_onboarding.md).
+
 ## App notes
 
 - Public route: `/login`
-- Session routes: `/dashboard`, `/markets`
+- Session routes: `/dashboard`, `/markets`, `/corp-onboard`, `/setup`
 - State and routing use **GetX** (`AdminApiAuthProvider`)
 - Locales: `en`, `zh_TW`, `zh_CN`
 

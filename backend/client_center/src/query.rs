@@ -190,6 +190,90 @@ pub mod corp {
                AND u.status = 'active' AND k.status = 'active' AND u.api_enabled = TRUE";
 }
 
+/// Corp onboarding wizards: register (BR), web login/session, game submit + docs.
+pub mod corp_onboard {
+    pub const INSERT_CORP: &str = "INSERT INTO fx_corp.corporate_users ( \
+            company_name, master_code, master_id, status, api_enabled, \
+            contact_email, contact_name, password_hash, created_at, updated_at \
+         ) VALUES ($1,$2,$3,'pending',FALSE,$4,$5,$6,$7,0) RETURNING id";
+
+    pub const INSERT_API_KEY: &str = "INSERT INTO fx_corp.corp_api_keys ( \
+            corporate_user_id, api_key, secret_hash, status, created_at, updated_at \
+         ) VALUES ($1,$2,$3,'active',$4,0)";
+
+    pub const INSERT_DOCUMENT: &str = "INSERT INTO fx_corp.corp_documents ( \
+            corporate_user_id, game_id, doc_type, file_name, stored_path, content_type, \
+            byte_size, status, created_at, updated_at \
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,'submitted',$8,0) RETURNING id";
+
+    pub const INSERT_SESSION: &str = "INSERT INTO fx_corp.corp_web_sessions ( \
+            corporate_user_id, token, expires_at, created_at \
+         ) VALUES ($1,$2,$3,$4)";
+
+    pub const SESSION_BY_TOKEN: &str =
+        "SELECT s.corporate_user_id, u.status \
+         FROM fx_corp.corp_web_sessions s \
+         JOIN fx_corp.corporate_users u ON u.id = s.corporate_user_id \
+         WHERE s.token = $1 AND s.expires_at > $2";
+
+    pub const BY_EMAIL: &str =
+        "SELECT id, company_name, master_code, master_id, status, api_enabled, \
+                contact_email, contact_name, password_hash, reject_reason, \
+                approved_at, created_at, updated_at \
+         FROM fx_corp.corporate_users WHERE lower(contact_email) = lower($1)";
+
+    pub const BY_MASTER_CODE: &str =
+        "SELECT id, company_name, master_code, master_id, status, api_enabled, \
+                contact_email, contact_name, password_hash, reject_reason, \
+                approved_at, created_at, updated_at \
+         FROM fx_corp.corporate_users WHERE master_code = $1";
+
+    pub const BY_ID: &str =
+        "SELECT id, company_name, master_code, master_id, status, api_enabled, \
+                contact_email, contact_name, password_hash, reject_reason, \
+                approved_at, created_at, updated_at \
+         FROM fx_corp.corporate_users WHERE id = $1";
+
+    pub const LIST_DOCS_FOR_CORP: &str =
+        "SELECT id, corporate_user_id, game_id, doc_type, file_name, stored_path, \
+                content_type, byte_size, status, review_note, created_at \
+         FROM fx_corp.corp_documents WHERE corporate_user_id = $1 \
+         ORDER BY id";
+
+    pub const DOC_BY_ID: &str =
+        "SELECT id, corporate_user_id, game_id, doc_type, file_name, stored_path, \
+                content_type, byte_size, status, review_note, created_at \
+         FROM fx_corp.corp_documents WHERE id = $1";
+
+    pub const INSERT_GAME: &str = "INSERT INTO fx_game.games ( \
+            corporate_user_id, game_name, game_code, partner_code, partner_game_id, \
+            status, description, created_at, updated_at \
+         ) VALUES ($1,$2,$3,$4,$5,'pending',$6,$7,0) RETURNING id";
+
+    pub const LIST_GAMES_FOR_CORP: &str =
+        "SELECT id, corporate_user_id, game_name, game_code, \
+                COALESCE(partner_code,'') AS partner_code, \
+                COALESCE(partner_game_id,'') AS partner_game_id, \
+                status, COALESCE(description,'') AS description, \
+                COALESCE(reject_reason,'') AS reject_reason, \
+                approved_at, created_at, updated_at \
+         FROM fx_game.games WHERE corporate_user_id = $1 ORDER BY id DESC";
+
+    pub const GAME_BY_ID: &str =
+        "SELECT id, corporate_user_id, game_name, game_code, \
+                COALESCE(partner_code,'') AS partner_code, \
+                COALESCE(partner_game_id,'') AS partner_game_id, \
+                status, COALESCE(description,'') AS description, \
+                COALESCE(reject_reason,'') AS reject_reason, \
+                approved_at, created_at, updated_at \
+         FROM fx_game.games WHERE id = $1";
+
+    pub const LIST_DOCS_FOR_GAME: &str =
+        "SELECT id, corporate_user_id, game_id, doc_type, file_name, stored_path, \
+                content_type, byte_size, status, review_note, created_at \
+         FROM fx_corp.corp_documents WHERE game_id = $1 ORDER BY id";
+}
+
 /// User wallets and deposit/withdrawal lifecycle (pending → completed/failed).
 /// Completing a deposit credits `user_wallets`; withdraw debits available balance.
 pub mod wallet {
@@ -609,4 +693,187 @@ pub mod market {
     pub const INSERT_POOL_WALLET_ENSURE: &str =
         "INSERT INTO fx_market.pool_wallets (market_pool_id, game_coin_id, balance, wallet_type, status) \
                      ON CONFLICT (market_pool_id, game_coin_id) DO NOTHING";
+}
+
+/// C7 Marketplace deals: gates, list/create/take/cancel, wallet fee/want, transfer events, notices.
+pub mod marketplace {
+    /// Listing fee in Platform Token units (debited from poster's wallet on place).
+    pub const LISTING_FEE_PLT: f64 = 1.0;
+
+    pub const PLT_COIN_ID: &str =
+        "SELECT id FROM fx_game.game_coins \
+         WHERE is_platform_token = TRUE AND status = 'active' ORDER BY id LIMIT 1";
+
+    pub const HAS_PLT_PURCHASE: &str = "SELECT EXISTS( \
+            SELECT 1 FROM fx_shop.shop_orders o \
+            JOIN fx_shop.shop_packages p ON p.id = o.package_id \
+            JOIN fx_game.game_coins c ON c.id = p.game_coin_id \
+            WHERE o.end_user_id = $1 AND o.status = 'completed' \
+              AND c.is_platform_token = TRUE \
+        ) OR EXISTS( \
+            SELECT 1 FROM fx_user.user_wallets w \
+            JOIN fx_game.game_accounts a ON a.id = w.game_account_id \
+            JOIN fx_game.game_coins c ON c.id = w.game_coin_id \
+            WHERE a.end_user_id = $1 AND c.is_platform_token = TRUE AND w.available > 0 \
+        )";
+
+    pub const HAS_ACTIVE_GAME_BIND: &str = "SELECT EXISTS( \
+            SELECT 1 FROM fx_game.game_accounts a \
+            JOIN fx_game.games g ON g.id = a.game_id \
+            WHERE a.end_user_id = $1 AND a.status = 'active' AND g.status = 'active' \
+        )";
+
+    pub const OWNED_GAME_ACCOUNT: &str =
+        "SELECT a.id, a.end_user_id, a.game_id, a.game_account_id, \
+                COALESCE(a.partner_user_id, '') AS partner_user_id, \
+                g.corporate_user_id, COALESCE(g.partner_code, '') AS partner_code, \
+                COALESCE(g.partner_game_id, '') AS partner_game_id \
+         FROM fx_game.game_accounts a \
+         JOIN fx_game.games g ON g.id = a.game_id \
+         WHERE a.id = $1 AND a.end_user_id = $2 AND a.status = 'active' AND g.status = 'active'";
+
+    pub const TRANSFER_ENDPOINT: &str =
+        "SELECT id, endpoint FROM fx_corp.partner_endpoints \
+         WHERE corporate_user_id = $1 AND type = 'transfer' AND status = 'active' \
+         ORDER BY id LIMIT 1";
+
+    pub const ITEM_LIST_ENDPOINT: &str =
+        "SELECT endpoint FROM fx_corp.partner_endpoints \
+         WHERE corporate_user_id = $1 AND type = 'item_list' AND status = 'active' \
+         ORDER BY id LIMIT 1";
+
+    pub const HAS_TRANSFER_FOR_ANY_GAME: &str = "SELECT EXISTS( \
+            SELECT 1 FROM fx_game.game_accounts a \
+            JOIN fx_game.games g ON g.id = a.game_id \
+            JOIN fx_corp.partner_endpoints e ON e.corporate_user_id = g.corporate_user_id \
+            WHERE a.end_user_id = $1 AND a.status = 'active' AND g.status = 'active' \
+              AND e.type = 'transfer' AND e.status = 'active' \
+        )";
+
+    pub const COIN_BY_ID: &str =
+        "SELECT id, code, COALESCE(is_platform_token, FALSE) AS is_platform_token, type \
+         FROM fx_game.game_coins WHERE id = $1 AND status = 'active'";
+
+    pub const COMPANY_COIN_FOR_CORP: &str =
+        "SELECT EXISTS( \
+            SELECT 1 FROM fx_game.games g \
+            JOIN fx_game.game_balances b ON b.game_id = g.id \
+            WHERE g.corporate_user_id = $1 AND b.game_coin_id = $2 \
+        ) OR EXISTS( \
+            SELECT 1 FROM fx_corp_token.company_basic_tokens t \
+            WHERE t.corporate_user_id = $1 AND t.game_coin_id = $2 \
+              AND t.status IN ('approved', 'active') \
+        )";
+
+    pub const LIST_OPEN: &str =
+        "SELECT d.id, d.poster_end_user_id, d.poster_game_account_id, d.game_id, d.corporate_user_id, \
+                d.partner_endpoint_id, d.offer_asset_type, d.offer_game_coin_id, \
+                d.offer_item_ref_id, d.offer_amount::float8 AS offer_amount, \
+                d.want_asset_type, d.want_game_coin_id, d.want_amount::float8 AS want_amount, \
+                d.status, d.matched_request_id, d.cancelled_at, d.completed_at, \
+                d.created_at, d.updated_at, \
+                COALESCE(oc.code, '') AS offer_game_coin, \
+                COALESCE(wc.code, '') AS want_game_coin, \
+                COALESCE(g.game_code, '') AS game_code \
+         FROM fx_marketplace.marketplace_deals d \
+         LEFT JOIN fx_game.game_coins oc ON oc.id = d.offer_game_coin_id \
+         LEFT JOIN fx_game.game_coins wc ON wc.id = d.want_game_coin_id \
+         LEFT JOIN fx_game.games g ON g.id = d.game_id \
+         WHERE d.status = 'open' ORDER BY d.id DESC LIMIT $1";
+
+    pub const GET_BY_ID: &str =
+        "SELECT d.id, d.poster_end_user_id, d.poster_game_account_id, d.game_id, d.corporate_user_id, \
+                d.partner_endpoint_id, d.offer_asset_type, d.offer_game_coin_id, \
+                d.offer_item_ref_id, d.offer_amount::float8 AS offer_amount, \
+                d.want_asset_type, d.want_game_coin_id, d.want_amount::float8 AS want_amount, \
+                d.status, d.matched_request_id, d.cancelled_at, d.completed_at, \
+                d.created_at, d.updated_at, \
+                COALESCE(oc.code, '') AS offer_game_coin, \
+                COALESCE(wc.code, '') AS want_game_coin, \
+                COALESCE(g.game_code, '') AS game_code \
+         FROM fx_marketplace.marketplace_deals d \
+         LEFT JOIN fx_game.game_coins oc ON oc.id = d.offer_game_coin_id \
+         LEFT JOIN fx_game.game_coins wc ON wc.id = d.want_game_coin_id \
+         LEFT JOIN fx_game.games g ON g.id = d.game_id \
+         WHERE d.id = $1";
+
+    pub const LOCK_OPEN: &str =
+        "SELECT id, poster_end_user_id, poster_game_account_id, game_id, corporate_user_id, \
+                partner_endpoint_id, offer_asset_type, offer_game_coin_id, offer_item_ref_id, \
+                offer_amount::float8 AS offer_amount, want_asset_type, want_game_coin_id, \
+                want_amount::float8 AS want_amount, status \
+         FROM fx_marketplace.marketplace_deals WHERE id = $1 FOR UPDATE";
+
+    pub const INSERT_DEAL: &str = "INSERT INTO fx_marketplace.marketplace_deals ( \
+            poster_end_user_id, poster_game_account_id, game_id, corporate_user_id, \
+            partner_endpoint_id, offer_asset_type, offer_game_coin_id, offer_item_ref_id, \
+            offer_amount, want_asset_type, want_game_coin_id, want_amount, status, \
+            created_at, updated_at \
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'open',$13,0) \
+         RETURNING id";
+
+    pub const CANCEL_OPEN: &str =
+        "UPDATE fx_marketplace.marketplace_deals \
+         SET status = 'cancelled', cancelled_at = $2, updated_at = $2 \
+         WHERE id = $1 AND poster_end_user_id = $3 AND status = 'open'";
+
+    pub const SET_SETTLING: &str =
+        "UPDATE fx_marketplace.marketplace_deals \
+         SET status = 'settling', matched_request_id = $2, updated_at = $3 \
+         WHERE id = $1 AND status = 'open'";
+
+    pub const SET_COMPLETED: &str =
+        "UPDATE fx_marketplace.marketplace_deals \
+         SET status = 'completed', completed_at = $2, updated_at = $2 WHERE id = $1";
+
+    pub const SET_FAILED: &str =
+        "UPDATE fx_marketplace.marketplace_deals \
+         SET status = 'failed', updated_at = $2 WHERE id = $1";
+
+    pub const INSERT_REQUEST: &str = "INSERT INTO fx_marketplace.marketplace_deal_requests ( \
+            marketplace_deal_id, requester_end_user_id, requester_game_account_id, \
+            status, created_at, updated_at \
+         ) VALUES ($1, $2, $3, 'accepted', $4, 0) RETURNING id";
+
+    pub const COMPLETE_REQUEST: &str =
+        "UPDATE fx_marketplace.marketplace_deal_requests \
+         SET status = 'completed', updated_at = $2 WHERE id = $1";
+
+    pub const FAIL_REQUEST: &str =
+        "UPDATE fx_marketplace.marketplace_deal_requests \
+         SET status = 'failed', updated_at = $2 WHERE id = $1";
+
+    pub const INSERT_TRANSFER_EVENT: &str = "INSERT INTO fx_marketplace.marketplace_transfer_events ( \
+            marketplace_deal_id, marketplace_deal_request_id, partner_endpoint_id, request_id, \
+            from_game_account_id, to_game_account_id, asset_type, game_coin_id, item_ref_id, \
+            amount, status, payload, created_at, updated_at \
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',$11::jsonb,$12,0) \
+         RETURNING id";
+
+    pub const SET_TRANSFER_STATUS: &str =
+        "UPDATE fx_marketplace.marketplace_transfer_events \
+         SET status = $2, payload = COALESCE($3::jsonb, payload), updated_at = $4 \
+         WHERE id = $1";
+
+    pub const DEBIT_WALLET: &str = "UPDATE fx_user.user_wallets \
+         SET available = available - $3, updated_at = $4 \
+         WHERE game_account_id = $1 AND game_coin_id = $2 AND available >= $3";
+
+    pub const CREDIT_WALLET: &str =
+        "INSERT INTO fx_user.user_wallets (game_account_id, game_coin_id, available, locked, updated_at) \
+         VALUES ($1, $2, $3, 0, $4) \
+         ON CONFLICT (game_account_id, game_coin_id) DO UPDATE SET \
+            available = fx_user.user_wallets.available + EXCLUDED.available, \
+            updated_at = EXCLUDED.updated_at";
+
+    pub const INSERT_OUTBOUND_NOTICE: &str = "INSERT INTO fx_events.outbound_notices ( \
+            end_user_id, source_type, source_id, event_type, title, body, payload, \
+            delivery_status, retry_count, scheduled_at, sent_at, created_at, updated_at \
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,'pending',0,0,0,$8,0)";
+
+    pub const ENDPOINT_URL_BY_ID: &str =
+        "SELECT endpoint FROM fx_corp.partner_endpoints WHERE id = $1";
+
+    pub const GAME_ACCOUNT_PARTNER_ID: &str =
+        "SELECT game_account_id FROM fx_game.game_accounts WHERE id = $1";
 }

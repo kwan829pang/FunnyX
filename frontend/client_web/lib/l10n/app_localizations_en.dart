@@ -30,6 +30,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shop => 'E-shop';
 
   @override
+  String get marketplace => 'Marketplace';
+
+  @override
   String get logout => 'Logout';
 
   @override
@@ -209,4 +212,221 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shopPartnerOrder => 'Partner order';
+
+  @override
+  String get marketplacePlaceDeal => 'Place deal';
+
+  @override
+  String get marketplaceTakeDeal => 'Take deal';
+
+  @override
+  String get marketplaceCancelDeal => 'Cancel deal';
+
+  @override
+  String get marketplaceEmpty => 'No open deals yet.';
+
+  @override
+  String get marketplaceEligible => 'You can place deals.';
+
+  @override
+  String get marketplaceNotEligible => 'Place deal blocked until gates pass.';
+
+  @override
+  String marketplaceListingFee(String fee) {
+    return 'Listing fee: $fee PLT';
+  }
+
+  @override
+  String get marketplaceListingFeeLabel => 'Listing fee';
+
+  @override
+  String get marketplaceGatePlt => 'Buy Platform Token';
+
+  @override
+  String get marketplaceGateGame => 'Bind a listed game';
+
+  @override
+  String get marketplaceGateTransfer => 'Partner Transfer API required';
+
+  @override
+  String get marketplaceWant => 'Want';
+
+  @override
+  String get marketplaceOffer => 'Offer';
+
+  @override
+  String get marketplaceGame => 'Game';
+
+  @override
+  String get marketplaceOfferType => 'Offer type';
+
+  @override
+  String get marketplaceOfferGameCoin => 'Game coin';
+
+  @override
+  String get marketplaceOfferCompanyCoin => 'Company coin';
+
+  @override
+  String get marketplaceOfferGameItem => 'Game item';
+
+  @override
+  String get marketplaceOfferCoinId => 'Offer game_coin_id';
+
+  @override
+  String get marketplaceOfferAmount => 'Offer amount';
+
+  @override
+  String get marketplaceWantType => 'Want type';
+
+  @override
+  String get marketplaceWantPlt => 'Platform Token';
+
+  @override
+  String get marketplaceWantCompanyCoin => 'Company coin';
+
+  @override
+  String get marketplaceWantCoinId => 'Want game_coin_id';
+
+  @override
+  String get marketplaceWantAmount => 'Want amount (price)';
+
+  @override
+  String get marketplaceItemRef => 'Item';
+
+  @override
+  String get marketplacePlaced => 'Deal posted';
+
+  @override
+  String get marketplaceTaken => 'Deal taken and settled';
+
+  @override
+  String get marketplaceTakeFailed => 'Take failed';
+
+  @override
+  String get marketplaceCancelled => 'Deal cancelled';
+
+  @override
+  String get marketplaceDealNotFound => 'Deal not found';
+
+  @override
+  String marketplaceDealTitle(int id) {
+    return 'Deal #$id';
+  }
+
+  @override
+  String get marketplaceYourGameAccount => 'Your game account';
+
+  @override
+  String get marketplaceBack => 'Back';
+
+  @override
+  String get corpRegisterTitle => 'Company registration';
+
+  @override
+  String get corpLoginTitle => 'Company login';
+
+  @override
+  String get corpHomeTitle => 'Company portal';
+
+  @override
+  String get corpRegisterHint =>
+      'Create a company account and upload your Business Registration (BR). An admin must approve before you can submit games.';
+
+  @override
+  String get corpCompanyName => 'Company name';
+
+  @override
+  String get corpContactName => 'Contact name';
+
+  @override
+  String get corpContactEmail => 'Contact email';
+
+  @override
+  String get corpUploadBr => 'Upload Business Registration (BR)';
+
+  @override
+  String get corpBrSelected => 'BR file';
+
+  @override
+  String get corpBrRequired => 'BR document is required';
+
+  @override
+  String get corpSubmitRegistration => 'Submit for approval';
+
+  @override
+  String get corpRegisterSubmitted =>
+      'Registration submitted — awaiting admin approval';
+
+  @override
+  String get corpHaveAccount => 'Already registered? Login';
+
+  @override
+  String get corpNoAccount => 'New company? Register';
+
+  @override
+  String get corpLoginField => 'Email or master code';
+
+  @override
+  String get corpNeedLogin => 'Please login';
+
+  @override
+  String get corpMasterCode => 'Master code';
+
+  @override
+  String corpSecretOnce(String secret) {
+    return 'API secret (shown once): $secret';
+  }
+
+  @override
+  String get corpPendingApproval =>
+      'Your BR is under review. You can submit games after an admin approves your company.';
+
+  @override
+  String get corpRejected => 'Registration rejected';
+
+  @override
+  String get corpSubmitGame => 'Submit a game';
+
+  @override
+  String get corpGames => 'Your games';
+
+  @override
+  String get corpNoGames => 'No games submitted yet.';
+
+  @override
+  String get corpGameWizardHint =>
+      'Submit game details plus government approval and/or approved materials. Status stays pending until admin review.';
+
+  @override
+  String get corpGameName => 'Game name';
+
+  @override
+  String get corpGameCode => 'Game code';
+
+  @override
+  String get corpPartnerCode => 'Partner code (optional)';
+
+  @override
+  String get corpPartnerGameId => 'Partner game id (optional)';
+
+  @override
+  String get corpGameDescription => 'Description';
+
+  @override
+  String get corpUploadGovDoc => 'Upload government approval document';
+
+  @override
+  String get corpUploadMaterial => 'Upload approved materials';
+
+  @override
+  String get corpGovSelected => 'Government doc';
+
+  @override
+  String get corpMaterialSelected => 'Materials';
+
+  @override
+  String get corpGameDocRequired => 'Upload at least one document';
+
+  @override
+  String get corpGameSubmitted => 'Game submitted for review';
 }

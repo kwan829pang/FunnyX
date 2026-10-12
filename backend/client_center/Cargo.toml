@@ -9,7 +9,7 @@ authors = ["FunnyX"]
 [dependencies]
 anyhow = "1"
 argon2 = { version = "0.5", features = ["std"] }
-axum = "0.8"
+axum = { version = "0.8", features = ["multipart"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 dotenvy = "0.15"
 funnyx-config = { path = "../../common/funnyx-config" }

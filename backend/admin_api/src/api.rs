@@ -12,6 +12,8 @@ use crate::auth;
 use crate::cbt;
 use crate::cbt_store::BasicTokenStore;
 use crate::config::Config;
+use crate::corp_users;
+use crate::corp_users_store::CorpUsersStore;
 use crate::engine::EngineClient;
 use crate::game_coin_store::GameCoinStore;
 use crate::game_coins;
@@ -34,6 +36,7 @@ pub struct AppState {
     pub system: SystemStore,
     pub game_coins: GameCoinStore,
     pub markets: AdminMarketStore,
+    pub corp_users: CorpUsersStore,
     pub engine: EngineClient,
     #[allow(dead_code)]
     pub http: Client,
@@ -86,6 +89,21 @@ pub fn router(state: AppState) -> Router {
         .route(paths::ADMIN_MARKET, get(markets::get_market))
         .route(paths::ADMIN_MARKET_APPROVE, post(markets::approve))
         .route(paths::ADMIN_MARKET_REJECT, post(markets::reject))
+        .route(paths::ADMIN_CORPORATE_USERS, get(corp_users::list_corps))
+        .route(paths::ADMIN_CORPORATE_USER, get(corp_users::get_corp))
+        .route(
+            paths::ADMIN_CORPORATE_USER_APPROVE,
+            post(corp_users::approve_corp),
+        )
+        .route(
+            paths::ADMIN_CORPORATE_USER_REJECT,
+            post(corp_users::reject_corp),
+        )
+        .route(paths::ADMIN_GAMES, get(corp_users::list_games))
+        .route(paths::ADMIN_GAME, get(corp_users::get_game))
+        .route(paths::ADMIN_GAME_APPROVE, post(corp_users::approve_game))
+        .route(paths::ADMIN_GAME_REJECT, post(corp_users::reject_game))
+        .route(paths::ADMIN_CORP_DOCUMENT, get(corp_users::download_document))
         .with_state(state)
 }
 

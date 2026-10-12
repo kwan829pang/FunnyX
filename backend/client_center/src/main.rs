@@ -9,12 +9,16 @@ mod config;
 mod corp;
 mod corp_cbt;
 mod corp_markets;
+mod corp_onboard;
+mod corp_onboard_store;
 mod corp_shop;
 mod db;
 mod game_accounts;
 mod games;
 mod internal;
 mod market_store;
+mod marketplace;
+mod marketplace_store;
 mod models;
 mod oauth;
 mod partner;
@@ -25,6 +29,7 @@ mod sessions;
 mod shop;
 mod shop_store;
 mod sts;
+mod uploads;
 mod users;
 mod wallet;
 mod wallet_store;
@@ -42,7 +47,9 @@ use chat_store::ChatStore;
 use config::Config;
 use games::GameCatalog;
 use cbt_store::CbtStore;
+use corp_onboard_store::CorpOnboardStore;
 use market_store::MarketStore;
+use marketplace_store::MarketplaceStore;
 use partner::PartnerClient;
 use pay::PaymentGateClient;
 use shop_store::ShopStore;
@@ -92,6 +99,8 @@ async fn main() -> anyhow::Result<()> {
         ShopStore::memory()
     };
     let markets = MarketStore::new(pool.clone());
+    let marketplace = MarketplaceStore::new(pool.clone(), &config, http.clone());
+    let corp_onboard = CorpOnboardStore::new(pool.clone(), config.upload_dir.clone());
     let cbt = CbtStore::new(pool.clone());
     let wallets = WalletStore::new(pool.clone());
     let chat = ChatStore::connect(&config).await;
@@ -121,6 +130,8 @@ async fn main() -> anyhow::Result<()> {
         bindings,
         shop,
         markets,
+        marketplace,
+        corp_onboard,
         cbt,
         wallets,
         chat,

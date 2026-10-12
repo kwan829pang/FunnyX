@@ -79,8 +79,12 @@ async fn proxy_fallback(
             Err((status, body)) => return (status, Json(body)).into_response(),
         },
         AuthKind::Corp => {
-            if let Err((status, body)) = require_corp_headers(&headers) {
-                return (status, Json(body)).into_response();
+            // Client Web corp session Bearer, or partner MasterSigned headers.
+            let has_bearer = crate::auth::extract_bearer(&headers).is_some();
+            if !has_bearer {
+                if let Err((status, body)) = require_corp_headers(&headers) {
+                    return (status, Json(body)).into_response();
+                }
             }
         }
         AuthKind::Admin => {

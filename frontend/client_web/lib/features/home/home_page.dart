@@ -18,10 +18,20 @@ class HomePage extends StatelessWidget {
         children: [
           Text(l10n.home, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 12),
-          const Text(
-            'Wallet, markets, and notices will use Client Center after login.',
-          ),
+          Text(l10n.marketplaceEligible),
           const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () => Get.toNamed('/marketplace'),
+            icon: const Icon(Icons.storefront),
+            label: Text(l10n.marketplace),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Get.toNamed('/corp/register'),
+            icon: const Icon(Icons.business),
+            label: Text(l10n.corpRegisterTitle),
+          ),
+          const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: auth.continueWithPartner,
             icon: const Icon(Icons.link),

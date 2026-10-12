@@ -121,6 +121,14 @@ pub mod paths {
     pub const INTERNAL_SHOP_SETTLE: &str = "/v1/internal/shop/settle";
     pub const INTERNAL_CORP_TOKEN_SETTLE: &str = "/v1/internal/corp-token/settle";
 
+    /// C7 Marketplace (Session) — Client Center via Gateway.
+    pub const MARKETPLACE_ELIGIBILITY: &str = "/v1/marketplace/eligibility";
+    pub const MARKETPLACE_ITEMS: &str = "/v1/marketplace/items";
+    pub const MARKETPLACE_DEALS: &str = "/v1/marketplace/deals";
+    pub const MARKETPLACE_DEAL: &str = "/v1/marketplace/deals/{id}";
+    pub const MARKETPLACE_DEAL_REQUEST: &str = "/v1/marketplace/deals/{id}/request";
+    pub const MARKETPLACE_DEAL_CANCEL: &str = "/v1/marketplace/deals/{id}/cancel";
+
     pub const WEBHOOK_SHOP_PAYMENT: &str = "/v1/webhook/shop/payment";
     pub const WEBHOOK_CORP_TOKEN_PAYMENT: &str = "/v1/webhook/corp-token/payment";
     pub const WEBHOOK_ENDPOINTS: &str = "/v1/webhook/endpoints";
@@ -135,10 +143,27 @@ pub mod paths {
     pub const NOTIFICATIONS: &str = "/v1/notifications";
     pub const NOTIFICATION: &str = "/v1/notifications/{id}";
 
+    pub const CORP_REGISTER: &str = "/v1/corp/register";
+    pub const CORP_LOGIN: &str = "/v1/corp/login";
+    pub const CORP_PROFILE: &str = "/v1/corp/profile";
+    pub const CORP_GAMES: &str = "/v1/corp/games";
+    pub const CORP_GAME: &str = "/v1/corp/games/{id}";
+    pub const CORP_DOCUMENT: &str = "/v1/corp/documents/{id}";
+
     pub const CORP_BASIC_TOKENS: &str = "/v1/corp/basic-tokens";
     pub const CORP_BASIC_TOKEN: &str = "/v1/corp/basic-tokens/{id}";
     pub const CORP_BASIC_TOKEN_BUY_ORDERS: &str = "/v1/corp/basic-tokens/{id}/buy-orders";
     pub const CORP_BASIC_TOKEN_FEES: &str = "/v1/corp/basic-tokens/{id}/fees";
+
+    pub const ADMIN_CORPORATE_USERS: &str = "/v1/admin/corporate-users";
+    pub const ADMIN_CORPORATE_USER: &str = "/v1/admin/corporate-users/{id}";
+    pub const ADMIN_CORPORATE_USER_APPROVE: &str = "/v1/admin/corporate-users/{id}/approve";
+    pub const ADMIN_CORPORATE_USER_REJECT: &str = "/v1/admin/corporate-users/{id}/reject";
+    pub const ADMIN_GAMES: &str = "/v1/admin/games";
+    pub const ADMIN_GAME: &str = "/v1/admin/games/{id}";
+    pub const ADMIN_GAME_APPROVE: &str = "/v1/admin/games/{id}/approve";
+    pub const ADMIN_GAME_REJECT: &str = "/v1/admin/games/{id}/reject";
+    pub const ADMIN_CORP_DOCUMENT: &str = "/v1/admin/corp/documents/{id}";
 
     pub const CORP_TOKENS: &str = "/v1/corp-tokens";
     pub const CORP_TOKEN: &str = "/v1/corp-tokens/{id}";

@@ -4,6 +4,8 @@ mod auth;
 mod cbt;
 mod cbt_store;
 mod config;
+mod corp_users;
+mod corp_users_store;
 mod engine;
 mod game_coin_store;
 mod game_coins;
@@ -28,6 +30,7 @@ use admins::AdminDirectory;
 use api::{router, AppState};
 use cbt_store::BasicTokenStore;
 use config::Config;
+use corp_users_store::CorpUsersStore;
 use engine::EngineClient;
 use game_coin_store::GameCoinStore;
 use market_store::AdminMarketStore;
@@ -97,6 +100,7 @@ async fn main() -> anyhow::Result<()> {
         system: SystemStore::new(pool.clone()),
         game_coins: GameCoinStore::new(pool.clone()),
         markets,
+        corp_users: CorpUsersStore::new(pool.clone(), config.upload_dir.clone()),
         engine,
         http,
         config: config.clone(),

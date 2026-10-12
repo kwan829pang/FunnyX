@@ -18,6 +18,8 @@ pub struct Config {
     /// Fallback when Config Server has no core-engine instance.
     pub core_engine_url: String,
     pub core_engine_admin_key: String,
+    /// Same upload root as Client Center for reviewing BR / game docs.
+    pub upload_dir: String,
 }
 
 impl Config {
@@ -62,6 +64,8 @@ impl Config {
             core_engine_admin_key: env::var("CORE_ENGINE_ADMIN_KEY")
                 .or_else(|_| env::var("ADMIN_API_KEY"))
                 .unwrap_or_else(|_| "demo-admin-key".into()),
+            upload_dir: env::var("UPLOAD_DIR")
+                .unwrap_or_else(|_| "./data/uploads".into()),
         })
     }
 }

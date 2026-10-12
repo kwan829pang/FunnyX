@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS fx_events.webhook_endpoints (
     id BIGSERIAL PRIMARY KEY,
     corporate_user_id BIGINT NOT NULL REFERENCES fx_corp.corporate_users(id) ON DELETE CASCADE,
     kind VARCHAR(32) NOT NULL
-        CHECK (kind IN ('shop_payment', 'deposit', 'withdrawal', 'corp_token')),
+        CHECK (kind IN ('shop_payment', 'deposit', 'withdrawal', 'corp_token', 'marketplace')),
     callback_url VARCHAR(512) NOT NULL,
     auth_type VARCHAR(32) NOT NULL DEFAULT 'signature',
     secret_hint VARCHAR(64),

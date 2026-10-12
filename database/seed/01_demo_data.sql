@@ -52,16 +52,49 @@ SET secret_hash = EXCLUDED.secret_hash,
     status = EXCLUDED.status,
     updated_at = :demo_ts;
 
-\echo '=== demo: partner_endpoints (transfer) ==='
+\echo '=== demo: partner_endpoints (transfer + item_list) ==='
 INSERT INTO fx_corp.partner_endpoints (
     corporate_user_id, type, endpoint, auth_type, status, created_at, updated_at
 )
 VALUES (
-    1, 'transfer', 'https://partner.demo.local/api/transfer',
+    1, 'transfer', 'http://127.0.0.1:18102/api/transfer',
+    'signature', 'active', :demo_ts, 0
+),
+(
+    1, 'item_list', 'http://127.0.0.1:18102/api/items',
     'signature', 'active', :demo_ts, 0
 )
 ON CONFLICT (corporate_user_id, type) DO UPDATE
 SET endpoint = EXCLUDED.endpoint,
+    auth_type = EXCLUDED.auth_type,
+    status = EXCLUDED.status,
+    updated_at = :demo_ts;
+
+\echo '=== demo: allow webhook kind marketplace (idempotent) ==='
+DO $$
+BEGIN
+  ALTER TABLE fx_events.webhook_endpoints DROP CONSTRAINT IF EXISTS webhook_endpoints_kind_check;
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+ALTER TABLE fx_events.webhook_endpoints DROP CONSTRAINT IF EXISTS webhook_endpoints_kind_check;
+DO $$
+BEGIN
+  ALTER TABLE fx_events.webhook_endpoints
+    ADD CONSTRAINT webhook_endpoints_kind_check
+    CHECK (kind IN ('shop_payment', 'deposit', 'withdrawal', 'corp_token', 'marketplace'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+\echo '=== demo: webhook_endpoints (marketplace) ==='
+INSERT INTO fx_events.webhook_endpoints (
+    corporate_user_id, kind, callback_url, auth_type, secret_hint, status, created_at, updated_at
+)
+VALUES (
+    1, 'marketplace', 'http://127.0.0.1:18102/api/callback',
+    'signature', 'demo', 'active', :demo_ts, 0
+)
+ON CONFLICT (corporate_user_id, kind) DO UPDATE
+SET callback_url = EXCLUDED.callback_url,
     auth_type = EXCLUDED.auth_type,
     status = EXCLUDED.status,
     updated_at = :demo_ts;
@@ -181,8 +214,8 @@ INSERT INTO fx_user.user_wallets (
     game_account_id, game_coin_id, available, locked, updated_at
 )
 VALUES
-    (1, 1, 0, 0, :demo_ts),
-    (1, 2, 0, 0, :demo_ts)
+    (1, 1, 100, 0, :demo_ts),
+    (1, 2, 50, 0, :demo_ts)
 ON CONFLICT (game_account_id, game_coin_id) DO UPDATE
 SET available = EXCLUDED.available,
     locked = EXCLUDED.locked,

@@ -199,6 +199,7 @@ This repository keeps one master product summary in the root README and uses the
 - [development.md](development.md) defines execution order and status
 - [technology.md](technology.md) defines the stack and runtime model
 - [doc/e-shop.md](doc/e-shop.md), [doc/partner.md](doc/partner.md), and [doc/client_connect.md](doc/client_connect.md) define the payment, partner, and auth flows
+- [doc/corp_onboarding.md](doc/corp_onboarding.md) defines company BR registration and game document approval
 
 ### Shared payment callback example
 

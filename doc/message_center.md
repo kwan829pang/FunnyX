@@ -46,6 +46,15 @@ Client Web (Session) → GET /v1/notifications
 2. `webhook_endpoints` for `payload.corporate_user_id` + kind derived from `source_type`
 3. Env `PARTNER_NOTICE_URL`
 
+| `source_type` | webhook `kind` |
+| --- | --- |
+| `shop_order` | `shop_payment` |
+| `corp_token_order` | `corp_token` |
+| `marketplace_deal` / `marketplace_deal_request` | `marketplace` |
+| `deposit_withdrawal_txn` | payload `transaction_type` or `deposit` |
+
+Marketplace producers: Client Center after place/take/cancel/fail. See [marketplace.md](marketplace.md) §4.
+
 ## Event coverage
 
-`source_type` / `event_type` enums match [`database/fx_events/01_tables.sql`](../database/fx_events/01_tables.sql) (`created`, `pending_payment`, `completed`, `cancelled`, `rejected`, `filled`, …).
+`source_type` / `event_type` enums match [`database/fx_events/01_tables.sql`](../database/fx_events/01_tables.sql) (`created`, `pending_payment`, `completed`, `cancelled`, `rejected`, `filled`, …). Includes `marketplace_deal` / `marketplace_deal_request`.

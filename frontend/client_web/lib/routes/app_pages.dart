@@ -4,7 +4,14 @@ import 'package:get/get.dart';
 import '../features/auth/login_page.dart';
 import '../features/auth/oauth_callback_page.dart';
 import '../features/auth/register_page.dart';
+import '../features/corp/corp_game_wizard_page.dart';
+import '../features/corp/corp_home_page.dart';
+import '../features/corp/corp_login_page.dart';
+import '../features/corp/corp_register_page.dart';
 import '../features/home/home_page.dart';
+import '../features/marketplace/marketplace_deal_page.dart';
+import '../features/marketplace/marketplace_page.dart';
+import '../features/marketplace/marketplace_place_page.dart';
 import '../features/shop/cart_page.dart';
 import '../features/shop/checkout_page.dart';
 import '../features/shop/order_detail_page.dart';
@@ -75,5 +82,27 @@ abstract class AppPages {
       },
       middlewares: [authGuard],
     ),
+    GetPage(
+      name: '/marketplace',
+      page: () => const ClientShell(child: MarketplacePage()),
+      middlewares: [authGuard],
+    ),
+    GetPage(
+      name: '/marketplace/new',
+      page: () => const ClientShell(child: MarketplacePlacePage()),
+      middlewares: [authGuard],
+    ),
+    GetPage(
+      name: '/marketplace/deals/:id',
+      page: () {
+        final id = int.tryParse(Get.parameters['id'] ?? '') ?? 0;
+        return ClientShell(child: MarketplaceDealPage(dealId: id));
+      },
+      middlewares: [authGuard],
+    ),
+    GetPage(name: '/corp/register', page: () => const CorpRegisterPage()),
+    GetPage(name: '/corp/login', page: () => const CorpLoginPage()),
+    GetPage(name: '/corp/home', page: () => const CorpHomePage()),
+    GetPage(name: '/corp/games/new', page: () => const CorpGameWizardPage()),
   ];
 }

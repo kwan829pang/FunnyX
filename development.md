@@ -265,7 +265,8 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 - [x] Market list/approve/reject + pool transfer + Core Engine activate; Panel `/markets`.
 - [x] Config Server registry consume for Core Engine URL (env fallback).
 - [ ] Role-based admin access beyond demo directory; persist `fx_admin`.
-- [ ] Corporate onboarding approve + C6/C9 fees / license / notices UI.
+- [x] Corporate onboarding (Client Web BR wizard + game docs wizard; Admin approve/reject companies & games).
+- [ ] C6/C9 fees / license / notices UI.
 
 
 
@@ -297,13 +298,15 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 
 
 
-### 18b. Marketplace deals (C7)
+### 18b. Marketplace deals (C7) — **DONE** (API + Client Web + notices)
 
-- Gate **place deal**: (1) user bought Platform Token on platform, (2) playing ≥1 listed game, (3) partner Transfer API open for the asset’s game, (4) for game_item — partner Item List API returns pickable `item_ref_id`.
-- Persist `offer_item_ref_id` / transfer `item_ref_id` (`VARCHAR`); no platform item escrow table.
-- Require partner endpoint `type=transfer` for Marketplace-eligible games.
-- Client APIs: eligibility, item list proxy, list/create/request/cancel deals. See `doc/marketplace.md`.
-- Emit `outbound_notices` on deal status changes.
+- [x] Gate **place deal**: (1) user bought Platform Token on platform, (2) playing ≥1 listed game, (3) partner Transfer API open for the asset’s game, (4) for game_item — partner Item List API returns pickable `item_ref_id`.
+- [x] Persist `offer_item_ref_id` / transfer `item_ref_id` (`VARCHAR`); no platform item escrow table.
+- [x] Require partner endpoint `type=transfer` for Marketplace-eligible games.
+- [x] Client APIs: eligibility, item list proxy, list/create/request(take)/cancel deals. See `doc/marketplace.md`.
+- [x] 1 PLT listing fee on place; take settles want via wallets + partner Transfer.
+- [x] Emit notices via Message Center (`marketplace_deal` events) + partner webhook kind `marketplace`.
+- [x] Client Web `/marketplace` browse / place / take UI.
 
 
 

@@ -25,6 +25,10 @@ pub struct Config {
     pub mongo_db: String,
     pub payment_gate_url: String,
     pub shop_payment_callback_url: String,
+    /// Message Center enqueue base URL (`POST /v1/notices`).
+    pub message_center_url: String,
+    /// Local directory for corp BR / game document uploads.
+    pub upload_dir: String,
     pub demo_master_code: String,
     pub demo_master_id: String,
     pub demo_api_key: String,
@@ -87,6 +91,12 @@ impl Config {
                 .to_string(),
             shop_payment_callback_url: env::var("SHOP_PAYMENT_CALLBACK_URL")
                 .unwrap_or_else(|_| "http://127.0.0.1:8084/v1/webhook/shop/payment".into()),
+            message_center_url: env::var("MESSAGE_CENTER_URL")
+                .unwrap_or_else(|_| "http://127.0.0.1:8085".into())
+                .trim_end_matches('/')
+                .to_string(),
+            upload_dir: env::var("UPLOAD_DIR")
+                .unwrap_or_else(|_| "./data/uploads".into()),
             demo_master_code: env::var("DEMO_MASTER_CODE")
                 .unwrap_or_else(|_| "DEMO_MASTER_CODE".into()),
             demo_master_id: env::var("DEMO_MASTER_ID").unwrap_or_else(|_| "DEMO_MASTER_ID".into()),

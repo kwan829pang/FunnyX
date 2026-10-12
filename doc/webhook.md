@@ -12,6 +12,7 @@ Webhook Server is **partner / payment-gate ingress** only.
 - Persists `fx_events.webhook_events` (`event_id` unique, `retry_count`) and shop audit `fx_shop.shop_payment_events`.
 - Calls Client Center **internal** settle so orders/wallets update (`/v1/internal/shop/settle`, `/v1/internal/corp-token/settle`).
 - Writes `fx_events.outbound_notices` (`shop_order` / `corp_token_order`) for Message Center later; on CBT paid also Corp `corp_partner_notices` and HTTP **balance callback** to Corp (`webhook_endpoints` kind `corp_token` or `partner_endpoints` type `callback`).
+- Marketplace deal notices are produced by **Client Center** (not Webhook Server ingest) and drained by Message Center with partner webhook kind `marketplace` — see [marketplace.md](marketplace.md) §4.
 - Lets **Corporate Users** create/update **their** callback endpoint rows (MasterSigned). CBT paid settle **does** call the Corp callback URL when configured.
 
 Client Web does **not** open a socket to Webhook Server. Until Message Center + Gateway exist, the browser polls Client Center `GET /v1/shop/orders/{id}` (Session). After those services exist, Client Web uses **Gateway** socket (Session token); Message Center drains notices.

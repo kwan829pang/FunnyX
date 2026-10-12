@@ -40,6 +40,9 @@
 \echo '=== fx_corp supply + payment records ==='
 \i fx_corp/02_supply_and_payments.sql
 
+\echo '=== fx_corp onboarding (BR / game docs / web sessions) ==='
+\i fx_corp/03_onboarding.sql
+
 \echo '=== fx_corp_token ==='
 \i fx_corp_token/00_create_schema.sql
 \i fx_corp_token/01_tables.sql
@@ -75,4 +78,4 @@
 \echo '=== 99 indexes ==='
 \i 99_indexes.sql
 
-\echo '=== Done: 12 schemas, 45 tables ==='
+\echo '=== Done: 12 schemas + corp onboarding tables ==='

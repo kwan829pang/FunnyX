@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../controllers/setup_middleware.dart';
 import '../features/auth/login_page.dart';
+import '../features/corp_onboard/corp_onboard_page.dart';
 import '../features/corp_products/corp_products_page.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/markets/markets_page.dart';
@@ -52,6 +53,11 @@ abstract class AppPages {
     GetPage(
       name: '/markets',
       page: () => const AdminShell(child: MarketsPage()),
+      middlewares: [authGuard, setupGuard],
+    ),
+    GetPage(
+      name: '/corp-onboard',
+      page: () => const AdminShell(child: CorpOnboardPage()),
       middlewares: [authGuard, setupGuard],
     ),
   ];

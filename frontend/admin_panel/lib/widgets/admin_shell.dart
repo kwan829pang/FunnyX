@@ -15,7 +15,8 @@ class AdminShell extends StatelessWidget {
     if (location.startsWith('/packages')) return 1;
     if (location.startsWith('/corp-products')) return 2;
     if (location.startsWith('/markets')) return 3;
-    if (location.startsWith('/setup')) return 4;
+    if (location.startsWith('/corp-onboard')) return 4;
+    if (location.startsWith('/setup')) return 5;
     return 0;
   }
 
@@ -28,6 +29,8 @@ class AdminShell extends StatelessWidget {
       case 3:
         return '/markets';
       case 4:
+        return '/corp-onboard';
+      case 5:
         return '/setup';
       default:
         return '/dashboard';
@@ -53,6 +56,8 @@ class AdminShell extends StatelessWidget {
                 Get.toNamed('/corp-products');
               } else if (q.contains('market')) {
                 Get.toNamed('/markets');
+              } else if (q.contains('onboard') || q.contains('compan')) {
+                Get.toNamed('/corp-onboard');
               } else if (q.contains('setup')) {
                 Get.toNamed('/setup');
               } else {
@@ -129,6 +134,11 @@ class AdminShell extends StatelessWidget {
                           selectedIcon: const Icon(Icons.storefront),
                           label: Text(l10n.markets),
                         ),
+                        const NavigationRailDestination(
+                          icon: Icon(Icons.business_outlined),
+                          selectedIcon: Icon(Icons.business),
+                          label: Text('Onboard'),
+                        ),
                         NavigationRailDestination(
                           icon: const Icon(Icons.tune_outlined),
                           selectedIcon: const Icon(Icons.tune),
@@ -180,6 +190,12 @@ class _NavList extends StatelessWidget {
           title: Text(l10n.markets),
           selected: location.startsWith('/markets'),
           onTap: () => Get.toNamed('/markets'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.business),
+          title: const Text('Onboard'),
+          selected: location.startsWith('/corp-onboard'),
+          onTap: () => Get.toNamed('/corp-onboard'),
         ),
         ListTile(
           leading: const Icon(Icons.tune),

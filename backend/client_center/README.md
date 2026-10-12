@@ -1,10 +1,10 @@
 # FunnyX Client Center
 
-Client Web–facing accounts, **login**, **OAuth**, **game-account bind**, **wallet / deposit / withdraw**, **chat** (`chat_messages`), and **e-shop** (catalog + pending orders). Session tokens / OAuth IdP+broker: [Session Token Server](../session_token_server/). Public ingress: [Gateway](../gateway/) on **8080**.
+Client Web–facing accounts, **login**, **OAuth**, **game-account bind**, **wallet / deposit / withdraw**, **chat** (`chat_messages`), **e-shop** (catalog + pending orders), and **C7 Marketplace** deals. Session tokens / OAuth IdP+broker: [Session Token Server](../session_token_server/). Public ingress: [Gateway](../gateway/) on **8080**.
 
-Default port: **8083**. Requires STS on **8082**. Path A bind / money also needs `company-a-server` on **18102**.
+Default port: **8083**. Requires STS on **8082**. Path A bind / money / Marketplace Transfer also needs `company-a-server` on **18102**. Marketplace notices: `MESSAGE_CENTER_URL` (default `http://127.0.0.1:8085`).
 
-Set `POSTGRES_URL` to persist users, OAuth identities, sessions, games, game-account binds, and wallets. Deposit/withdraw require Postgres. Set `MONGO_URL` + `MONGO_DB=funnyx_client` for required `chat_messages` persistence (Session chat APIs return **503** if unset). Without `POSTGRES_URL`, auth/bind APIs run in memory (passwords still Argon2id).
+Set `POSTGRES_URL` to persist users, OAuth identities, sessions, games, game-account binds, wallets, and marketplace deals. Deposit/withdraw/marketplace require Postgres. Set `MONGO_URL` + `MONGO_DB=funnyx_client` for required `chat_messages` persistence (Session chat APIs return **503** if unset). Without `POSTGRES_URL`, auth/bind APIs run in memory (passwords still Argon2id).
 
 ## Run
 
@@ -57,6 +57,49 @@ curl -s http://127.0.0.1:8083/v1/shop/orders \
 ```
 
 `game_account_id` is the platform binding row id from `GET /v1/client/game-accounts`.
+
+## Corp onboarding (Public + Corp Bearer)
+
+Multipart register uploads Business Registration (BR) to `UPLOAD_DIR` (default `./data/uploads`). Status stays `pending` until Admin approves. After approval, Corp can submit games with government/approved documents.
+
+```bash
+# Register (multipart)
+curl -s http://127.0.0.1:8083/v1/corp/register \
+  -F company_name='Acme Games' -F contact_name='Ada' \
+  -F contact_email='ada@acme.local' -F password='secret12' \
+  -F br_file=@./br.pdf
+
+# Login → corp_… token
+curl -s http://127.0.0.1:8083/v1/corp/login \
+  -H "content-type: application/json" \
+  -d '{"login":"ada@acme.local","password":"secret12"}'
+
+# After admin approve: submit game + docs
+curl -s http://127.0.0.1:8083/v1/corp/games \
+  -H "authorization: Bearer $CORP_TOKEN" \
+  -F game_name='Demo Adventure' -F game_code='DEMO_GAME_2' \
+  -F government_approval=@./gov.pdf -F approved_material=@./mat.pdf
+```
+
+Admin Panel: `/corp-onboard`. Apply DB: `database/fx_corp/03_onboarding.sql` (also in `run_all.sql`).
+
+## Marketplace (Session, C7)
+
+Requires `POSTGRES_URL`, partner `transfer` (+ `item_list` for game items), and PLT wallet for the **1 PLT** listing fee. Take settles want payment on platform wallets then calls partner Transfer. Status notices enqueue to Message Center (`marketplace_deal` / `created|completed|cancelled|failed`).
+
+```bash
+curl -s http://127.0.0.1:8083/v1/marketplace/eligibility -H "authorization: Bearer $TOKEN"
+curl -s http://127.0.0.1:8083/v1/marketplace/deals -H "authorization: Bearer $TOKEN"
+curl -s http://127.0.0.1:8083/v1/marketplace/deals \
+  -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
+  -d '{"poster_game_account_id":1,"offer_asset_type":"game_coin","offer_game_coin_id":2,"offer_amount":5,"want_asset_type":"platform_token","want_game_coin_id":1,"want_amount":10}'
+# Take (another user):
+curl -s http://127.0.0.1:8083/v1/marketplace/deals/1/request \
+  -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
+  -d '{"requester_game_account_id":1}'
+```
+
+Detail: [doc/marketplace.md](../../doc/marketplace.md).
 
 ## Wallet / deposit / withdraw (Session)
 

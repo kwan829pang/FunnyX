@@ -11,16 +11,32 @@ class ClientShell extends StatelessWidget {
 
   final Widget child;
 
+  int _navIndex(String location) {
+    if (location.startsWith('/marketplace')) return 2;
+    if (location.startsWith('/shop')) return 1;
+    return 0;
+  }
+
+  String _routeForIndex(int i) {
+    return switch (i) {
+      1 => '/shop',
+      2 => '/marketplace',
+      _ => '/home',
+    };
+  }
+
+  // Corp wizards use dedicated routes (/corp/*) outside this shell.
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final location = Get.currentRoute;
     final auth = Get.find<AuthController>();
     final cart = Get.find<CartController>();
+    final index = _navIndex(location);
     return ResponsiveScope(
       builder: (context, size) {
         final mobile = size == AppLayoutSize.mobile;
-        final index = location.startsWith('/shop') ? 1 : 0;
         return Scaffold(
           appBar: mobile
               ? null
@@ -49,9 +65,7 @@ class ClientShell extends StatelessWidget {
               if (!mobile)
                 NavigationRail(
                   selectedIndex: index,
-                  onDestinationSelected: (i) {
-                    Get.toNamed(i == 0 ? '/home' : '/shop');
-                  },
+                  onDestinationSelected: (i) => Get.toNamed(_routeForIndex(i)),
                   labelType: NavigationRailLabelType.all,
                   destinations: [
                     NavigationRailDestination(
@@ -64,6 +78,11 @@ class ClientShell extends StatelessWidget {
                       selectedIcon: const Icon(Icons.shopping_bag),
                       label: Text(l10n.shop),
                     ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.storefront_outlined),
+                      selectedIcon: const Icon(Icons.storefront),
+                      label: Text(l10n.marketplace),
+                    ),
                   ],
                 ),
               Expanded(child: child),
@@ -72,9 +91,7 @@ class ClientShell extends StatelessWidget {
           bottomNavigationBar: mobile
               ? NavigationBar(
                   selectedIndex: index,
-                  onDestinationSelected: (i) {
-                    Get.toNamed(i == 0 ? '/home' : '/shop');
-                  },
+                  onDestinationSelected: (i) => Get.toNamed(_routeForIndex(i)),
                   destinations: [
                     NavigationDestination(
                       icon: const Icon(Icons.home),
@@ -83,6 +100,10 @@ class ClientShell extends StatelessWidget {
                     NavigationDestination(
                       icon: const Icon(Icons.shopping_bag),
                       label: l10n.shop,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.storefront),
+                      label: l10n.marketplace,
                     ),
                   ],
                 )
