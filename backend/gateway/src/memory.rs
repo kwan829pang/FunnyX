@@ -1,6 +1,6 @@
 //! In-memory Gateway runtime map ([doc/gateway_core_engine_logic.md] §2.7).
 
-#![allow(dead_code)] // Reserved map tables for LB / failover / market routing.
+#![allow(dead_code)] // Route/pool/market tables reserved for LB metrics.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ServiceRole {
     Config,
     Gateway,
@@ -37,11 +37,24 @@ pub struct ServiceNode {
     pub host: String,
     pub port: u16,
     pub http_url: String,
+    /// Private socket for Config / peer PING/PONG (`tcp://host:port`).
+    pub socket_url: Option<String>,
     pub protocol: String,
     pub region: String,
+    /// From Config Server socket-heartbeat (device-status), not HTTP `/health`.
     pub status: ServiceStatus,
     pub last_heartbeat_ms: u64,
     pub uptime_ms: u64,
+}
+
+#[derive(Clone, Debug)]
+pub struct GatewayPeer {
+    pub instance_id: String,
+    pub http_url: String,
+    pub socket_url: String,
+    pub status: ServiceStatus,
+    pub last_ping_ok_ms: u64,
+    pub last_error: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -107,6 +120,9 @@ pub struct GatewayMemoryMap {
     pub failover_map: HashMap<String, FailoverTarget>,
     pub config_snapshot: Option<ConfigSnapshot>,
     pub client_sockets: HashMap<String, ClientSocketConn>,
+    /// Other Gateway instances from Config listing + local socket PING.
+    pub gateway_peers: HashMap<String, GatewayPeer>,
+    pub self_instance_id: Option<String>,
 }
 
 impl GatewayMemoryMap {
@@ -140,18 +156,173 @@ impl GatewayMemoryMap {
         }
     }
 
-    /// Round-robin pick among healthy nodes for `role`.
+    /// Round-robin pick: prefer `Healthy`, else `Degraded`; skip Unhealthy/Offline.
+    /// When a role has a `failover_map` entry and the primary is down, prefer the backup.
     pub fn pick_healthy(&self, role: ServiceRole, counter: &AtomicUsize) -> Option<&ServiceNode> {
+        if let Some(node) = self.pick_failover(role) {
+            return Some(node);
+        }
         let healthy: Vec<&ServiceNode> = self
             .service_registry
             .values()
             .filter(|n| n.role == role && n.status == ServiceStatus::Healthy)
             .collect();
-        if healthy.is_empty() {
+        let pool = if !healthy.is_empty() {
+            healthy
+        } else {
+            self.service_registry
+                .values()
+                .filter(|n| n.role == role && n.status == ServiceStatus::Degraded)
+                .collect()
+        };
+        if pool.is_empty() {
             return None;
         }
         let idx = counter.fetch_add(1, Ordering::Relaxed);
-        Some(healthy[idx % healthy.len()])
+        Some(pool[idx % pool.len()])
+    }
+
+    /// Only intervenes when the configured primary is down — then return backup if up.
+    /// When primary is healthy/degraded, return `None` so normal RR continues.
+    fn pick_failover(&self, role: ServiceRole) -> Option<&ServiceNode> {
+        let fo = self.failover_map.values().find(|f| {
+            self.service_registry
+                .get(&f.primary_service_id)
+                .map(|n| n.role == role)
+                .unwrap_or(false)
+                || self
+                    .service_registry
+                    .get(&f.backup_service_id)
+                    .map(|n| n.role == role)
+                    .unwrap_or(false)
+        })?;
+        let primary = self.service_registry.get(&fo.primary_service_id);
+        let primary_ok = primary
+            .map(|n| {
+                matches!(
+                    n.status,
+                    ServiceStatus::Healthy | ServiceStatus::Degraded
+                )
+            })
+            .unwrap_or(false);
+        if primary_ok {
+            return None;
+        }
+        let backup = self.service_registry.get(&fo.backup_service_id)?;
+        if matches!(
+            backup.status,
+            ServiceStatus::Healthy | ServiceStatus::Degraded
+        ) {
+            tracing::info!(
+                role = ?role,
+                primary = %fo.primary_service_id,
+                backup = %fo.backup_service_id,
+                "gateway failover: using backup upstream"
+            );
+            return Some(backup);
+        }
+        None
+    }
+
+    /// Rebuild same-role primary/backup pairs (sorted by service_id).
+    /// Includes Gateway peers for mesh failover awareness.
+    pub fn rebuild_failover_map(&mut self) {
+        self.failover_map.clear();
+        let mut by_role: HashMap<ServiceRole, Vec<String>> = HashMap::new();
+        for (id, node) in &self.service_registry {
+            if matches!(node.role, ServiceRole::Unknown | ServiceRole::Config) {
+                continue;
+            }
+            by_role.entry(node.role).or_default().push(id.clone());
+        }
+        for (role, mut ids) in by_role {
+            ids.sort();
+            if ids.len() < 2 {
+                continue;
+            }
+            let key = format!("{:?}", role).to_ascii_lowercase();
+            self.failover_map.insert(
+                key,
+                FailoverTarget {
+                    primary_service_id: ids[0].clone(),
+                    backup_service_id: ids[1].clone(),
+                    mode: "active_passive".into(),
+                },
+            );
+        }
+    }
+
+    pub fn gateway_peer_summary(&self) -> Vec<serde_json::Value> {
+        self.gateway_peers
+            .values()
+            .map(|p| {
+                serde_json::json!({
+                    "instance_id": p.instance_id,
+                    "http_url": p.http_url,
+                    "socket_url": p.socket_url,
+                    "status": format!("{:?}", p.status).to_ascii_lowercase(),
+                    "last_ping_ok_ms": p.last_ping_ok_ms,
+                    "last_error": p.last_error,
+                })
+            })
+            .collect()
+    }
+
+    /// Summary of upstream roles for `/health` detail (status from socket heartbeat).
+    pub fn upstream_role_summary(&self) -> Vec<serde_json::Value> {
+        use std::collections::BTreeMap;
+        let mut counts: BTreeMap<&'static str, (usize, usize, usize, usize)> = BTreeMap::new();
+        for n in self.service_registry.values() {
+            let label = match n.role {
+                ServiceRole::ClientCenter => "client_center",
+                ServiceRole::MessageCenter => "message_center",
+                ServiceRole::AdminApi => "admin_api",
+                ServiceRole::SessionToken => "session_token",
+                ServiceRole::Webhook => "webhook",
+                ServiceRole::CoreEngine => "core_engine",
+                ServiceRole::Config => "config",
+                ServiceRole::Gateway => "gateway",
+                ServiceRole::Unknown => "unknown",
+            };
+            let e = counts.entry(label).or_insert((0, 0, 0, 0));
+            e.0 += 1;
+            match n.status {
+                ServiceStatus::Healthy => e.1 += 1,
+                ServiceStatus::Degraded => e.2 += 1,
+                ServiceStatus::Unhealthy | ServiceStatus::Offline => e.3 += 1,
+            }
+        }
+        counts
+            .into_iter()
+            .map(|(role, (total, healthy, degraded, down))| {
+                serde_json::json!({
+                    "role": role,
+                    "total": total,
+                    "healthy": healthy,
+                    "degraded": degraded,
+                    "down": down,
+                })
+            })
+            .collect()
+    }
+
+    pub fn any_critical_upstream_down(&self) -> bool {
+        for role in [
+            ServiceRole::ClientCenter,
+            ServiceRole::SessionToken,
+        ] {
+            let has_ok = self.service_registry.values().any(|n| {
+                n.role == role
+                    && matches!(
+                        n.status,
+                        ServiceStatus::Healthy | ServiceStatus::Degraded
+                    )
+            });
+            if !has_ok && self.service_registry.values().any(|n| n.role == role) {
+                return true;
+            }
+        }
+        false
     }
 }
 

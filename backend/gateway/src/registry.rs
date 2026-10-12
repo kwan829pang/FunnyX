@@ -1,4 +1,7 @@
 //! Poll Config Server registry into the local Gateway memory map.
+//!
+//! Upstream liveness for routing comes from Config Server **socket** heartbeat
+//! (`device-status` / last successful PING→PONG), not from HTTP `GET /health`.
 
 use std::time::Duration;
 
@@ -23,6 +26,8 @@ struct RemoteService {
     service_name: String,
     http_url: String,
     #[serde(default)]
+    socket_url: Option<String>,
+    #[serde(default)]
     status: String,
     #[serde(default)]
     last_heartbeat_ms: i64,
@@ -37,12 +42,19 @@ struct DeviceStatusResponse {
 struct DeviceStatus {
     instance_id: String,
     healthy: bool,
+    #[serde(default)]
     status: String,
+    #[serde(default)]
+    last_heartbeat_ms: i64,
 }
 
 pub fn spawn_registry_refresh(http: Client, config: Config, memory: SharedGatewayMemory) {
     tokio::spawn(async move {
         let interval = Duration::from_millis(config.registry_refresh_ms);
+        {
+            let mut map = memory.write().await;
+            map.self_instance_id = Some(config.instance_id.clone());
+        }
         loop {
             if let Err(e) = refresh_once(&http, &config, &memory).await {
                 tracing::debug!("gateway registry refresh: {e}");
@@ -64,9 +76,8 @@ async fn refresh_once(
         return Ok(());
     }
 
-    let url = format!("{}/v1/config/services", base);
     let resp = http
-        .get(&url)
+        .get(format!("{base}/v1/config/services"))
         .header("x-internal-key", &config.internal_api_key)
         .send()
         .await
@@ -76,10 +87,11 @@ async fn refresh_once(
     }
     let list: ServiceListResponse = resp.json().await.map_err(|e| e.to_string())?;
 
-    let mut health_override: std::collections::HashMap<String, bool> =
+    // Socket-heartbeat truth from Config Server probes (not HTTP /health).
+    let mut socket_health: std::collections::HashMap<String, (bool, i64, String)> =
         std::collections::HashMap::new();
     if let Ok(ds) = http
-        .get(format!("{}/v1/config/device-status", base))
+        .get(format!("{base}/v1/config/device-status"))
         .header("x-internal-key", &config.internal_api_key)
         .send()
         .await
@@ -87,37 +99,63 @@ async fn refresh_once(
         if ds.status().is_success() {
             if let Ok(body) = ds.json::<DeviceStatusResponse>().await {
                 for d in body.devices {
-                    health_override.insert(d.instance_id, d.healthy);
-                    let _ = d.status;
+                    socket_health.insert(
+                        d.instance_id,
+                        (d.healthy, d.last_heartbeat_ms, d.status),
+                    );
                 }
             }
         }
     }
 
     let mut map = memory.write().await;
+    let mut roles_from_registry = std::collections::HashSet::new();
+    let mut seen_ids = std::collections::HashSet::new();
+
     for svc in list.services {
         let role = role_from_service_name(&svc.service_name);
-        if matches!(
-            role,
-            ServiceRole::Gateway | ServiceRole::Unknown | ServiceRole::Config
-        ) {
+        if matches!(role, ServiceRole::Unknown | ServiceRole::Config) {
             continue;
         }
+        // Include Gateway peers so mesh discovery works.
         let (host, port) = parse_http_url(&svc.http_url);
-        let healthy = health_override
-            .get(&svc.instance_id)
-            .copied()
-            .unwrap_or_else(|| {
-                matches!(
-                    status_from_str(&svc.status),
-                    ServiceStatus::Healthy | ServiceStatus::Degraded
-                ) || svc.status.is_empty()
-            });
-        let status = if healthy {
-            ServiceStatus::Healthy
-        } else {
-            ServiceStatus::Unhealthy
+        let socket_url = svc
+            .socket_url
+            .as_ref()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+
+        let status = match socket_health.get(&svc.instance_id) {
+            Some((true, _, st)) => {
+                // Config socket probe OK — preserve degraded label if reported.
+                let s = status_from_str(st);
+                if matches!(s, ServiceStatus::Degraded) {
+                    ServiceStatus::Degraded
+                } else {
+                    ServiceStatus::Healthy
+                }
+            }
+            Some((false, _, _)) => ServiceStatus::Unhealthy,
+            None => {
+                // No device-status row yet: treat missing socket as degraded.
+                if socket_url.is_none() {
+                    ServiceStatus::Degraded
+                } else if svc.status.is_empty() {
+                    ServiceStatus::Degraded
+                } else {
+                    status_from_str(&svc.status)
+                }
+            }
         };
+
+        let hb = socket_health
+            .get(&svc.instance_id)
+            .map(|(_, ms, _)| *ms)
+            .unwrap_or(svc.last_heartbeat_ms)
+            .max(0) as u64;
+
+        roles_from_registry.insert(role);
+        seen_ids.insert(svc.instance_id.clone());
         let id = svc.instance_id.clone();
         map.service_health.insert(id.clone(), status);
         map.service_registry.insert(
@@ -129,13 +167,74 @@ async fn refresh_once(
                 host,
                 port,
                 http_url: svc.http_url.trim_end_matches('/').to_string(),
+                socket_url,
                 protocol: "http".into(),
                 region: "local".into(),
                 status,
-                last_heartbeat_ms: svc.last_heartbeat_ms.max(0) as u64,
+                last_heartbeat_ms: hb,
                 uptime_ms: 0,
             },
         );
+    }
+
+    // Remove stale registry entries (except env-* fallbacks).
+    let stale: Vec<String> = map
+        .service_registry
+        .keys()
+        .filter(|id| !id.starts_with("env-") && !seen_ids.contains(*id))
+        .cloned()
+        .collect();
+    for id in stale {
+        map.service_registry.remove(&id);
+        map.service_health.remove(&id);
+    }
+
+    // Drop env fallbacks when live registry nodes exist for that role.
+    let env_ids: Vec<String> = map
+        .service_registry
+        .iter()
+        .filter(|(id, n)| id.starts_with("env-") && roles_from_registry.contains(&n.role))
+        .map(|(id, _)| id.clone())
+        .collect();
+    for id in env_ids {
+        map.service_registry.remove(&id);
+        map.service_health.remove(&id);
+    }
+    map.rebuild_failover_map();
+
+    // Refresh allowlist snapshot from Config Server (Admin path gate).
+    if let Ok(wl) = http
+        .get(format!("{base}/v1/config/whitelist"))
+        .header("x-internal-key", &config.internal_api_key)
+        .send()
+        .await
+    {
+        if wl.status().is_success() {
+            if let Ok(body) = wl.json::<serde_json::Value>().await {
+                let allowlist = body
+                    .get("allowlist")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+                let version = body
+                    .get("version")
+                    .or_else(|| body.get("config_version"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+                map.config_snapshot = Some(crate::memory::ConfigSnapshot {
+                    config_version: version,
+                    feature_flags: Default::default(),
+                    rate_limits: Default::default(),
+                    allowlist,
+                    thresholds: Default::default(),
+                });
+            }
+        }
     }
     Ok(())
 }
@@ -183,6 +282,7 @@ async fn seed_env_fallbacks(config: &Config, memory: &SharedGatewayMemory) {
                 host,
                 port,
                 http_url: url.trim_end_matches('/').to_string(),
+                socket_url: None,
                 protocol: "http".into(),
                 region: "local".into(),
                 status: ServiceStatus::Healthy,

@@ -2,6 +2,7 @@ mod api;
 mod auth;
 mod config;
 mod memory;
+mod peers;
 mod proxy;
 mod push;
 mod push_hub;
@@ -49,14 +50,16 @@ async fn main() -> anyhow::Result<()> {
             internal_api_key: config.internal_api_key.clone(),
             service_name: config.service_name.clone(),
             http_url: config.public_base_url.clone(),
-            socket_url: Some(format!("tcp://127.0.0.1:{}", config.socket_port)),
+            // Config Server probes this socket (not HTTP /health) for liveness.
+            socket_url: Some(config.socket_advertise_url.clone()),
             group: Some("gateway".into()),
-            instance_id: None,
+            instance_id: Some(config.instance_id.clone()),
             timing: funnyx_heartbeat::HeartbeatTiming::from_env_or_default(),
         },
     );
 
     registry::spawn_registry_refresh(http.clone(), config.clone(), memory.clone());
+    peers::spawn_gateway_peer_mesh(config.clone(), memory.clone());
 
     let app = router(AppState {
         sts,

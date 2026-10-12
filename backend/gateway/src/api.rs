@@ -41,8 +41,30 @@ pub fn router(state: AppState) -> Router {
 }
 
 async fn health(State(state): State<AppState>) -> impl IntoResponse {
-    match HealthPayload::ok(state.config.service_name.clone()) {
-        Ok(payload) => Json(payload).into_response(),
+    // Public liveness only. Routing failover uses Config socket-heartbeat + peer PING,
+    // not this HTTP endpoint.
+    let map = state.memory.read().await;
+    let upstreams = map.upstream_role_summary();
+    let peers = map.gateway_peer_summary();
+    let self_id = map.self_instance_id.clone();
+    let degraded = map.any_critical_upstream_down();
+    drop(map);
+    let base = if degraded {
+        HealthPayload::degraded(state.config.service_name.clone())
+    } else {
+        HealthPayload::ok(state.config.service_name.clone())
+    };
+    match base {
+        Ok(payload) => Json(serde_json::json!({
+            "status": payload.status,
+            "service": payload.service,
+            "timestamp_ms": payload.timestamp_ms,
+            "instance_id": self_id,
+            "liveness": "socket_heartbeat",
+            "upstreams": upstreams,
+            "gateway_peers": peers,
+        }))
+        .into_response(),
         Err(e) => err_response(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     }
 }
@@ -97,6 +119,9 @@ async fn proxy_fallback(
             if let Err((status, body)) = require_bearer(&headers) {
                 return (status, Json(body)).into_response();
             }
+            if let Err(msg) = check_admin_allowlist(&state, &headers).await {
+                return err_response(StatusCode::FORBIDDEN, msg);
+            }
         }
     }
 
@@ -107,7 +132,13 @@ async fn proxy_fallback(
         }
     };
 
-    let upstream = resolve_upstream(&state.memory, &state.config, target, &state.rr).await;
+    let Some(upstream) = resolve_upstream(&state.memory, &state.config, target, &state.rr).await
+    else {
+        return err_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "no healthy upstream for route",
+        );
+    };
     forward(
         &state.http,
         &upstream,
@@ -118,4 +149,36 @@ async fn proxy_fallback(
         extra,
     )
     .await
+}
+
+/// When Config whitelist is loaded and is not `*`-open, require client IP match for Admin proxy.
+async fn check_admin_allowlist(state: &AppState, headers: &axum::http::HeaderMap) -> Result<(), String> {
+    let map = state.memory.read().await;
+    let Some(snap) = map.config_snapshot.as_ref() else {
+        return Ok(());
+    };
+    if snap.allowlist.is_empty() || snap.allowlist.iter().any(|e| e == "*") {
+        return Ok(());
+    }
+    let ip = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.split(',').next())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .or_else(|| {
+            headers
+                .get("x-real-ip")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.trim().to_string())
+        })
+        .unwrap_or_default();
+    if ip.is_empty() {
+        return Err("allowlisted IP required for admin via gateway".into());
+    }
+    if snap.allowlist.iter().any(|e| e == &ip) {
+        Ok(())
+    } else {
+        Err(format!("IP {ip} not on config allowlist"))
+    }
 }

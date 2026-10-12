@@ -14,9 +14,21 @@ cargo run
 
 - HTTP: `8080`
 - Heartbeat + client socket: `9000`
-- Public: `GET /health`
+- Public: `GET /health` — includes `upstreams` role summary; `status=degraded` when CC/STS peers are all down
 - Proxies: `/v1/client/*`, `/v1/shop/*`, `/v1/corp/*`, `/v1/notifications*`, `/v1/admin/*`, …
 - Blocked: `/v1/internal/*`, `/v1/config/*`, `/v1/webhook/*`, `/v1/notices*`, `/v1/session/validate`, `/v1/engine*`
+
+### Upstream failover (§20) — socket heartbeat, not HTTP `/health`
+
+Routing health comes from **Config Server private socket PING/PONG** (`GET /v1/config/device-status` after Config probes each registered `socket_url`). Gateway does **not** call upstream `GET /health` for failover.
+
+1. Each service (including this Gateway) registers with Config Server with `socket_url`.
+2. Config Server probes sockets; Gateway imports that status into its in-memory map.
+3. Proxy RR: prefer `Healthy`, then `Degraded`; **503** if a role has only Unhealthy peers.
+4. Same-role `failover_map` steers to backup when primary is down.
+5. **Gateway mesh:** other Gateways from Config listing are pinged over their sockets; peers appear on `GET /health` as `gateway_peers` (reporting only).
+
+Env: `INSTANCE_ID`, `SOCKET_ADVERTISE_URL` (reachable `tcp://host:port` for peers/Config), `PEER_PING_TIMEOUT_MS`, `REGISTRY_REFRESH_MS`. Admin proxy still checks Config whitelist IP (unless `*` / empty).
 
 ## Auth
 

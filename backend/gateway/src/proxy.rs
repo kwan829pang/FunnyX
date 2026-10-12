@@ -30,12 +30,13 @@ impl Default for RrCounters {
     }
 }
 
+/// Resolve upstream URL, or `None` when registered peers exist but all are down.
 pub async fn resolve_upstream(
     memory: &SharedGatewayMemory,
     config: &Config,
     target: UpstreamTarget,
     rr: &RrCounters,
-) -> String {
+) -> Option<String> {
     let (role, fallback, counter) = match target {
         UpstreamTarget::ClientCenter => (
             ServiceRole::ClientCenter,
@@ -55,9 +56,21 @@ pub async fn resolve_upstream(
     };
     let map = memory.read().await;
     if let Some(node) = map.pick_healthy(role, counter) {
-        return node.http_url.clone();
+        tracing::debug!(
+            role = ?role,
+            service_id = %node.service_id,
+            status = ?node.status,
+            url = %node.http_url,
+            "gateway pick upstream"
+        );
+        return Some(node.http_url.clone());
     }
-    fallback.trim_end_matches('/').to_string()
+    let has_role = map.service_registry.values().any(|n| n.role == role);
+    if has_role {
+        tracing::warn!(role = ?role, "no healthy/degraded upstream");
+        return None;
+    }
+    Some(fallback.trim_end_matches('/').to_string())
 }
 
 pub async fn forward(

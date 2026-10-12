@@ -22,6 +22,11 @@ pub struct Config {
     pub config_server_url: String,
     pub registry_refresh_ms: u64,
     pub http_timeout_ms: u64,
+    /// Stable id registered with Config Server (Gateway mesh).
+    pub instance_id: String,
+    /// Advertised private socket for Config/peer PING (`tcp://host:port`).
+    pub socket_advertise_url: String,
+    pub peer_ping_timeout_ms: u64,
 }
 
 impl Config {
@@ -30,19 +35,26 @@ impl Config {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(DEFAULT_GATEWAY_HTTP_PORT);
+        let socket_port: u16 = env::var("SOCKET_PORT")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(DEFAULT_GATEWAY_SOCKET_PORT);
+        let public_base_url = env::var("PUBLIC_BASE_URL")
+            .unwrap_or_else(|_| format!("http://127.0.0.1:{port}"))
+            .trim_end_matches('/')
+            .to_string();
+        let socket_advertise_url = env::var("SOCKET_ADVERTISE_URL")
+            .ok()
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| default_socket_advertise(&public_base_url, socket_port));
         Ok(Self {
             host: env::var("HTTP_HOST").unwrap_or_else(|_| DEFAULT_HTTP_HOST.into()),
             port,
             socket_host: env::var("SOCKET_HOST").unwrap_or_else(|_| DEFAULT_HTTP_HOST.into()),
-            socket_port: env::var("SOCKET_PORT")
-                .ok()
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(DEFAULT_GATEWAY_SOCKET_PORT),
+            socket_port,
             service_name: env::var("SERVICE_NAME").unwrap_or_else(|_| "funnyx-gateway".into()),
-            public_base_url: env::var("PUBLIC_BASE_URL")
-                .unwrap_or_else(|_| format!("http://127.0.0.1:{port}"))
-                .trim_end_matches('/')
-                .to_string(),
+            public_base_url,
             client_center_url: env::var("CLIENT_CENTER_URL")
                 .unwrap_or_else(|_| "http://127.0.0.1:8083".into())
                 .trim_end_matches('/')
@@ -78,6 +90,34 @@ impl Config {
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(DEFAULT_HTTP_TIMEOUT_MS)
                 .max(1_000),
+            instance_id: env::var("INSTANCE_ID").unwrap_or_else(|_| {
+                format!(
+                    "gateway-{}",
+                    env::var("HOSTNAME").unwrap_or_else(|_| "local".into())
+                )
+            }),
+            socket_advertise_url,
+            peer_ping_timeout_ms: env::var("PEER_PING_TIMEOUT_MS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(2_000)
+                .max(200),
         })
     }
+}
+
+fn default_socket_advertise(public_base_url: &str, socket_port: u16) -> String {
+    let host = public_base_url
+        .trim()
+        .trim_end_matches('/')
+        .strip_prefix("https://")
+        .or_else(|| public_base_url.trim().strip_prefix("http://"))
+        .unwrap_or("127.0.0.1")
+        .split('/')
+        .next()
+        .unwrap_or("127.0.0.1")
+        .split(':')
+        .next()
+        .unwrap_or("127.0.0.1");
+    format!("tcp://{host}:{socket_port}")
 }
