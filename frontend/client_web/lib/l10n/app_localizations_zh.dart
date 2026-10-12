@@ -27,6 +27,62 @@ class AppLocalizationsZh extends AppLocalizations {
   String get home => '首页';
 
   @override
+  String get wallet => '钱包';
+
+  @override
+  String get walletProfile => '资料';
+
+  @override
+  String get walletEmail => '邮箱';
+
+  @override
+  String get walletHint => '商店结算或充值/提现回调后余额会更新。请刷新重新加载。';
+
+  @override
+  String get walletBalances => '余额';
+
+  @override
+  String get walletTransactions => '交易记录';
+
+  @override
+  String get walletEmptyBalances => '暂无钱包余额。';
+
+  @override
+  String get walletEmptyTxns => '暂无资金交易。';
+
+  @override
+  String get walletAvailable => '可用';
+
+  @override
+  String get walletLocked => '锁定';
+
+  @override
+  String get walletGameCoin => '游戏币';
+
+  @override
+  String get walletAmount => '数量';
+
+  @override
+  String get walletDeposit => '充值';
+
+  @override
+  String get walletWithdraw => '提现';
+
+  @override
+  String get walletTxnId => '单号';
+
+  @override
+  String get walletTxnType => '类型';
+
+  @override
+  String get walletPltAvailable => 'PLT 可用';
+
+  @override
+  String walletBalanceCount(int count) {
+    return '$count 条余额';
+  }
+
+  @override
   String get shop => '商店';
 
   @override
@@ -446,6 +502,62 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String get home => '首页';
 
   @override
+  String get wallet => '钱包';
+
+  @override
+  String get walletProfile => '资料';
+
+  @override
+  String get walletEmail => '邮箱';
+
+  @override
+  String get walletHint => '商店结算或充值/提现回调后余额会更新。请刷新重新加载。';
+
+  @override
+  String get walletBalances => '余额';
+
+  @override
+  String get walletTransactions => '交易记录';
+
+  @override
+  String get walletEmptyBalances => '暂无钱包余额。';
+
+  @override
+  String get walletEmptyTxns => '暂无资金交易。';
+
+  @override
+  String get walletAvailable => '可用';
+
+  @override
+  String get walletLocked => '锁定';
+
+  @override
+  String get walletGameCoin => '游戏币';
+
+  @override
+  String get walletAmount => '数量';
+
+  @override
+  String get walletDeposit => '充值';
+
+  @override
+  String get walletWithdraw => '提现';
+
+  @override
+  String get walletTxnId => '单号';
+
+  @override
+  String get walletTxnType => '类型';
+
+  @override
+  String get walletPltAvailable => 'PLT 可用';
+
+  @override
+  String walletBalanceCount(int count) {
+    return '$count 条余额';
+  }
+
+  @override
   String get shop => '商店';
 
   @override
@@ -863,6 +975,62 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get home => '首頁';
+
+  @override
+  String get wallet => '錢包';
+
+  @override
+  String get walletProfile => '資料';
+
+  @override
+  String get walletEmail => '電子郵件';
+
+  @override
+  String get walletHint => '商店結算或儲值/提現回調後餘額會更新。請重新整理。';
+
+  @override
+  String get walletBalances => '餘額';
+
+  @override
+  String get walletTransactions => '交易紀錄';
+
+  @override
+  String get walletEmptyBalances => '尚無錢包餘額。';
+
+  @override
+  String get walletEmptyTxns => '尚無資金交易。';
+
+  @override
+  String get walletAvailable => '可用';
+
+  @override
+  String get walletLocked => '鎖定';
+
+  @override
+  String get walletGameCoin => '遊戲幣';
+
+  @override
+  String get walletAmount => '數量';
+
+  @override
+  String get walletDeposit => '儲值';
+
+  @override
+  String get walletWithdraw => '提現';
+
+  @override
+  String get walletTxnId => '單號';
+
+  @override
+  String get walletTxnType => '類型';
+
+  @override
+  String get walletPltAvailable => 'PLT 可用';
+
+  @override
+  String walletBalanceCount(int count) {
+    return '$count 筆餘額';
+  }
 
   @override
   String get shop => '商店';

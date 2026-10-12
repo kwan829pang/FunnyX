@@ -18,6 +18,7 @@ import '../features/shop/order_detail_page.dart';
 import '../features/shop/orders_page.dart';
 import '../features/shop/payment_page.dart';
 import '../features/shop/shop_page.dart';
+import '../features/wallet/wallet_page.dart';
 import '../widgets/client_shell.dart';
 
 abstract class AppPages {
@@ -47,6 +48,11 @@ abstract class AppPages {
     GetPage(
       name: '/home',
       page: () => const ClientShell(child: HomePage()),
+      middlewares: [authGuard],
+    ),
+    GetPage(
+      name: '/wallet',
+      page: () => const ClientShell(child: WalletPage()),
       middlewares: [authGuard],
     ),
     GetPage(

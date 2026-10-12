@@ -12,15 +12,17 @@ class ClientShell extends StatelessWidget {
   final Widget child;
 
   int _navIndex(String location) {
-    if (location.startsWith('/marketplace')) return 2;
-    if (location.startsWith('/shop')) return 1;
+    if (location.startsWith('/wallet')) return 1;
+    if (location.startsWith('/shop')) return 2;
+    if (location.startsWith('/marketplace')) return 3;
     return 0;
   }
 
   String _routeForIndex(int i) {
     return switch (i) {
-      1 => '/shop',
-      2 => '/marketplace',
+      1 => '/wallet',
+      2 => '/shop',
+      3 => '/marketplace',
       _ => '/home',
     };
   }
@@ -74,6 +76,11 @@ class ClientShell extends StatelessWidget {
                       label: Text(l10n.home),
                     ),
                     NavigationRailDestination(
+                      icon: const Icon(Icons.account_balance_wallet_outlined),
+                      selectedIcon: const Icon(Icons.account_balance_wallet),
+                      label: Text(l10n.wallet),
+                    ),
+                    NavigationRailDestination(
                       icon: const Icon(Icons.shopping_bag_outlined),
                       selectedIcon: const Icon(Icons.shopping_bag),
                       label: Text(l10n.shop),
@@ -96,6 +103,10 @@ class ClientShell extends StatelessWidget {
                     NavigationDestination(
                       icon: const Icon(Icons.home),
                       label: l10n.home,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.account_balance_wallet),
+                      label: l10n.wallet,
                     ),
                     NavigationDestination(
                       icon: const Icon(Icons.shopping_bag),

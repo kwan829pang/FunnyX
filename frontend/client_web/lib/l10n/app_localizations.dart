@@ -136,6 +136,114 @@ abstract class AppLocalizations {
   /// **'Home'**
   String get home;
 
+  /// No description provided for @wallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get wallet;
+
+  /// No description provided for @walletProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get walletProfile;
+
+  /// No description provided for @walletEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get walletEmail;
+
+  /// No description provided for @walletHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Balances update after shop settle or deposit/withdraw partner callbacks. Refresh to reload.'**
+  String get walletHint;
+
+  /// No description provided for @walletBalances.
+  ///
+  /// In en, this message translates to:
+  /// **'Balances'**
+  String get walletBalances;
+
+  /// No description provided for @walletTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Transactions'**
+  String get walletTransactions;
+
+  /// No description provided for @walletEmptyBalances.
+  ///
+  /// In en, this message translates to:
+  /// **'No wallet balances yet.'**
+  String get walletEmptyBalances;
+
+  /// No description provided for @walletEmptyTxns.
+  ///
+  /// In en, this message translates to:
+  /// **'No money transactions yet.'**
+  String get walletEmptyTxns;
+
+  /// No description provided for @walletAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get walletAvailable;
+
+  /// No description provided for @walletLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked'**
+  String get walletLocked;
+
+  /// No description provided for @walletGameCoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Game coin'**
+  String get walletGameCoin;
+
+  /// No description provided for @walletAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get walletAmount;
+
+  /// No description provided for @walletDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposit'**
+  String get walletDeposit;
+
+  /// No description provided for @walletWithdraw.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw'**
+  String get walletWithdraw;
+
+  /// No description provided for @walletTxnId.
+  ///
+  /// In en, this message translates to:
+  /// **'Txn'**
+  String get walletTxnId;
+
+  /// No description provided for @walletTxnType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get walletTxnType;
+
+  /// No description provided for @walletPltAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'PLT available'**
+  String get walletPltAvailable;
+
+  /// No description provided for @walletBalanceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} balance rows'**
+  String walletBalanceCount(int count);
+
   /// No description provided for @shop.
   ///
   /// In en, this message translates to:

@@ -8,8 +8,8 @@ This schedule is derived from the architecture and design documents under `doc` 
 | Phase                          | Status          | Notes                                                                                                                                                                                                                                    |
 | ------------------------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1. Database**                | **In progress** | PostgreSQL DDL **done**; Redis/Mongo + env samples **done**; seed SQL **done**; Docker/init (**Postgres/Redis/Mongo**) **done**; smoke-test **not started**; **dev_simulator** (payment-gate, message-queue, company-a-server, market-bot + Compose) **done** |
-| **2. Client register / login** | **In progress** | **STS** OAuth **done**; **Client Center** login + Postgres identity **done** (`8083`); **Gateway** ingress **done** (`8080`); Client Web → Gateway                                                                                       |
-| 3. E-shop API + frontend       | **In progress** | Client Center shop + Webhook settle + Client Web GridView/cart/checkout **done**; wallet UI open                                                                                                                                         |
+| **2. Client register / login** | **In progress** | **STS** OAuth **done**; **Client Center** login + Postgres identity **done** (`8083`); **Gateway** ingress **done** (`8080`); Client Web shell + wallet UI **done**                                                                     |
+| 3. E-shop API + frontend       | **In progress** | Client Center shop + Webhook settle + Client Web GridView/cart/checkout **done**; wallet UI **done** (`/wallet`)                                                                                                                         |
 | **4+. Platform expansion**     | **Partial**     | **Core Engine** done; **Admin API** auth **done** (`18300`); **Config Server** **done** (`8090`); **Webhook Server** **done** (`8084`/`9004`); **Gateway** **done** (`8080`/`9000`); Message Center done (socket push via Gateway later) |
 
 
@@ -133,7 +133,7 @@ This schedule is derived from the architecture and design documents under `doc` 
   - game must exist (`GET /v1/client/games`); mapping key = `end_user_id` + `game_id`
   - **(A)** `partner_fetch`: Client Center calls Partner `/api/players/lookup` then writes mapping
   - **(B)** `direct`: Game App / Partner OAuth creates mapping (also on `/partner/complete`)
-- [ ] Add authenticated shell: dashboard entry and basic profile/wallet view (**Session** token required on Gateway APIs).
+- [x] Add authenticated shell: dashboard entry and basic profile/wallet view (**Session** token required on Gateway APIs) — `/home` + `/wallet`.
 - [x] Keep Flutter `.env` + `envied` setup for Client Web.
 
 - Do not put Master credentials in Client Web; Company Partner → Client Center uses Master Account Code + Master ID + API Key + Secret.
@@ -146,7 +146,7 @@ This schedule is derived from the architecture and design documents under `doc` 
 - [x] Client Center login orchestrates STS token issue; OAuth flows enter via CC and run on STS.
 - [x] Session Token Server issues tokens on login or OAuth callback; Client Web must send that token on **Session** APIs after login/OAuth.
 - [x] Cache sessions in Redis with expiry (or in-memory via `SESSION_STORE=memory`; Redis via `SESSION_STORE=redis`).
-- [ ] Gate Token-required Client Web routes before e-shop checkout (`Public` only for register/login/OAuth entry).
+- [x] Gate Token-required Client Web routes before e-shop checkout (`Public` only for register/login/OAuth entry) — `AuthMiddleware` on Session routes.
 - [x] Wire Client Center PostgreSQL as durable source of truth for accounts when `POSTGRES_URL` is set (in-memory fallback otherwise).
 
 ---
@@ -186,7 +186,7 @@ Goal: end users can buy **platform fixed** `PLT_`* packages **and** **Corp-creat
 - [x] Catalog GridView: platform packages + Corp products with fiat prices in base currency.
 - [x] Classic cart + checkout (game account) + payment **DataTable**; pending orders **24h** TTL in Client Center.
 - [x] Order history / detail with status poll (pending / paid / failed / expired / cancelled).
-- [ ] Show updated wallet / fulfillment after paid settlement (home wallet UI).
+- [x] Show updated wallet / fulfillment after paid settlement (home wallet UI + `/wallet` refresh).
 
 
 
@@ -240,7 +240,8 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 - [x] Keep e-shop/CBT settlement local (`/v1/internal/*`); exchange order forward deferred.
 - [x] Dedicated MongoDB `chat_messages` (`MONGO_URL` / `MONGO_DB=funnyx_client`) + Session send/list APIs.
 - [x] Webhook deposit/withdrawal settle (`POST /v1/webhook/deposit|withdrawal` → `POST /v1/internal/money/settle` + `outbound_notices`).
-- [ ] Client Web wallet UI; Core Engine order path.
+- [x] Client Web wallet UI (`/wallet` balances + txn history + deposit/withdraw).
+- [ ] Core Engine order path.
 
 
 
@@ -317,7 +318,7 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 - [x] Reuse partner endpoints for game deposit/withdrawal; Marketplace Transfer (C7).
 - [x] Validate identity, balance, and game-account mapping on Session money paths.
 - [x] Record transaction status (`deposit_withdrawal_status_logs`) and notify users (`outbound_notices` via webhook settle).
-- [ ] Client Web wallet UI for balances / txn history after settle.
+- [x] Client Web wallet UI for balances / txn history after settle.
 
 ---
 

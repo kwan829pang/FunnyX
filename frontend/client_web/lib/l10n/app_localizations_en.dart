@@ -27,6 +27,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get home => 'Home';
 
   @override
+  String get wallet => 'Wallet';
+
+  @override
+  String get walletProfile => 'Profile';
+
+  @override
+  String get walletEmail => 'Email';
+
+  @override
+  String get walletHint =>
+      'Balances update after shop settle or deposit/withdraw partner callbacks. Refresh to reload.';
+
+  @override
+  String get walletBalances => 'Balances';
+
+  @override
+  String get walletTransactions => 'Transactions';
+
+  @override
+  String get walletEmptyBalances => 'No wallet balances yet.';
+
+  @override
+  String get walletEmptyTxns => 'No money transactions yet.';
+
+  @override
+  String get walletAvailable => 'Available';
+
+  @override
+  String get walletLocked => 'Locked';
+
+  @override
+  String get walletGameCoin => 'Game coin';
+
+  @override
+  String get walletAmount => 'Amount';
+
+  @override
+  String get walletDeposit => 'Deposit';
+
+  @override
+  String get walletWithdraw => 'Withdraw';
+
+  @override
+  String get walletTxnId => 'Txn';
+
+  @override
+  String get walletTxnType => 'Type';
+
+  @override
+  String get walletPltAvailable => 'PLT available';
+
+  @override
+  String walletBalanceCount(int count) {
+    return '$count balance rows';
+  }
+
+  @override
   String get shop => 'E-shop';
 
   @override

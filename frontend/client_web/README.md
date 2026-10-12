@@ -42,6 +42,17 @@ cd dev_simulator/company-a-server && cargo run   # HTTP_PORT=18102
 
 Password demo: `demo_user` / `demo`. Partner OAuth demo user: `alice_01` / `demo` on company-a.
 
+## Wallet + home shell
+
+Session routes (Bearer via Gateway → Client Center):
+
+| Route | UI | API |
+| --- | --- | --- |
+| `/home` | Profile summary + PLT balance chip | `GET /v1/client/profile`, `GET /v1/client/wallet` |
+| `/wallet` | Balances, txn history, deposit / withdraw | `GET /v1/client/wallet`, `GET /v1/client/transactions`, `POST /v1/client/deposit\|withdraw` |
+
+Deposit/withdraw need an active game-account binding and `POSTGRES_URL` on Client Center; status stays pending until partner webhook settle.
+
 ## E-shop
 
 Session routes under `/shop` (Bearer via Client Center):
@@ -72,8 +83,9 @@ Detail: [doc/corp_onboarding.md](../../doc/corp_onboarding.md).
 ## App notes
 
 - Public routes: `/login`, `/register`, `/oauth/callback`, `/corp/register`, `/corp/login`
-- Session routes: `/home`, `/shop` (+ cart / checkout / payment / orders); Corp: `/corp/home`, `/corp/games/new`
-- State and routing use **GetX** (`ClientCenterAuthProvider`, `ShopDataProvider`, `OauthFlowService`, `CorpController`)
+- Session routes: `/home`, `/wallet`, `/shop` (+ cart / checkout / payment / orders), `/marketplace*`; Corp: `/corp/home`, `/corp/games/new`
+- State and routing use **GetX** (`ClientCenterAuthProvider`, `WalletDataProvider`, `ShopDataProvider`, `OauthFlowService`, `CorpController`)
+- `AuthMiddleware` gates Session routes (Token required except Public login/register/OAuth)
 - Never store master credentials in the app
 - Locales: `en`, `zh_TW`, `zh_CN`
 

@@ -2,6 +2,11 @@
 
 This is the single project changelog for the frontend work. Older frontend changelog files were merged here to avoid duplicate release notes.
 
+## 0.1.22
+
+- Client Web authenticated shell: home profile summary + **Wallet** nav (`/wallet`) — balances, txn history, deposit/withdraw via Client Center Session APIs.
+- Shared `WalletDataProvider` in `funnyx_common`; finishes development.md §6 / §10 / §14 / §19 wallet UI items.
+
 ## 0.1.21
 
 - New **Message Center** (`backend/message_center`, HTTP `8085` / socket `9005`): drains `fx_events.outbound_notices`, writes `notifications`, partner HTTP push + delivery log, optional Mongo history; Session inbox APIs; dual public `/health` + private socket heartbeat.
