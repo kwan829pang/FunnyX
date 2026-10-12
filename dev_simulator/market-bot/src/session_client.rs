@@ -7,7 +7,7 @@ use serde::Serialize;
 use tokio::sync::Mutex;
 
 use crate::config::Config;
-use crate::models::{OrderType, SessionPlaceResult, Side};
+use crate::models::{BookSnapshot, OrderType, SessionPlaceResult, Side};
 
 #[derive(Clone)]
 pub struct SessionClient {
@@ -88,6 +88,79 @@ impl SessionClient {
             return Ok(t);
         }
         self.login().await
+    }
+
+    /// `GET /v1/markets` → (market_id, symbol) pairs.
+    pub async fn list_markets(&self) -> anyhow::Result<Vec<(i64, String)>> {
+        let token = self.bearer().await?;
+        let resp = self
+            .http
+            .get(format!("{}/v1/markets", self.gateway))
+            .header("authorization", format!("Bearer {token}"))
+            .send()
+            .await?;
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        if status == StatusCode::UNAUTHORIZED {
+            self.login().await?;
+            return Box::pin(self.list_markets()).await;
+        }
+        if !status.is_success() {
+            anyhow::bail!("GET /v1/markets {status}: {body}");
+        }
+        let v: serde_json::Value = serde_json::from_str(&body)?;
+        let mut out = Vec::new();
+        if let Some(arr) = v.get("markets").and_then(|m| m.as_array()) {
+            for m in arr {
+                let id = m.get("id").and_then(|x| x.as_i64()).unwrap_or(0);
+                let symbol = m
+                    .get("symbol")
+                    .or_else(|| m.get("market_name"))
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("")
+                    .to_ascii_uppercase();
+                if id > 0 && !symbol.is_empty() {
+                    out.push((id, symbol));
+                }
+            }
+        }
+        Ok(out)
+    }
+
+    pub async fn book(&self, market_id: i64) -> anyhow::Result<BookSnapshot> {
+        let token = self.bearer().await?;
+        let resp = self
+            .http
+            .get(format!(
+                "{}/v1/markets/{market_id}/book?levels=5",
+                self.gateway
+            ))
+            .header("authorization", format!("Bearer {token}"))
+            .send()
+            .await?;
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        if status == StatusCode::UNAUTHORIZED {
+            self.login().await?;
+            return Box::pin(self.book(market_id)).await;
+        }
+        if !status.is_success() {
+            anyhow::bail!("GET /v1/markets/{market_id}/book {status}: {body}");
+        }
+        let v: serde_json::Value = serde_json::from_str(&body)?;
+        let book_val = v.get("book").cloned().unwrap_or(v);
+        Ok(serde_json::from_value(book_val)?)
+    }
+
+    pub async fn book_for_symbol(&self, symbol: &str) -> anyhow::Result<BookSnapshot> {
+        let markets = self.list_markets().await?;
+        let want = symbol.to_ascii_uppercase();
+        let id = markets
+            .into_iter()
+            .find(|(_, s)| s == &want)
+            .map(|(id, _)| id)
+            .ok_or_else(|| anyhow::anyhow!("no Session market for symbol {want}"))?;
+        self.book(id).await
     }
 
     pub async fn place(

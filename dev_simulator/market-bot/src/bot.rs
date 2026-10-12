@@ -67,6 +67,11 @@ impl Bot {
             } else {
                 "core_engine".into()
             },
+            book_via: if self.session.is_some() {
+                "gateway".into()
+            } else {
+                "core_engine".into()
+            },
             engine_id: g.engine_id.clone(),
             last_error: g.last_error.clone(),
             ticks: g.ticks,
@@ -122,17 +127,35 @@ impl Bot {
             return Ok(());
         }
 
-        let symbols: Vec<String> = if self.cfg.symbols.is_empty() {
-            info.pairs.iter().map(|p| p.symbol.clone()).collect()
-        } else {
+        let symbols: Vec<String> = if !self.cfg.symbols.is_empty() {
             self.cfg.symbols.clone()
+        } else if let Some(session) = &self.session {
+            let markets = session.list_markets().await?;
+            if markets.is_empty() {
+                info.pairs.iter().map(|p| p.symbol.clone()).collect()
+            } else {
+                markets.into_iter().map(|(_, s)| s).collect()
+            }
+        } else {
+            info.pairs.iter().map(|p| p.symbol.clone()).collect()
         };
         if symbols.is_empty() {
             return Ok(());
         }
 
         let symbol = symbols[rand::thread_rng().gen_range(0..symbols.len())].clone();
-        let book = self.engine.book(&symbol).await?;
+        let book = if let Some(session) = &self.session {
+            match session.book_for_symbol(&symbol).await {
+                Ok(b) => b,
+                Err(e) => {
+                    tracing::warn!(%symbol, error = %e, "gateway book failed; skip tick");
+                    self.inner.lock().await.last_error = Some(e.to_string());
+                    return Ok(());
+                }
+            }
+        } else {
+            self.engine.book(&symbol).await?
+        };
         let kind = pick_kind(&self.cfg, &book);
         match kind {
             Some(kind) => self.act(kind, &symbol, &book).await?,
@@ -313,11 +336,16 @@ impl Bot {
             (Some(b), Some(a)) => ((b + a) / 2).max(1),
             (Some(b), None) => b,
             (None, Some(a)) => a,
-            (None, None) => self
-                .engine
-                .last_trade_price(symbol)
-                .await
-                .unwrap_or(self.cfg.default_price),
+            (None, None) => {
+                if self.session.is_some() {
+                    self.cfg.default_price
+                } else {
+                    self.engine
+                        .last_trade_price(symbol)
+                        .await
+                        .unwrap_or(self.cfg.default_price)
+                }
+            }
         }
     }
 }

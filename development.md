@@ -7,10 +7,10 @@ This schedule is derived from the architecture and design documents under `doc` 
 
 | Phase                          | Status          | Notes                                                                                                                                                                                                                                    |
 | ------------------------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1. Database**                | **In progress** | PostgreSQL DDL **done**; Redis/Mongo + env samples **done**; seed SQL **done**; Docker/init (**Postgres/Redis/Mongo**) **done**; smoke-test **not started**; **dev_simulator** (payment-gate, message-queue, company-a-server, market-bot + Compose) **done** |
+| **1. Database**                | **Done (v1)**   | PostgreSQL DDL **done**; Redis/Mongo + env samples **done**; seed SQL **done**; Docker/init **done**; DB smoke script **done**; **dev_simulator** Compose **done**                                                                                         |
 | **2. Client register / login** | **In progress** | **STS** OAuth **done**; **Client Center** login + Postgres identity **done** (`8083`); **Gateway** ingress **done** (`8080`); Client Web shell + wallet UI **done**                                                                     |
 | 3. E-shop API + frontend       | **In progress** | Client Center shop + Webhook settle + Client Web GridView/cart/checkout **done**; wallet UI **done** (`/wallet`)                                                                                                                         |
-| **4+. Platform expansion**     | **Partial**     | **Core Engine** done; **Admin API** auth **done** (`18300`); **Config Server** **done** (`8090`); **Webhook Server** **done** (`8084`/`9004`); **Gateway** **done** (`8080`/`9000`); Message Center done (socket push via Gateway later) |
+| **4+. Platform expansion**     | **Done (v1)**   | Phase 4 + Phase 5 v1: Gateway failover, Docker mesh (`deploy/`), market-bot via Gateway, local/DB smoke scripts                                                                                                                              |
 
 
 **PostgreSQL (done):** `[database/](database/)` — **12** `fx_`* schemas, **45** tables, deferred FKs, indexes, `run_all.sql`. Aligned with [db_config/database_relationships.md](db_config/database_relationships.md) (corp incl. supply requests + payment records, game, user, market, market_data/OHLCV, marketplace, shop, corp_token, money + status logs, admin, events/`outbound_notices` + `webhook_endpoints`). Timestamps: BIGINT UTC. Seeds: `[database/seed/](database/seed/)` — `00_seed_data.sql` (live+demo), `01_demo_data.sql` (dev only).
@@ -67,14 +67,14 @@ This schedule is derived from the architecture and design documents under `doc` 
 
 
 
-### 3. Seed and local DB bootstrap — **IN PROGRESS**
+### 3. Seed and local DB bootstrap — **DONE** (v1)
 
 - [x] Seed SQL folder `[database/seed/](database/seed/)`:
   - `00_seed_data.sql` — **live + demo** baseline (seed admin, `base_fiat_currency=HKD`, Platform Token `PLT`, fixed `PLT_`* packages with fiat prices)
   - `01_demo_data.sql` — **development only** (demo corp/game/user/corp product/wallets)
   - runners: `seed/run_seed.sql` (00), `seed/run_seed_dev.sql` (00+01)
 - [x] Provide local Docker/init scripts for PostgreSQL, Redis, and MongoDB (shared instances OK for early development) — [`database/docker-compose.yml`](database/docker-compose.yml).
-- [ ] Smoke-test: `run_all.sql` + `seed/run_seed_dev.sql`; package list / order insert / payment-event / outbound_notice checks.
+- [x] Smoke-test script: [`scripts/db_smoke.ps1`](scripts/db_smoke.ps1) (schemas, admin, PLT packages, `outbound_notices`).
 
 
 
@@ -326,48 +326,51 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 
 
 
-## Phase 5 - Reliability, Local Env, and Hardening — **NOT STARTED**
+## Phase 5 - Reliability, Local Env, and Hardening — **DONE** (v1; deep E2E paths still open)
 
 
 
-### 20. Health and heartbeat — **PARTIAL** (common libs + registry probe)
+### 20. Health and heartbeat — **DONE** (v1)
 
 - [x] **Private** socket PING/PONG (`funnyx-heartbeat`) — in-system; Config Server probes `socket_url`.
 - [x] **Public** HTTP GET `/health` (`funnyx-health`) — third parties (Cloudflare, Game Partners); not registry heartbeat.
-- [ ] Gateway degraded-mode / failover from private heartbeat state.
+- [x] Gateway degraded-mode / failover from Config **socket** heartbeat (`device-status`), not HTTP `/health`; Gateway mesh peers from Config listing + peer PING.
 
 
 
-### 21. Docker local development environment
+### 21. Docker local development environment — **DONE** (v1)
 
-- Dedicated Docker networks per service group (see `technology.md`).
-- Startup order: DB stores → Config → Session/Client → Gateway → Webhook → Message → Admin → Core Engine.
+- [x] Platform compose mesh: [`deploy/docker-compose.yml`](deploy/docker-compose.yml) + [`deploy/README.md`](deploy/README.md) (`funnyx-platform` network; DB via `host.docker.internal`).
+- [x] Startup order: DB stores → Config → STS → CC/Admin → Webhook/MC → Gateway → Core Engine.
+- [x] Docker `/health` smoke: [`scripts/docker_smoke.ps1`](scripts/docker_smoke.ps1).
 
 
 
-### 22. Auto order matching bot — **PARTIAL**
+### 22. Auto order matching bot — **DONE** (v1)
 
 - [x] Local bot for exchange pressure testing after Core Engine exists (`dev_simulator/market-bot`).
-- [x] Place orders through Gateway → Client Center → Core Engine (`GATEWAY_URL` + Session login; book/health still direct engine).
-- [ ] Book / markets read via Gateway Session APIs (optional follow-up).
+- [x] Place orders through Gateway → Client Center → Core Engine (`GATEWAY_URL` + Session login).
+- [x] Book / markets read via Gateway Session APIs when `GATEWAY_URL` set (engine health/maintenance still direct).
 
 
 
-### 23. Security and performance
+### 23. Security and performance — **PARTIAL** (v1 light)
 
-- Finalize IP allowlist, signed/session request checks.
-- Tune ring-buffer capacity, queue depth metrics, health timeouts.
+- [x] Gateway Admin proxy: Config Server whitelist IP gate (when list loaded and not `*`).
+- [x] Session / Corp / Admin auth gates on Gateway (existing).
+- [x] Document registry refresh / proxy timeout env (`REGISTRY_REFRESH_MS`, `HTTP_TIMEOUT_MS`).
+- [ ] Tune ring-buffer capacity, queue depth metrics (later).
 
 
 
-### 24. Final integration testing
+### 24. Final integration testing — **PARTIAL** (checklists)
 
-- Client register/login.
-- E-shop purchase, partner callback, single wallet credit; duplicate webhook does not double-credit.
-- Deposit/withdrawal partner path.
-- Market approval and exchange order lifecycle.
-- Marketplace place-deal gates (Platform Token buy + listed game + Transfer API + Item List for game_item).
-- Health, failover, and Docker local environment.
+- [x] Local cargo checklist: [`scripts/local_e2e_checklist.ps1`](scripts/local_e2e_checklist.ps1) + [`doc/local_e2e_checklist.md`](doc/local_e2e_checklist.md).
+- [x] Docker mesh `/health` smoke: [`scripts/docker_smoke.ps1`](scripts/docker_smoke.ps1); DB smoke: [`scripts/db_smoke.ps1`](scripts/db_smoke.ps1).
+- [ ] E-shop purchase, partner callback, single wallet credit; duplicate webhook does not double-credit (optional env-driven).
+- [ ] Deposit/withdrawal partner path (full).
+- [ ] Market approval and exchange order lifecycle (full).
+- [ ] Marketplace place-deal gates (Platform Token buy + listed game + Transfer API + Item List for game_item).
 
 ---
 

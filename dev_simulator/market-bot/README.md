@@ -2,8 +2,8 @@
 
 Local Rust bot that watches FunnyX **Core Engine** books and places orders to simulate **partial fills**, **full fills**, and resting liquidity.
 
-**Place path (default):** Gateway → Client Center → Core Engine (`GATEWAY_URL` + Session login).  
-**Book / health:** still direct `CORE_ENGINE_URL` (follow-up can move book via Gateway Session markets APIs).
+**Place + book (default):** Gateway → Client Center → Core Engine (`GATEWAY_URL` + Session login: `/v1/orders`, `/v1/markets`, `/v1/markets/{id}/book`).  
+**Health / maintenance:** still direct `CORE_ENGINE_URL` (`/health`, `/v1/engine`).
 
 ## Run
 
@@ -31,7 +31,7 @@ Each tick (interval + random jitter):
 
 1. `GET {CORE_ENGINE_URL}/v1/engine` — skip if maintenance is not `running`
 2. Pick a listed pair (or `SYMBOLS`)
-3. `GET {CORE_ENGINE_URL}/v1/books/{symbol}` — inspect BBO / depth
+3. Book: Gateway `GET /v1/markets/{id}/book` (or direct engine books if `GATEWAY_URL` empty)
 4. Roll an action:
    - **take_partial** — hit best bid or ask with quantity **less than** that level
    - **take_full** — take the whole best level (price or market)

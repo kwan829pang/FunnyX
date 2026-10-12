@@ -2,6 +2,14 @@
 
 This is the single project changelog for the frontend work. Older frontend changelog files were merged here to avoid duplicate release notes.
 
+## 0.1.26
+
+- Gateway failover uses Config Server **socket** heartbeat (`device-status`), not upstream HTTP `/health`; Gateways discover peers from Config listing and PING each other (`INSTANCE_ID` / `SOCKET_ADVERTISE_URL`).
+
+## 0.1.25
+
+- Phase 5 v1: Gateway upstream failover (Healthy/Degraded RR, failover_map, 503 when role down); market-bot book via Gateway Session markets APIs; local/Docker smoke scripts; platform compose mesh under `deploy/`.
+
 ## 0.1.24
 
 - Market-bot (§22): place take/make orders via Gateway Session (`POST /v1/client/login` + `POST /v1/orders`); book/health remain on Core Engine. Set `GATEWAY_URL=` empty for legacy direct engine place.

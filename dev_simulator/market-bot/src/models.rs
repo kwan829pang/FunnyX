@@ -137,6 +137,7 @@ pub struct BotStatus {
     pub core_engine_url: String,
     pub gateway_url: Option<String>,
     pub place_via: String,
+    pub book_via: String,
     pub engine_id: Option<String>,
     pub last_error: Option<String>,
     pub ticks: u64,
