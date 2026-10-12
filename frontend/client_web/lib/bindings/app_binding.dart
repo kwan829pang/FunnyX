@@ -9,7 +9,9 @@ import '../controllers/marketplace_controller.dart';
 import '../controllers/shop_catalog_controller.dart';
 import '../controllers/shop_checkout_controller.dart';
 import '../controllers/shop_orders_controller.dart';
+import '../controllers/trade_controller.dart';
 import '../controllers/wallet_controller.dart';
+import '../services/gateway_socket_service.dart';
 import '../services/oauth_flow.dart';
 
 class AppBinding extends Bindings {
@@ -38,6 +40,10 @@ class AppBinding extends Bindings {
     );
     Get.put<WalletDataProvider>(
       ClientCenterWalletProvider(Get.find<ApiClient>()),
+      permanent: true,
+    );
+    Get.put<ExchangeDataProvider>(
+      ClientCenterExchangeProvider(Get.find<ApiClient>()),
       permanent: true,
     );
     Get.put<MarketplaceDataProvider>(
@@ -70,6 +76,10 @@ class AppBinding extends Bindings {
       permanent: true,
     );
     Get.put<OauthFlowService>(OauthFlowService(config), permanent: true);
+    Get.put<GatewaySocketService>(
+      GatewaySocketService(config),
+      permanent: true,
+    );
     Get.put<AuthController>(
       AuthController(homeRoute: '/home'),
       permanent: true,
@@ -95,5 +105,6 @@ class AppBinding extends Bindings {
       permanent: true,
     );
     Get.put<WalletController>(WalletController(), permanent: true);
+    Get.put<TradeController>(TradeController(), permanent: true);
   }
 }

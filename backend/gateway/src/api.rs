@@ -4,7 +4,7 @@ use axum::body::Body;
 use axum::extract::State;
 use axum::http::{HeaderName, HeaderValue, Method, Request, StatusCode};
 use axum::response::IntoResponse;
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use funnyx_health::HealthPayload;
 use funnyx_net_api::paths;
@@ -16,6 +16,8 @@ use crate::auth::{
 use crate::config::Config;
 use crate::memory::SharedGatewayMemory;
 use crate::proxy::{err_response, forward, resolve_upstream, RrCounters};
+use crate::push::{internal_socket_push, ws_session_upgrade};
+use crate::push_hub::PushHub;
 use crate::sts::StsClient;
 
 #[derive(Clone)]
@@ -24,12 +26,16 @@ pub struct AppState {
     pub http: Client,
     pub sts: StsClient,
     pub memory: SharedGatewayMemory,
+    pub push: PushHub,
     pub rr: Arc<RrCounters>,
 }
 
 pub fn router(state: AppState) -> Router {
     Router::new()
         .route(paths::HEALTH, get(health))
+        // Gateway-owned (not proxied): Session WebSocket + internal MC push.
+        .route(paths::GATEWAY_WS_SESSION, get(ws_session_upgrade))
+        .route(paths::INTERNAL_SOCKET_PUSH, post(internal_socket_push))
         .fallback(proxy_fallback)
         .with_state(state)
 }

@@ -6,6 +6,7 @@ use tokio::time::sleep;
 use tracing::{debug, info, warn};
 
 use crate::config::Config;
+use crate::gateway_push;
 use crate::mongo::NoticeHistory;
 use crate::partner::{self, notification_payload, notification_type};
 use crate::store::{now_ms, NoticeStore};
@@ -83,6 +84,8 @@ async fn process_one(
             return;
         }
     };
+
+    gateway_push::push_to_gateway(http, config, &notice, notif_id).await;
 
     let mut partner_err: Option<String> = None;
     if let Some(url) = partner::resolve_callback_url(store, config, &notice).await {

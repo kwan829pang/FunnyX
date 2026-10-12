@@ -8,8 +8,10 @@ authors = ["FunnyX"]
 
 [dependencies]
 anyhow = "1"
+argon2 = "0.5"
 axum = "0.8"
 dotenvy = "0.15"
+password-hash = "0.5"
 funnyx-config = { path = "../../common/funnyx-config" }
 funnyx-health = { path = "../../common/funnyx-health" }
 funnyx-heartbeat = { path = "../../common/funnyx-heartbeat" }

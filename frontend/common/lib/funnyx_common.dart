@@ -9,6 +9,7 @@ export 'src/api/marketplace_provider.dart';
 export 'src/api/shop_provider.dart';
 export 'src/api/token_store.dart';
 export 'src/api/wallet_provider.dart';
+export 'src/api/exchange_provider.dart';
 export 'src/config/app_config.dart';
 export 'src/controllers/auth_middleware.dart';
 export 'src/controllers/session_controller.dart';

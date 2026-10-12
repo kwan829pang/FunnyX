@@ -13,6 +13,8 @@ mod corp_onboard;
 mod corp_onboard_store;
 mod corp_shop;
 mod db;
+mod engine_client;
+mod exchange;
 mod game_accounts;
 mod games;
 mod internal;
@@ -124,7 +126,9 @@ async fn main() -> anyhow::Result<()> {
     let app = router(AppState {
         sts: StsClient::new(&config, http.clone()),
         partner: PartnerClient::new(&config, http.clone()),
-        pay: PaymentGateClient::new(&config, http),
+        pay: PaymentGateClient::new(&config, http.clone()),
+        engine: engine_client::EngineClient::new(&config, http),
+        exchange_orders: exchange::ExchangeOrderStore::new(),
         users,
         games,
         bindings,

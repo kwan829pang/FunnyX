@@ -17,7 +17,8 @@ class AdminShell extends StatelessWidget {
     if (location.startsWith('/markets')) return 3;
     if (location.startsWith('/corp-onboard')) return 4;
     if (location.startsWith('/webhook-auth')) return 5;
-    if (location.startsWith('/setup')) return 6;
+    if (location.startsWith('/fees')) return 6;
+    if (location.startsWith('/setup')) return 7;
     return 0;
   }
 
@@ -34,6 +35,8 @@ class AdminShell extends StatelessWidget {
       case 5:
         return '/webhook-auth';
       case 6:
+        return '/fees';
+      case 7:
         return '/setup';
       default:
         return '/dashboard';
@@ -63,6 +66,8 @@ class AdminShell extends StatelessWidget {
                 Get.toNamed('/corp-onboard');
               } else if (q.contains('webhook') || q.contains('post_auth') || q.contains('post-auth')) {
                 Get.toNamed('/webhook-auth');
+              } else if (q.contains('fee') || q.contains('license') || q.contains('c6') || q.contains('c9')) {
+                Get.toNamed('/fees');
               } else if (q.contains('setup')) {
                 Get.toNamed('/setup');
               } else {
@@ -149,6 +154,11 @@ class AdminShell extends StatelessWidget {
                           selectedIcon: Icon(Icons.vpn_key),
                           label: Text('Webhook Auth'),
                         ),
+                        const NavigationRailDestination(
+                          icon: Icon(Icons.payments_outlined),
+                          selectedIcon: Icon(Icons.payments),
+                          label: Text('Fees'),
+                        ),
                         NavigationRailDestination(
                           icon: const Icon(Icons.tune_outlined),
                           selectedIcon: const Icon(Icons.tune),
@@ -212,6 +222,12 @@ class _NavList extends StatelessWidget {
           title: const Text('Webhook Auth'),
           selected: location.startsWith('/webhook-auth'),
           onTap: () => Get.toNamed('/webhook-auth'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.payments),
+          title: const Text('Fees'),
+          selected: location.startsWith('/fees'),
+          onTap: () => Get.toNamed('/fees'),
         ),
         ListTile(
           leading: const Icon(Icons.tune),

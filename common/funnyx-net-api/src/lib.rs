@@ -121,8 +121,20 @@ pub mod paths {
     pub const INTERNAL_SHOP_SETTLE: &str = "/v1/internal/shop/settle";
     pub const INTERNAL_CORP_TOKEN_SETTLE: &str = "/v1/internal/corp-token/settle";
     pub const INTERNAL_MONEY_SETTLE: &str = "/v1/internal/money/settle";
+    /// Gateway-owned: Message Center → Client Web Session socket fan-out.
+    pub const INTERNAL_SOCKET_PUSH: &str = "/v1/internal/socket/push";
+    /// Gateway Session WebSocket (browser Client Web).
+    pub const GATEWAY_WS_SESSION: &str = "/v1/ws";
     /// Lookup existing deposit/withdrawal txn by request_id / partner_txn_id.
     pub const INTERNAL_MONEY_TXN: &str = "/v1/internal/money/txn";
+
+    /// Session exchange (Client Center → private Core Engine).
+    pub const MARKETS: &str = "/v1/markets";
+    pub const MARKET: &str = "/v1/markets/{id}";
+    pub const MARKET_BOOK: &str = "/v1/markets/{id}/book";
+    pub const ORDERS: &str = "/v1/orders";
+    pub const ORDER: &str = "/v1/orders/{id}";
+    pub const ORDER_CANCEL: &str = "/v1/orders/{id}/cancel";
 
     /// C7 Marketplace (Session) — Client Center via Gateway.
     pub const MARKETPLACE_ELIGIBILITY: &str = "/v1/marketplace/eligibility";
@@ -174,6 +186,11 @@ pub mod paths {
     pub const ADMIN_WEBHOOK_POST_AUTH_ITEM: &str = "/v1/admin/webhook-post-auth/{id}";
     pub const ADMIN_WEBHOOK_POST_AUTH_STATUS: &str = "/v1/admin/webhook-post-auth/{id}/status";
     pub const ADMIN_CORP_DOCUMENT: &str = "/v1/admin/corp/documents/{id}";
+
+    /// C6/C9 platform fees + corp license / `api_enabled`.
+    pub const ADMIN_FEES: &str = "/v1/admin/fees";
+    pub const ADMIN_FEES_CORPS: &str = "/v1/admin/fees/corps";
+    pub const ADMIN_FEE_CORP_ACCESS: &str = "/v1/admin/fees/corps/{id}/access";
 
     pub const CORP_TOKENS: &str = "/v1/corp-tokens";
     pub const CORP_TOKEN: &str = "/v1/corp-tokens/{id}";

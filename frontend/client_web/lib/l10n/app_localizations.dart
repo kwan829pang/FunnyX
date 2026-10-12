@@ -136,6 +136,66 @@ abstract class AppLocalizations {
   /// **'Home'**
   String get home;
 
+  /// No description provided for @trade.
+  ///
+  /// In en, this message translates to:
+  /// **'Trade'**
+  String get trade;
+
+  /// No description provided for @tradeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Session orders go Gateway → Client Center → private Core Engine.'**
+  String get tradeHint;
+
+  /// No description provided for @tradeMarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Market'**
+  String get tradeMarket;
+
+  /// No description provided for @tradeBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Order book'**
+  String get tradeBook;
+
+  /// No description provided for @tradeQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get tradeQty;
+
+  /// No description provided for @tradePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get tradePrice;
+
+  /// No description provided for @tradeBuy.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy (price)'**
+  String get tradeBuy;
+
+  /// No description provided for @tradeSell.
+  ///
+  /// In en, this message translates to:
+  /// **'Sell (price)'**
+  String get tradeSell;
+
+  /// No description provided for @tradeOpenOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Your orders'**
+  String get tradeOpenOrders;
+
+  /// No description provided for @tradeCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get tradeCancel;
+
   /// No description provided for @wallet.
   ///
   /// In en, this message translates to:

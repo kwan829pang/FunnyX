@@ -7,6 +7,7 @@ mod config;
 mod corp_users;
 mod corp_users_store;
 mod engine;
+mod fees;
 mod game_coin_store;
 mod game_coins;
 mod market_store;
@@ -97,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
     let engine = EngineClient::new(&config, http.clone());
     let app = router(AppState {
         sts: StsClient::new(&config, http.clone()),
-        admins: AdminDirectory::with_demo_admins(),
+        admins: AdminDirectory::with_demo_and_pool(pool.clone()),
         shop: CorpProductStore::new(pool.clone()),
         cbt: BasicTokenStore::new(pool.clone()),
         system: SystemStore::new(pool.clone()),
@@ -106,6 +107,7 @@ async fn main() -> anyhow::Result<()> {
         corp_users: CorpUsersStore::new(pool.clone(), config.upload_dir.clone()),
         webhook_post_auth: WebhookPostAuthStore::new(pool.clone()),
         engine,
+        pool,
         http,
         config: config.clone(),
     })

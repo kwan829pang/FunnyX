@@ -35,4 +35,10 @@ Connect to `tcp://127.0.0.1:9000`, send a JSON line:
 {"access_token":"sts_…"}
 ```
 
-On success the Gateway replies `{"ok":true,"connection_id":"…"}` and keeps the connection in the in-memory registry (Message Center push fan-out is a follow-up). Config Server PING/PONG frames on the same port are answered with PONG.
+On success the Gateway replies `{"ok":true,"connection_id":"…"}` and keeps the connection for push fan-out.
+
+**Browser Client Web:** `ws://127.0.0.1:8080/v1/ws` — first text frame `{"access_token":"sts_…"}`, then JSON notification pushes.
+
+**Internal push (Message Center):** `POST /v1/internal/socket/push` with `X-Internal-Key` and body `{ end_user_id, notification_id, source_type, event_type, title?, body?, payload? }`.
+
+Config Server PING/PONG frames on socket `9000` are answered with PONG.

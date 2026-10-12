@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS fx_admin.admin_users (
     username VARCHAR(128) NOT NULL UNIQUE,
     role VARCHAR(64) NOT NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'active',
+    password_hash VARCHAR(255),
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL DEFAULT 0
 );

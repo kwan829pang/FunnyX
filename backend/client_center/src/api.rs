@@ -18,6 +18,8 @@ use crate::corp_markets;
 use crate::corp_onboard;
 use crate::corp_onboard_store::CorpOnboardStore;
 use crate::corp_shop;
+use crate::engine_client::EngineClient;
+use crate::exchange::{self, ExchangeOrderStore};
 use crate::game_accounts;
 use crate::games::GameCatalog;
 use crate::internal;
@@ -52,6 +54,8 @@ pub struct AppState {
     pub wallets: WalletStore,
     pub chat: ChatStore,
     pub pay: PaymentGateClient,
+    pub engine: EngineClient,
+    pub exchange_orders: ExchangeOrderStore,
     pub pool: Option<PgPool>,
 }
 
@@ -164,6 +168,14 @@ pub fn router(state: AppState) -> Router {
         .route(paths::MARKETPLACE_DEAL, get(marketplace::get_deal))
         .route(paths::MARKETPLACE_DEAL_REQUEST, post(marketplace::take_deal))
         .route(paths::MARKETPLACE_DEAL_CANCEL, post(marketplace::cancel_deal))
+        .route(paths::MARKETS, get(exchange::list_markets))
+        .route(paths::MARKET_BOOK, get(exchange::get_market_book))
+        .route(
+            paths::ORDERS,
+            get(exchange::list_orders).post(exchange::place_order),
+        )
+        .route(paths::ORDER, get(exchange::get_order))
+        .route(paths::ORDER_CANCEL, post(exchange::cancel_order))
         .with_state(state)
 }
 

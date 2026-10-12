@@ -27,6 +27,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get home => '首页';
 
   @override
+  String get trade => '交易';
+
+  @override
+  String get tradeHint => '会话订单经 Gateway → Client Center → 私有 Core Engine。';
+
+  @override
+  String get tradeMarket => '市场';
+
+  @override
+  String get tradeBook => '订单簿';
+
+  @override
+  String get tradeQty => '数量';
+
+  @override
+  String get tradePrice => '价格';
+
+  @override
+  String get tradeBuy => '买入（限价）';
+
+  @override
+  String get tradeSell => '卖出（限价）';
+
+  @override
+  String get tradeOpenOrders => '我的订单';
+
+  @override
+  String get tradeCancel => '取消';
+
+  @override
   String get wallet => '钱包';
 
   @override
@@ -502,6 +532,36 @@ class AppLocalizationsZhCn extends AppLocalizationsZh {
   String get home => '首页';
 
   @override
+  String get trade => '交易';
+
+  @override
+  String get tradeHint => '会话订单经 Gateway → Client Center → 私有 Core Engine。';
+
+  @override
+  String get tradeMarket => '市场';
+
+  @override
+  String get tradeBook => '订单簿';
+
+  @override
+  String get tradeQty => '数量';
+
+  @override
+  String get tradePrice => '价格';
+
+  @override
+  String get tradeBuy => '买入（限价）';
+
+  @override
+  String get tradeSell => '卖出（限价）';
+
+  @override
+  String get tradeOpenOrders => '我的订单';
+
+  @override
+  String get tradeCancel => '取消';
+
+  @override
   String get wallet => '钱包';
 
   @override
@@ -975,6 +1035,36 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get home => '首頁';
+
+  @override
+  String get trade => '交易';
+
+  @override
+  String get tradeHint => '會話訂單經 Gateway → Client Center → 私有 Core Engine。';
+
+  @override
+  String get tradeMarket => '市場';
+
+  @override
+  String get tradeBook => '訂單簿';
+
+  @override
+  String get tradeQty => '數量';
+
+  @override
+  String get tradePrice => '價格';
+
+  @override
+  String get tradeBuy => '買入（限價）';
+
+  @override
+  String get tradeSell => '賣出（限價）';
+
+  @override
+  String get tradeOpenOrders => '我的訂單';
+
+  @override
+  String get tradeCancel => '取消';
 
   @override
   String get wallet => '錢包';

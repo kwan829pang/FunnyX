@@ -41,6 +41,73 @@ class AdminWebhookPostAuth {
   }
 }
 
+class AdminPlatformFee {
+  const AdminPlatformFee({
+    required this.id,
+    required this.corporateUserId,
+    required this.feeType,
+    required this.amount,
+    required this.payCurrency,
+    required this.status,
+    required this.licenseYear,
+    required this.paidAt,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int corporateUserId;
+  final String feeType;
+  final double amount;
+  final String payCurrency;
+  final String status;
+  final int licenseYear;
+  final int paidAt;
+  final int createdAt;
+
+  factory AdminPlatformFee.fromJson(Map<String, dynamic> json) {
+    return AdminPlatformFee(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      corporateUserId: (json['corporate_user_id'] as num?)?.toInt() ?? 0,
+      feeType: json['fee_type']?.toString() ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0,
+      payCurrency: json['pay_currency']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      licenseYear: (json['license_year'] as num?)?.toInt() ?? 0,
+      paidAt: (json['paid_at'] as num?)?.toInt() ?? 0,
+      createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class AdminFeeCorp {
+  const AdminFeeCorp({
+    required this.id,
+    required this.companyName,
+    required this.status,
+    required this.apiEnabled,
+    required this.licenseDeadlineAt,
+    required this.createdAt,
+  });
+
+  final int id;
+  final String companyName;
+  final String status;
+  final bool apiEnabled;
+  final int licenseDeadlineAt;
+  final int createdAt;
+
+  factory AdminFeeCorp.fromJson(Map<String, dynamic> json) {
+    return AdminFeeCorp(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      companyName: json['company_name']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      apiEnabled: json['api_enabled'] == true,
+      licenseDeadlineAt: (json['license_deadline_at'] as num?)?.toInt() ?? 0,
+      createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class AdminRequiredItem {
   const AdminRequiredItem({
     required this.key,
@@ -681,6 +748,107 @@ class AdminSystemProvider {
         throw const ApiError('invalid webhook_post_auth response');
       }
       return AdminWebhookPostAuth.fromJson(Map<String, dynamic>.from(item));
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<({List<AdminPlatformFee> fees, Map<String, double> catalog})>
+      listPlatformFees() async {
+    try {
+      final res = await api.dio.get<Map<String, dynamic>>('/v1/admin/fees');
+      final raw = res.data?['fees'];
+      final fees = raw is List
+          ? raw
+              .whereType<Map>()
+              .map((e) => AdminPlatformFee.fromJson(Map<String, dynamic>.from(e)))
+              .toList()
+          : <AdminPlatformFee>[];
+      final catRaw = res.data?['catalog'];
+      final catalog = <String, double>{};
+      if (catRaw is Map) {
+        for (final e in catRaw.entries) {
+          final v = e.value;
+          if (v is num) catalog[e.key.toString()] = v.toDouble();
+        }
+      }
+      return (fees: fees, catalog: catalog);
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<List<AdminFeeCorp>> listFeeCorps() async {
+    try {
+      final res = await api.dio.get<Map<String, dynamic>>('/v1/admin/fees/corps');
+      final raw = res.data?['corps'];
+      if (raw is! List) return const [];
+      return raw
+          .whereType<Map>()
+          .map((e) => AdminFeeCorp.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<AdminPlatformFee> createPlatformFee({
+    required int corporateUserId,
+    required String feeType,
+    required double amount,
+    required String payCurrency,
+    int? licenseYear,
+  }) async {
+    try {
+      final res = await api.dio.post<Map<String, dynamic>>(
+        '/v1/admin/fees',
+        data: <String, dynamic>{
+          'corporate_user_id': corporateUserId,
+          'fee_type': feeType,
+          'amount': amount,
+          'pay_currency': payCurrency,
+          if (licenseYear != null) 'license_year': licenseYear,
+        },
+      );
+      final fee = res.data?['fee'];
+      if (fee is! Map) {
+        throw const ApiError('invalid fee response');
+      }
+      final id = (fee['id'] as num?)?.toInt() ?? 0;
+      return AdminPlatformFee(
+        id: id,
+        corporateUserId: corporateUserId,
+        feeType: feeType,
+        amount: amount,
+        payCurrency: payCurrency,
+        status: fee['status']?.toString() ?? 'pending',
+        licenseYear: licenseYear ?? 0,
+        paidAt: 0,
+        createdAt: 0,
+      );
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<AdminFeeCorp> patchCorpAccess({
+    required int id,
+    bool? apiEnabled,
+    int? licenseDeadlineAt,
+  }) async {
+    try {
+      final res = await api.dio.patch<Map<String, dynamic>>(
+        '/v1/admin/fees/corps/$id/access',
+        data: <String, dynamic>{
+          if (apiEnabled != null) 'api_enabled': apiEnabled,
+          if (licenseDeadlineAt != null) 'license_deadline_at': licenseDeadlineAt,
+        },
+      );
+      final corp = res.data?['corporate_user'];
+      if (corp is! Map) {
+        throw const ApiError('invalid corp access response');
+      }
+      return AdminFeeCorp.fromJson(Map<String, dynamic>.from(corp));
     } on DioException catch (e) {
       throw _mapDio(e);
     }

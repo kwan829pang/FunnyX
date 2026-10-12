@@ -9,7 +9,9 @@ use tokio::net::{TcpListener, TcpStream};
 use uuid::Uuid;
 
 use crate::memory::{ClientSocketConn, SharedGatewayMemory};
+use crate::push_hub::PushHub;
 use crate::sts::StsClient;
+use tokio::sync::mpsc;
 
 #[derive(Debug, Deserialize)]
 struct AuthLine {
@@ -17,7 +19,12 @@ struct AuthLine {
 }
 
 /// Bind `addr`: answer length-prefixed PING with PONG; accept JSON auth lines for Client Web.
-pub fn spawn_gateway_socket(addr: SocketAddr, sts: StsClient, memory: SharedGatewayMemory) {
+pub fn spawn_gateway_socket(
+    addr: SocketAddr,
+    sts: StsClient,
+    memory: SharedGatewayMemory,
+    push: PushHub,
+) {
     tokio::spawn(async move {
         match TcpListener::bind(addr).await {
             Ok(listener) => {
@@ -27,8 +34,9 @@ pub fn spawn_gateway_socket(addr: SocketAddr, sts: StsClient, memory: SharedGate
                         Ok((stream, peer)) => {
                             let sts = sts.clone();
                             let memory = memory.clone();
+                            let push = push.clone();
                             tokio::spawn(async move {
-                                if let Err(e) = handle_conn(stream, sts, memory).await {
+                                if let Err(e) = handle_conn(stream, sts, memory, push).await {
                                     tracing::debug!(%peer, "gateway socket closed: {e}");
                                 }
                             });
@@ -46,6 +54,7 @@ async fn handle_conn(
     stream: TcpStream,
     sts: StsClient,
     memory: SharedGatewayMemory,
+    push: PushHub,
 ) -> Result<(), String> {
     stream.set_nodelay(true).ok();
     let mut buf = Vec::new();
@@ -65,7 +74,7 @@ async fn handle_conn(
     }
 
     // Client auth: newline-delimited JSON `{"access_token":"..."}`.
-    handle_client_auth(stream, buf, sts, memory).await
+    handle_client_auth(stream, buf, sts, memory, push).await
 }
 
 fn looks_like_length_frame(buf: &[u8]) -> bool {
@@ -113,6 +122,7 @@ async fn handle_client_auth(
     initial: Vec<u8>,
     sts: StsClient,
     memory: SharedGatewayMemory,
+    push: PushHub,
 ) -> Result<(), String> {
     let (reader, mut writer) = stream.into_split();
     let mut reader = BufReader::new(reader);
@@ -166,6 +176,8 @@ async fn handle_client_auth(
             },
         );
     }
+    let (tx, mut rx) = mpsc::unbounded_channel::<String>();
+    push.register(connection_id.clone(), end_user_id, tx).await;
 
     let ok = format!(
         "{{\"ok\":true,\"connection_id\":\"{connection_id}\",\"end_user_id\":{end_user_id}}}\n"
@@ -175,22 +187,36 @@ async fn handle_client_auth(
         .await
         .map_err(|e| e.to_string())?;
 
-    // Keep connection open until client disconnects (push fan-out later).
     let mut sink = [0u8; 256];
     let mut reader = reader;
     loop {
-        let n = reader.read(&mut sink).await.map_err(|e| e.to_string())?;
-        if n == 0 {
-            break;
-        }
-        // Ignore client payload for now; length-prefixed PING on client conn optional.
-        if let Ok(Some((body, _))) = funnyx_socket::decode_frame(&sink[..n]) {
-            if let Some(pong) = funnyx_heartbeat::pong_frame_if_ping(&body) {
-                writer.write_all(&pong).await.map_err(|e| e.to_string())?;
+        tokio::select! {
+            read = reader.read(&mut sink) => {
+                let n = read.map_err(|e| e.to_string())?;
+                if n == 0 {
+                    break;
+                }
+                if let Ok(Some((body, _))) = funnyx_socket::decode_frame(&sink[..n]) {
+                    if let Some(pong) = funnyx_heartbeat::pong_frame_if_ping(&body) {
+                        writer.write_all(&pong).await.map_err(|e| e.to_string())?;
+                    }
+                }
+            }
+            msg = rx.recv() => {
+                match msg {
+                    Some(json) => {
+                        let line = format!("{json}\n");
+                        if writer.write_all(line.as_bytes()).await.is_err() {
+                            break;
+                        }
+                    }
+                    None => break,
+                }
             }
         }
     }
 
+    push.unregister(&connection_id).await;
     let mut map = memory.write().await;
     map.client_sockets.remove(&connection_id);
     Ok(())

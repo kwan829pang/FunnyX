@@ -50,8 +50,11 @@ Admin Panel
 | `GET`/`POST` | `/v1/admin/webhook-post-auth` | Bearer | List / create inbound Post_Auth mapping |
 | `GET`/`PUT` | `/v1/admin/webhook-post-auth/{id}` | Bearer | Get / update mapping |
 | `PATCH` | `/v1/admin/webhook-post-auth/{id}/status` | Bearer | `active` / `inactive` |
+| `GET`/`POST` | `/v1/admin/fees` | Bearer (ops) | List / create C6/C9 `platform_fees` |
+| `GET` | `/v1/admin/fees/corps` | Bearer (ops) | Corp license / `api_enabled` snapshot |
+| `PATCH` | `/v1/admin/fees/corps/{id}/access` | Bearer (ops) | Set `api_enabled` / `license_deadline_at` (+ partner notice on disable) |
 
-Demo admins: `seed_admin` / `admin` (password `demo`).
+Demo admins (memory, or `fx_admin` when `POSTGRES_URL` set): `seed_admin` (super_admin), `admin`, `viewer` — password `demo`. Ops writes (markets approve, packages, Post_Auth, fees) require `super_admin` or `admin`.
 
 ```bash
 TOKEN=$(curl -s http://127.0.0.1:18300/v1/admin/login \

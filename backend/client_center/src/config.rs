@@ -27,6 +27,8 @@ pub struct Config {
     pub shop_payment_callback_url: String,
     /// Message Center enqueue base URL (`POST /v1/notices`).
     pub message_center_url: String,
+    /// Private Core Engine base URL (Session exchange; not via Gateway).
+    pub core_engine_url: String,
     /// Local directory for corp BR / game document uploads.
     pub upload_dir: String,
     pub demo_master_code: String,
@@ -93,6 +95,10 @@ impl Config {
                 .unwrap_or_else(|_| "http://127.0.0.1:8084/v1/webhook/shop/payment".into()),
             message_center_url: env::var("MESSAGE_CENTER_URL")
                 .unwrap_or_else(|_| "http://127.0.0.1:8085".into())
+                .trim_end_matches('/')
+                .to_string(),
+            core_engine_url: env::var("CORE_ENGINE_URL")
+                .unwrap_or_else(|_| "http://127.0.0.1:18200".into())
                 .trim_end_matches('/')
                 .to_string(),
             upload_dir: env::var("UPLOAD_DIR")

@@ -27,6 +27,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get home => 'Home';
 
   @override
+  String get trade => 'Trade';
+
+  @override
+  String get tradeHint =>
+      'Session orders go Gateway → Client Center → private Core Engine.';
+
+  @override
+  String get tradeMarket => 'Market';
+
+  @override
+  String get tradeBook => 'Order book';
+
+  @override
+  String get tradeQty => 'Quantity';
+
+  @override
+  String get tradePrice => 'Price';
+
+  @override
+  String get tradeBuy => 'Buy (price)';
+
+  @override
+  String get tradeSell => 'Sell (price)';
+
+  @override
+  String get tradeOpenOrders => 'Your orders';
+
+  @override
+  String get tradeCancel => 'Cancel';
+
+  @override
   String get wallet => 'Wallet';
 
   @override

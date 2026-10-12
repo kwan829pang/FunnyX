@@ -2,7 +2,7 @@
 
 Detail for [project.md](project.md) §5 / [development.md](../development.md) §15. Crate: [`backend/message_center`](../backend/message_center/).
 
-**Detail scope:** Drain Postgres outbox, user inbox APIs, partner HTTP push, dual health/heartbeat. Not Gateway socket fan-out to Client Web (§13). Not Webhook inbound settle.
+**Detail scope:** Drain Postgres outbox, user inbox APIs, partner HTTP push, dual health/heartbeat, **Gateway Session socket fan-out** (`GATEWAY_URL` → `POST /v1/internal/socket/push`). Not Webhook inbound settle.
 
 ## Ports
 
@@ -20,10 +20,11 @@ Producers (Webhook / CC / Core Engine POST)
     → fx_events.outbound_notices (delivery_status=pending)
 Message Center drain (SKIP LOCKED)
     → fx_events.notifications (user inbox)
+    → Gateway POST /v1/internal/socket/push (Session WebSocket / TCP fans out)
     → mark outbound sent
     → optional partner HTTP POST + webhook_events log
     → optional Mongo notice_history (MONGO_URL)
-Client Web (Session) → GET /v1/notifications
+Client Web (Session) → WebSocket Gateway `/v1/ws` + GET /v1/notifications
 ```
 
 `corp_partner_notices` is **not** drained here (corp/Admin channel).

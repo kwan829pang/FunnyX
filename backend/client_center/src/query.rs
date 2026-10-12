@@ -187,7 +187,8 @@ pub mod corp {
         "SELECT u.id FROM fx_corp.corporate_users u \
              JOIN fx_corp.corp_api_keys k ON k.corporate_user_id = u.id \
              WHERE u.master_code = $1 AND u.master_id = $2 AND k.api_key = $3 \
-               AND u.status = 'active' AND k.status = 'active' AND u.api_enabled = TRUE";
+               AND u.status = 'active' AND k.status = 'active' AND u.api_enabled = TRUE \
+               AND (u.license_deadline_at = 0 OR u.license_deadline_at > (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT)";
 }
 
 /// Corp onboarding wizards: register (BR), web login/session, game submit + docs.

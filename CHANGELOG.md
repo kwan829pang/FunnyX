@@ -2,6 +2,11 @@
 
 This is the single project changelog for the frontend work. Older frontend changelog files were merged here to avoid duplicate release notes.
 
+## 0.1.23
+
+- Phase 4 remaining: Gateway Session push (`/v1/internal/socket/push` + Client Web `/v1/ws`); Client Center → Core Engine Session trade (`/trade`); Admin `fx_admin` Postgres login + role gates; C6/C9 fees/license UI (`/fees`, `/v1/admin/fees*`).
+- Unpaid/expired corp license (`api_enabled` / `license_deadline_at`) blocks MasterSigned APIs including new market submit.
+
 ## 0.1.22
 
 - Client Web authenticated shell: home profile summary + **Wallet** nav (`/wallet`) — balances, txn history, deposit/withdraw via Client Center Session APIs.

@@ -22,6 +22,7 @@ dependencies:
   url_launcher: ^6.3.1
   funnyx_common:
     path: ../common
+  web_socket_channel: ^3.0.3
 
 dev_dependencies:
   flutter_test:

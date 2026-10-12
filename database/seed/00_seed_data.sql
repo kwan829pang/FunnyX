@@ -16,8 +16,12 @@
 \set seed_ts 1704067200000
 
 \echo '=== seed: admin_users ==='
+-- password_hash NULL → Admin API accepts password "demo" once, then stores Argon2id hash
 INSERT INTO fx_admin.admin_users (id, username, role, status, created_at, updated_at)
-VALUES (1, 'seed_admin', 'super_admin', 'active', :seed_ts, 0)
+VALUES
+    (1, 'seed_admin', 'super_admin', 'active', :seed_ts, 0),
+    (2, 'admin', 'admin', 'active', :seed_ts, 0),
+    (3, 'viewer', 'viewer', 'active', :seed_ts, 0)
 ON CONFLICT (username) DO UPDATE
 SET role = EXCLUDED.role,
     status = EXCLUDED.status,

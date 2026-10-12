@@ -20,6 +20,8 @@ pub struct Config {
     pub mongo_url: Option<String>,
     pub mongo_db: String,
     pub partner_notice_url: Option<String>,
+    /// Gateway HTTP base for Session socket fan-out (`POST /v1/internal/socket/push`).
+    pub gateway_url: Option<String>,
     pub drain_interval_ms: u64,
     pub drain_batch_size: i64,
     pub max_delivery_retries: i32,
@@ -71,6 +73,10 @@ impl Config {
                 .ok()
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty()),
+            gateway_url: env::var("GATEWAY_URL")
+                .ok()
+                .map(|s| s.trim().trim_end_matches('/').to_string())
+                .filter(|s| !s.is_empty() && !s.contains("xxx.xxx.xxx.xxx")),
             drain_interval_ms: env::var("DRAIN_INTERVAL_MS")
                 .ok()
                 .and_then(|s| s.parse().ok())

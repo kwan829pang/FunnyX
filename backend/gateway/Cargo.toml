@@ -8,7 +8,8 @@ authors = ["FunnyX"]
 
 [dependencies]
 anyhow = "1"
-axum = "0.8"
+axum = { version = "0.8", features = ["ws"] }
+futures-util = "0.3"
 bytes = "1"
 dotenvy = "0.15"
 funnyx-config = { path = "../../common/funnyx-config" }

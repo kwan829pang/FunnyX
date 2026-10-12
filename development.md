@@ -210,7 +210,7 @@ Goal: end users can buy **platform fixed** `PLT_`* packages **and** **Corp-creat
 
 
 
-## Phase 4 - Suggested Platform Expansion — **PARTIAL** (Core Engine ahead of schedule)
+## Phase 4 - Suggested Platform Expansion — **DONE** (v1; Redis claim assist deferred)
 
 After the e-shop vertical slice works, expand the rest of the platform in this order.
 
@@ -223,41 +223,42 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 
 
 
-### 13. Gateway — **DONE** (v1; Message Center push fan-out later)
+### 13. Gateway — **DONE**
 
 - [x] Crate `[backend/gateway](backend/gateway/)` — HTTP `8080`, socket `9000`.
 - [x] Public HTTP reverse proxy with Session / Corp / Admin auth gates; STS validate for Session paths.
 - [x] In-memory `GatewayMemoryMap` + Config Server registry refresh; env URL fallbacks; health-aware RR.
 - [x] Public `GET /health` + private PING/PONG; Session client socket auth → connection registry.
-- [ ] Message Center → Gateway socket push to Client Web.
+- [x] Message Center → Gateway socket push to Client Web (`/v1/internal/socket/push` + Client Web `/v1/ws`).
 
 
 
-### 14. Client Center hardening — **DONE** (v1; exchange later)
+### 14. Client Center hardening — **DONE**
 
 - [x] Session wallet / deposit / withdraw / transactions (`GET/POST /v1/client/wallet|deposit|withdraw|transactions`) via Postgres + company-a partner money APIs.
 - [x] Account/game-account validation on money paths; STS `require_end_user` (Gateway Session socket remains on Gateway).
-- [x] Keep e-shop/CBT settlement local (`/v1/internal/*`); exchange order forward deferred.
+- [x] Keep e-shop/CBT settlement local (`/v1/internal/*`).
 - [x] Dedicated MongoDB `chat_messages` (`MONGO_URL` / `MONGO_DB=funnyx_client`) + Session send/list APIs.
 - [x] Webhook deposit/withdrawal settle (`POST /v1/webhook/deposit|withdrawal` → `POST /v1/internal/money/settle` + `outbound_notices`).
 - [x] Client Web wallet UI (`/wallet` balances + txn history + deposit/withdraw).
-- [ ] Core Engine order path.
+- [x] Core Engine Session order path (`/v1/markets*`, `/v1/orders*`) + Client Web Trade Panel.
 
 
 
-### 15. Message Center — **DONE** (v1; Gateway fan-out later)
+### 15. Message Center — **DONE** (v1)
 
 - [x] Crate `[backend/message_center](backend/message_center/)` — HTTP `8085`, heartbeat socket `9005`; doc `[doc/message_center.md](doc/message_center.md)`.
 - [x] Drain PostgreSQL `outbound_notices` where `delivery_status=pending` (SKIP LOCKED); memory fallback without `POSTGRES_URL`.
 - [x] On send success: write user `notifications`, mark outbound `sent`; optional Mongo `notice_history` when `MONGO_URL` set.
 - [x] Event coverage: DDL enums (`created` / `pending_payment` / `completed` / `cancelled` / `rejected` / `filled` / …).
 - [x] Session inbox `GET`/`PATCH /v1/notifications`; Internal `POST/GET /v1/notices*` (Core Engine compatible); public `/health` + private socket heartbeat.
-- [x] Partner HTTP POST (callback resolve + `webhook_events` delivery log). Gateway socket push to Client Web still open (§13).
+- [x] Partner HTTP POST (callback resolve + `webhook_events` delivery log).
+- [x] Gateway socket push to Client Web after drain (`GATEWAY_URL` + `POST /v1/internal/socket/push`).
 - [ ] Redis claim assist (optional; Postgres SKIP LOCKED is sufficient for v1).
 
 
 
-### 16. Admin API / Admin Panel beyond packages — **PARTIAL** (ops: game-coins + markets done)
+### 16. Admin API / Admin Panel beyond packages — **DONE** (v1)
 
 - [x] Admin API auth: [`backend/admin_api`](backend/admin_api/) login/logout/me; STS `admin_login` / `actor_type=admin`.
 - [x] Admin Panel login wired to Admin API (`AdminApiAuthProvider`).
@@ -266,18 +267,19 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 - [x] Game Partner Game Coin CRUD/status (`/v1/admin/game-coins*`).
 - [x] Market list/approve/reject + pool transfer + Core Engine activate; Panel `/markets`.
 - [x] Config Server registry consume for Core Engine URL (env fallback).
-- [ ] Role-based admin access beyond demo directory; persist `fx_admin`.
+- [x] Role-based admin access (`fx_admin.admin_users` + Argon2id `password_hash`); ops gates on markets approve, packages, Post_Auth, fees.
 - [x] Corporate onboarding (Client Web BR wizard + game docs wizard; Admin approve/reject companies & games).
 - [x] Admin webhook Post_Auth control (`/v1/admin/webhook-post-auth*` + Panel `/webhook-auth`).
-- [ ] C6/C9 fees / license / notices UI.
+- [x] C6/C9 fees / license / notices UI (`/v1/admin/fees*` + Panel `/fees`).
 
 
 
-### 17. Market onboarding and liquidity lock-up — **PARTIAL** (Corp submit + Admin approve done)
+### 17. Market onboarding and liquidity lock-up — **DONE** (v1)
 
 - [x] Corp submit market pair + lock client Game Partner Game Coin + pending `market_pools` (`POST /v1/corp/markets` on Client Center).
 - [x] Admin review/approve; transfer lock into pool wallets; Core Engine activate (`POST /v1/admin/markets/{id}/approve`).
 - [x] Admin reject unlocks reserved client balance.
+- [x] C6/C9 fees + license deadline + `api_enabled` / partner notice; unpaid or expired license blocks MasterSigned (incl. new markets).
 
 - Corporate User game registration → ready state → Game Account ID.
 - Initial Game Partner Game Coin supply and balance account.
@@ -288,13 +290,13 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 
 
 
-### 18. Core Engine and exchange order flow — **DONE** (local matching; Client Center path open)
+### 18. Core Engine and exchange order flow — **DONE** (v1)
 
 - [x] Skeleton under `[backend/core_engine](backend/core_engine/)`: quote-asset shard (max **10** pairs/engine), Market (01) / Price (02), price-time book.
 - [x] Publish fills/cancels to Message Center + partner server group (`MESSAGE_CENTER_URL`, `PARTNER_NOTICE_URL`).
 - [x] Info APIs: `GET /v1/engine`, `GET /v1/engine/pairs`, books/trades/notices; order place/cancel.
 - [x] Maintenance: local snapshot persist; admin save / stop / start (`/v1/admin/maintenance*`).
-- [ ] Wire Client Center → Core Engine private path; ring-buffer worker hardening; balance settlement via Client Center.
+- [x] Client Center → Core Engine private path (Session markets/orders); wallet lock on place (in-memory order map for Session correlation).
 
 - In-memory order book; Market Order (01) and Price Order (02).
 - Price-time priority matching; cancel and partial fill.

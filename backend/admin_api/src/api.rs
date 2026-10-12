@@ -15,6 +15,7 @@ use crate::config::Config;
 use crate::corp_users;
 use crate::corp_users_store::CorpUsersStore;
 use crate::engine::EngineClient;
+use crate::fees;
 use crate::game_coin_store::GameCoinStore;
 use crate::game_coins;
 use crate::market_store::AdminMarketStore;
@@ -27,6 +28,7 @@ use crate::system;
 use crate::system_store::SystemStore;
 use crate::webhook_post_auth;
 use crate::webhook_post_auth_store::WebhookPostAuthStore;
+use sqlx::PgPool;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -41,6 +43,7 @@ pub struct AppState {
     pub corp_users: CorpUsersStore,
     pub webhook_post_auth: WebhookPostAuthStore,
     pub engine: EngineClient,
+    pub pool: Option<PgPool>,
     #[allow(dead_code)]
     pub http: Client,
 }
@@ -119,6 +122,12 @@ pub fn router(state: AppState) -> Router {
             paths::ADMIN_WEBHOOK_POST_AUTH_STATUS,
             patch(webhook_post_auth::patch_status),
         )
+        .route(
+            paths::ADMIN_FEES,
+            get(fees::list_fees).post(fees::create_fee),
+        )
+        .route(paths::ADMIN_FEES_CORPS, get(fees::list_corps))
+        .route(paths::ADMIN_FEE_CORP_ACCESS, patch(fees::patch_corp_access))
         .with_state(state)
 }
 

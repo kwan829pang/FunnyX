@@ -3,6 +3,8 @@ mod auth;
 mod config;
 mod memory;
 mod proxy;
+mod push;
+mod push_hub;
 mod registry;
 mod socket;
 mod sts;
@@ -19,6 +21,7 @@ use api::{router, AppState};
 use config::Config;
 use memory::new_shared_memory;
 use proxy::RrCounters;
+use push_hub::PushHub;
 use sts::StsClient;
 
 #[tokio::main]
@@ -35,8 +38,9 @@ async fn main() -> anyhow::Result<()> {
     let memory = new_shared_memory();
     let sts = StsClient::new(&config, http.clone());
 
+    let push = PushHub::new();
     let sock_addr: SocketAddr = format!("{}:{}", config.socket_host, config.socket_port).parse()?;
-    socket::spawn_gateway_socket(sock_addr, sts.clone(), memory.clone());
+    socket::spawn_gateway_socket(sock_addr, sts.clone(), memory.clone(), push.clone());
 
     funnyx_heartbeat::spawn_registry_register(
         http.clone(),
@@ -58,6 +62,7 @@ async fn main() -> anyhow::Result<()> {
         sts,
         http,
         memory,
+        push,
         config: config.clone(),
         rr: Arc::new(RrCounters::default()),
     })

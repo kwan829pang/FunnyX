@@ -6,6 +6,7 @@ use axum::response::IntoResponse;
 use axum::Json;
 use serde::Deserialize;
 
+use crate::admins::role_allowed;
 use crate::api::{err_status, extract_bearer, require_admin_session, AppState};
 use crate::models::ErrorBody;
 
@@ -41,11 +42,25 @@ pub struct PackageStatusBody {
 async fn require_admin(
     state: &AppState,
     headers: &HeaderMap,
-) -> Result<i64, (StatusCode, Json<ErrorBody>)> {
+) -> Result<crate::admins::AdminUser, (StatusCode, Json<ErrorBody>)> {
     let token = extract_bearer(headers)
         .ok_or_else(|| err_status(StatusCode::UNAUTHORIZED, "Authorization Bearer required"))?;
     let (admin, _) = require_admin_session(state, &token).await?;
-    Ok(admin.admin_user_id)
+    Ok(admin)
+}
+
+async fn require_ops_admin(
+    state: &AppState,
+    headers: &HeaderMap,
+) -> Result<crate::admins::AdminUser, (StatusCode, Json<ErrorBody>)> {
+    let admin = require_admin(state, headers).await?;
+    if !role_allowed(&admin.role, &["super_admin", "admin"]) {
+        return Err(err_status(
+            StatusCode::FORBIDDEN,
+            "admin role required for package/setup writes",
+        ));
+    }
+    Ok(admin)
 }
 
 pub async fn get_setup(
@@ -64,7 +79,8 @@ pub async fn complete_setup(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
-    let admin_id = require_admin(&state, &headers).await?;
+    let admin = require_ops_admin(&state, &headers).await?;
+    let admin_id = admin.admin_user_id;
     let status = state
         .system
         .complete_setup(admin_id)
@@ -93,7 +109,8 @@ pub async fn put_base_currency(
     headers: HeaderMap,
     Json(body): Json<BaseCurrencyBody>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
-    let admin_id = require_admin(&state, &headers).await?;
+    let admin = require_ops_admin(&state, &headers).await?;
+    let admin_id = admin.admin_user_id;
     let code = state
         .system
         .set_base_currency(&body.base_fiat_currency, admin_id)
@@ -121,7 +138,8 @@ pub async fn create_package(
     headers: HeaderMap,
     Json(body): Json<CreatePackageBody>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
-    let admin_id = require_admin(&state, &headers).await?;
+    let admin = require_ops_admin(&state, &headers).await?;
+    let admin_id = admin.admin_user_id;
     let package = state
         .system
         .create_package(
@@ -149,7 +167,7 @@ pub async fn update_package(
     Path(id): Path<i64>,
     Json(body): Json<PackagePatchBody>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
-    let _ = require_admin(&state, &headers).await?;
+    let _ = require_ops_admin(&state, &headers).await?;
     let package = state
         .system
         .update_package_price(
@@ -178,7 +196,7 @@ pub async fn patch_package_status(
     Path(id): Path<i64>,
     Json(body): Json<PackageStatusBody>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
-    let _ = require_admin(&state, &headers).await?;
+    let _ = require_ops_admin(&state, &headers).await?;
     let package = state
         .system
         .set_package_status(id, body.status.trim())
