@@ -2,16 +2,16 @@
 
 This doc is a detail file for [project.md](project.md) §5 (Webhook Server). HTTP path index: [api-master.md](../api-master.md). E-shop callback JSON: [e-shop.md](e-shop.md) §7.3. Socket framing: [socket_message.md](socket_message.md). Crate: [`backend/webhook_server`](../backend/webhook_server/).
 
-**Detail scope:** Partner ingress (HTTP + S2S socket), Corp endpoint rows, idempotent shop settle into Client Center, retry, and which caller connects where. Not Message Center drain, not Gateway public sockets, not Core Engine.
+**Detail scope:** Partner ingress (HTTP + S2S socket), Corp endpoint rows, idempotent settle into Client Center (shop / CBT / deposit / withdrawal), retry, and which caller connects where. Not Message Center drain, not Gateway public sockets, not Core Engine.
 
 ## 1. Role
 
 Webhook Server is **partner / payment-gate ingress** only.
 
-- Accepts **inbound** shop payment and **Company Basic Token** payment callbacks (HTTP; shop also S2S socket).
+- Accepts **inbound** shop payment, **Company Basic Token** payment, and **deposit / withdrawal** finalize callbacks (HTTP; shop / money also S2S socket).
 - Persists `fx_events.webhook_events` (`event_id` unique, `retry_count`) and shop audit `fx_shop.shop_payment_events`.
-- Calls Client Center **internal** settle so orders/wallets update (`/v1/internal/shop/settle`, `/v1/internal/corp-token/settle`).
-- Writes `fx_events.outbound_notices` (`shop_order` / `corp_token_order`) for Message Center later; on CBT paid also Corp `corp_partner_notices` and HTTP **balance callback** to Corp (`webhook_endpoints` kind `corp_token` or `partner_endpoints` type `callback`).
+- Calls Client Center **internal** settle so orders/wallets update (`/v1/internal/shop/settle`, `/v1/internal/corp-token/settle`, `/v1/internal/money/settle`).
+- Writes `fx_events.outbound_notices` (`shop_order` / `corp_token_order` from Webhook; `deposit_withdrawal_txn` from Client Center on money settle) for Message Center later; on CBT paid also Corp `corp_partner_notices` and HTTP **balance callback** to Corp (`webhook_endpoints` kind `corp_token` or `partner_endpoints` type `callback`).
 - Marketplace deal notices are produced by **Client Center** (not Webhook Server ingest) and drained by Message Center with partner webhook kind `marketplace` — see [marketplace.md](marketplace.md) §4.
 - Lets **Corporate Users** create/update **their** callback endpoint rows (MasterSigned). CBT paid settle **does** call the Corp callback URL when configured.
 
@@ -58,7 +58,8 @@ Pick the **target service** first, then the path. Webhook Server does not replac
 | Client Web: “payment done” until MC exists | **Client Center** | HTTP | `GET` | `/v1/shop/orders/{id}` or `/v1/corp-tokens/orders/{order_id}` | Session Bearer |
 | Client Web: “payment done” after MC + Gateway | **Gateway** | Socket `:9000` | Session messages | shop_order / corp_token_order `completed` / `failed` | Session token |
 | payment-gate: create checkout (not webhook) | **payment-gate** | HTTP | `POST` | payment-gate create APIs (`18100`) | Simulator contract; `callback_url` must point at Webhook `/v1/webhook/shop/payment` |
-| Reserved: deposit / withdrawal / generic | **Webhook Server** (later) | HTTP | `POST` | `/v1/webhook/deposit`, `/v1/webhook/withdrawal`, `/v1/webhook/partner/callback` | Partner; not registered yet |
+| Partner: deposit / withdrawal finalize | **Webhook Server** | HTTP | `POST` | `/v1/webhook/deposit`, `/v1/webhook/withdrawal` | Partner `signature` = `CALLBACK_SIGNATURE` |
+| FunnyX: apply wallet after money accept | **Client Center** | HTTP (S2S) | `POST` | `/v1/internal/money/settle` | `X-Internal-Key` (Webhook Server → CC) |
 
 Duplicate `event_id` on shop ingest: HTTP **200** no-op (no second settle). Socket ingest uses the same persist path.
 
@@ -90,19 +91,125 @@ v1 envelope (recommended):
 | `event_type` | Handled now | Maps to HTTP |
 | --- | --- | --- |
 | `shop_payment` | Yes | `POST /v1/webhook/shop/payment` |
-| `deposit` / `withdrawal` / `corp_token` / other | No (error on socket) | Reserved HTTP paths |
+| `deposit` / `withdrawal` | Yes | `POST /v1/webhook/deposit` / `/withdrawal` |
+| `corp_token` | Yes | `POST /v1/webhook/corp-token/payment` |
+| other | No (error on socket) | — |
 
 ## 5. Settlement path
 
 ```text
 Partner/payment-gate  --HTTP POST or socket ingest-->  Webhook Server :8084 / :9004
 Webhook Server        --INSERT webhook_events (+ shop_payment_events for shop)-->  PostgreSQL
-Webhook Server        --POST /v1/internal/shop/settle | /v1/internal/corp-token/settle-->  Client Center :8083
-Client Center         --update orders, wallets (CBT: 99.9% credit + fee ledger)-->  PostgreSQL
-Webhook Server        --INSERT outbound_notices (pending)-->  PostgreSQL
+Webhook Server        --POST /v1/internal/shop/settle | /v1/internal/corp-token/settle | /v1/internal/money/settle-->  Client Center :8083
+Client Center         --update orders, wallets (CBT: 99.9% credit + fee ledger; money: deposit/withdraw)-->  PostgreSQL
+Client Center (money) --INSERT outbound_notices (source_type=deposit_withdrawal_txn)-->  PostgreSQL
+Webhook Server        --INSERT outbound_notices (pending)-->  PostgreSQL  (shop / CBT)
 Webhook Server (CBT)  --POST balance payload-->  Corp callback_url (kind corp_token / partner callback)
 Message Center (:8085)--drain notices-->  notifications + partner POST; Gateway socket later
 ```
+
+### 5.1 Flow charts
+
+#### Overview (all event types)
+
+```mermaid
+flowchart LR
+  Partner[Partner_or_payment_gate]
+  WH[Webhook_Server_8084_9004]
+  PG[(PostgreSQL)]
+  CC[Client_Center_8083]
+  MC[Message_Center_8085]
+  Corp[Corp_callback_URL]
+
+  Partner -->|"HTTP or socket ingest"| WH
+  WH -->|"INSERT webhook_events"| PG
+  WH -->|"POST /v1/internal/*/settle"| CC
+  CC -->|"orders wallets status_logs"| PG
+  WH -->|"outbound_notices shop CBT"| PG
+  CC -->|"outbound_notices money"| PG
+  WH -->|"CBT paid balance callback"| Corp
+  MC -->|"drain outbound_notices"| PG
+```
+
+#### Shop fiat payment
+
+```mermaid
+sequenceDiagram
+  participant Pay as PaymentGate
+  participant WH as WebhookServer
+  participant PG as PostgreSQL
+  participant CC as ClientCenter
+  participant MC as MessageCenter
+
+  Pay->>WH: POST /v1/webhook/shop/payment
+  WH->>PG: INSERT webhook_events shop_payment
+  WH->>CC: POST /v1/internal/shop/settle
+  CC->>PG: update shop_orders wallets
+  WH->>PG: INSERT outbound_notices shop_order
+  Note over WH: duplicate event_id returns 200 no-op
+  Note over WH: CC failure retries 5s 30s 2m 10m then dead
+  MC->>PG: drain notices to notifications
+```
+
+#### Company Basic Token payment
+
+```mermaid
+sequenceDiagram
+  participant Partner as PartnerPay
+  participant WH as WebhookServer
+  participant PG as PostgreSQL
+  participant CC as ClientCenter
+  participant Corp as CorpCallback
+
+  Partner->>WH: POST /v1/webhook/corp-token/payment
+  WH->>PG: INSERT webhook_events corp_token
+  WH->>CC: POST /v1/internal/corp-token/settle
+  CC->>PG: credit 99.9 percent fee ledger
+  WH->>PG: INSERT outbound_notices corp_token_order
+  WH->>PG: INSERT corp_partner_notices
+  WH->>Corp: POST balance payload when paid
+```
+
+#### Deposit / withdrawal
+
+```mermaid
+sequenceDiagram
+  participant CW as ClientWeb
+  participant CC as ClientCenter
+  participant Partner as CompanyA
+  participant WH as WebhookServer
+  participant PG as PostgreSQL
+  participant MC as MessageCenter
+
+  CW->>CC: POST /v1/client/deposit or withdraw
+  CC->>PG: INSERT pending deposit_withdrawal_txns
+  CC->>Partner: POST /api/deposit or withdrawal
+  Partner-->>CC: pending partner_txn_id
+  Note over Partner: after sim delay finalize
+  Partner->>WH: POST /v1/webhook/deposit or withdrawal
+  WH->>PG: INSERT webhook_events deposit or withdrawal
+  WH->>CC: POST /v1/internal/money/settle
+  CC->>PG: complete_txn or mark_terminal wallets
+  CC->>PG: INSERT outbound_notices deposit_withdrawal_txn
+  MC->>PG: drain notices to notifications
+```
+
+### Deposit / withdrawal body (HTTP)
+
+```json
+{
+  "event_id": "money_evt_PTXN1001",
+  "request_id": "req_abc",
+  "partner_txn_id": "PTXN1001",
+  "transaction_type": "deposit",
+  "status": "success",
+  "amount": 10.0,
+  "game_coin": "PLT",
+  "signature": "test-signature"
+}
+```
+
+`status`: `success` | `failed` | `cancelled` (also `rejected`). Path must match `transaction_type` (`/deposit` vs `/withdrawal`).
 
 ### CBT payment body (HTTP)
 
