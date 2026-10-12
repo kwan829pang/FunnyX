@@ -51,12 +51,14 @@ This restriction keeps the matching model deterministic and prevents unsupported
 The Gateway is the public entry point for both HTTP and socket traffic. Its responsibilities include:
 
 - accepting Client Web and Company Partner HTTP/socket traffic
-- validating **Token Server tokens** for Client Web APIs (after login)
+- validating **Token Server tokens** for Client Web APIs (after login) by calling **Session Token Server** directly (`POST /v1/session/validate`)
 - validating **Master Account Code + Master ID + API Key + Secret** for Company Partner → Client Center APIs
 - checking downstream service health
 - load balancing traffic across available Gateway instances
 - routing to Client Center (orders reach Core Engine only via Client Center on the private network)
 - reporting service health with HTTP GET `/health` and socket PING/PONG
+
+**Admin Panel** is not Gateway ingress for HTTP — it calls Admin API (or other admin targets) directly. See [flow_chart.md](flow_chart.md) §2–§3.
 
 ### 2.2 Gateway Selection Policy
 
@@ -121,10 +123,12 @@ For order placement, the Gateway should behave as a distributor rather than perf
 The critical routing rule is:
 
 - Client Web requests enter through Gateway with Token Server token (except Public register/login)
+- Gateway checks session token status via Session Token Server before routing
 - Company Partner requests enter with Master Account Code + Master ID + API Key + Secret
 - Gateway routes to Client Center for validation and persistence
 - Client Center sends order commands to the private Core Engine
 - Core Engine performs order matching
+- Admin Panel HTTP bypasses Gateway and calls Admin API directly
 
 This ensures the Core Engine remains private and not directly exposed to external clients.
 

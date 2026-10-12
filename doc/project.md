@@ -94,8 +94,9 @@ Config Server loads operational JSON (whitelist, routes, heartbeat). DDL: [datab
 
 | Caller | Credential |
 | --- | --- |
-| Client Web | Token from Session Token Server on **all** APIs after Public login/register/**OAuth** |
+| Client Web | Token from Session Token Server on **all** APIs after Public login/register/**OAuth** (Gateway validates via Session Token Server) |
 | Company Partner → Client Center | **Master Account Code + Master ID + API Key + Secret** |
+| Admin Panel | Admin Session token; HTTP calls **Admin API directly** (not via Gateway) |
 
 **OAuth 2.0 (readme):** Partner OAuth verifies users on the platform; platform OAuth lets Partners login platform-registered users. Required partner APIs: OAuth + Transfer (always); Item List for Marketplace game items; balance + deposit/withdraw only if partner does not use platform wallet APIs.
 

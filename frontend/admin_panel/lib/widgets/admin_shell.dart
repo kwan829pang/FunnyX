@@ -16,7 +16,8 @@ class AdminShell extends StatelessWidget {
     if (location.startsWith('/corp-products')) return 2;
     if (location.startsWith('/markets')) return 3;
     if (location.startsWith('/corp-onboard')) return 4;
-    if (location.startsWith('/setup')) return 5;
+    if (location.startsWith('/webhook-auth')) return 5;
+    if (location.startsWith('/setup')) return 6;
     return 0;
   }
 
@@ -31,6 +32,8 @@ class AdminShell extends StatelessWidget {
       case 4:
         return '/corp-onboard';
       case 5:
+        return '/webhook-auth';
+      case 6:
         return '/setup';
       default:
         return '/dashboard';
@@ -58,6 +61,8 @@ class AdminShell extends StatelessWidget {
                 Get.toNamed('/markets');
               } else if (q.contains('onboard') || q.contains('compan')) {
                 Get.toNamed('/corp-onboard');
+              } else if (q.contains('webhook') || q.contains('post_auth') || q.contains('post-auth')) {
+                Get.toNamed('/webhook-auth');
               } else if (q.contains('setup')) {
                 Get.toNamed('/setup');
               } else {
@@ -139,6 +144,11 @@ class AdminShell extends StatelessWidget {
                           selectedIcon: Icon(Icons.business),
                           label: Text('Onboard'),
                         ),
+                        const NavigationRailDestination(
+                          icon: Icon(Icons.vpn_key_outlined),
+                          selectedIcon: Icon(Icons.vpn_key),
+                          label: Text('Webhook Auth'),
+                        ),
                         NavigationRailDestination(
                           icon: const Icon(Icons.tune_outlined),
                           selectedIcon: const Icon(Icons.tune),
@@ -196,6 +206,12 @@ class _NavList extends StatelessWidget {
           title: const Text('Onboard'),
           selected: location.startsWith('/corp-onboard'),
           onTap: () => Get.toNamed('/corp-onboard'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.vpn_key),
+          title: const Text('Webhook Auth'),
+          selected: location.startsWith('/webhook-auth'),
+          onTap: () => Get.toNamed('/webhook-auth'),
         ),
         ListTile(
           leading: const Icon(Icons.tune),

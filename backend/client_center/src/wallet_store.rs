@@ -349,24 +349,272 @@ impl WalletStore {
         let Some(pool) = &self.pool else {
             return Ok(None);
         };
-        let row = sqlx::query(
-            crate::query::wallet::GET_TXN,
-        )
-        .bind(txn_id)
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| e.to_string())?;
-        Ok(row.map(|r| MoneyTxnView {
-            id: r.get("id"),
-            end_user_id: r.get("end_user_id"),
-            game_account_id: r.try_get("game_account_id").ok(),
-            transaction_type: r.get("transaction_type"),
-            amount: r.get("amount"),
-            game_coin_id: r.get("game_coin_id"),
-            game_coin: r.try_get("game_coin").ok(),
-            status: r.get("status"),
-            created_at: r.get("created_at"),
-            updated_at: r.get("updated_at"),
-        }))
+        let row = sqlx::query(crate::query::wallet::GET_TXN)
+            .bind(txn_id)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(row.map(map_txn_row))
+    }
+
+    pub async fn find_by_partner_ref(
+        &self,
+        request_id: &str,
+        partner_txn_id: &str,
+    ) -> Result<Option<MoneyTxnView>, String> {
+        let Some(pool) = &self.pool else {
+            return Ok(None);
+        };
+        let row = sqlx::query(crate::query::wallet::FIND_BY_PARTNER_REF)
+            .bind(request_id.trim())
+            .bind(partner_txn_id.trim())
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(row.map(map_txn_row))
+    }
+
+    /// Record partner_txn_id on the pending txn for webhook settle lookup.
+    pub async fn attach_partner_ref(
+        &self,
+        txn_id: i64,
+        request_id: &str,
+        partner_txn_id: &str,
+    ) -> Result<(), String> {
+        let pool = self.pool.as_ref().ok_or("POSTGRES_URL required")?;
+        let now = now_ms();
+        let payload = serde_json::json!({
+            "request_id": request_id,
+            "partner_txn_id": partner_txn_id,
+        });
+        sqlx::query(crate::query::wallet::INSERT_STATUS_LOG_PARTNER_REF)
+            .bind(txn_id)
+            .bind(format!("partner accepted ({partner_txn_id})"))
+            .bind(payload.to_string())
+            .bind(now)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub async fn mark_terminal(
+        &self,
+        txn_id: i64,
+        status: &str,
+        note: &str,
+        payload: serde_json::Value,
+    ) -> Result<(), String> {
+        let event_type = match status {
+            "failed" => "failed",
+            "cancelled" => "cancelled",
+            "rejected" => "rejected",
+            other => return Err(format!("unsupported terminal status: {other}")),
+        };
+        let pool = self.pool.as_ref().ok_or("POSTGRES_URL required")?;
+        let now = now_ms();
+        let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+        let updated = sqlx::query(crate::query::wallet::MARK_TERMINAL)
+            .bind(txn_id)
+            .bind(status)
+            .bind(now)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?
+            .rows_affected();
+        if updated == 0 {
+            tx.rollback().await.ok();
+            return Ok(());
+        }
+        sqlx::query(crate::query::wallet::INSERT_STATUS_LOG_TERMINAL)
+            .bind(txn_id)
+            .bind(status)
+            .bind(event_type)
+            .bind(note)
+            .bind(payload.to_string())
+            .bind(now)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+        tx.commit().await.map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    /// Webhook settle: success → credit/debit; failed/cancelled → terminal status.
+    /// Only existing `deposit` / `withdrawal` rows are handled (never creates a txn).
+    pub async fn apply_settle(
+        &self,
+        request_id: &str,
+        partner_txn_id: &str,
+        transaction_type: &str,
+        status: &str,
+        amount: f64,
+        game_coin: &str,
+        event_id: &str,
+    ) -> Result<MoneyTxnView, String> {
+        if request_id.trim().is_empty() || partner_txn_id.trim().is_empty() {
+            return Err("request_id and partner_txn_id required".into());
+        }
+        let txn = self
+            .find_by_partner_ref(request_id, partner_txn_id)
+            .await?
+            .ok_or_else(|| "deposit/withdrawal txn not found".to_string())?;
+
+        if txn.transaction_type != "deposit" && txn.transaction_type != "withdrawal" {
+            return Err("deposit/withdrawal txn not found".into());
+        }
+        if !transaction_type.is_empty() && txn.transaction_type != transaction_type {
+            return Err(format!(
+                "transaction_type mismatch (have {}, got {transaction_type})",
+                txn.transaction_type
+            ));
+        }
+        if amount > 0.0 && (txn.amount - amount).abs() > 1e-6 {
+            return Err(format!(
+                "amount mismatch (have {}, got {amount})",
+                txn.amount
+            ));
+        }
+        if !game_coin.is_empty() {
+            if let Some(code) = txn.game_coin.as_deref() {
+                if !code.eq_ignore_ascii_case(game_coin) {
+                    return Err(format!("game_coin mismatch (have {code}, got {game_coin})"));
+                }
+            }
+        }
+
+        let ga_row = txn
+            .game_account_id
+            .ok_or_else(|| "txn missing game_account_id".to_string())?;
+
+        match status {
+            "success" | "completed" | "paid" => {
+                if txn.status == "completed" {
+                    return Ok(txn);
+                }
+                if txn.status != "pending" && txn.status != "processing" {
+                    return Err(format!(
+                        "txn not open for settle (status={})",
+                        txn.status
+                    ));
+                }
+                self.complete_txn(
+                    txn.id,
+                    &txn.transaction_type,
+                    ga_row,
+                    txn.game_coin_id,
+                    txn.amount,
+                    partner_txn_id,
+                    request_id,
+                )
+                .await?;
+            }
+            "failed" | "cancelled" | "rejected" => {
+                let terminal = if status == "failed" {
+                    "failed"
+                } else if status == "rejected" {
+                    "rejected"
+                } else {
+                    "cancelled"
+                };
+                if txn.status == terminal || txn.status == "completed" {
+                    return self
+                        .get_txn(txn.id)
+                        .await?
+                        .ok_or_else(|| "txn missing after settle".into());
+                }
+                self.mark_terminal(
+                    txn.id,
+                    terminal,
+                    &format!("{terminal} via webhook ({event_id})"),
+                    serde_json::json!({
+                        "event_id": event_id,
+                        "request_id": request_id,
+                        "partner_txn_id": partner_txn_id,
+                        "status": status,
+                    }),
+                )
+                .await?;
+            }
+            other => return Err(format!("unsupported settle status: {other}")),
+        }
+
+        let updated = self
+            .get_txn(txn.id)
+            .await?
+            .ok_or_else(|| "txn missing after settle".to_string())?;
+
+        let notice_type = match updated.status.as_str() {
+            "completed" => "completed",
+            "failed" => "failed",
+            "cancelled" => "cancelled",
+            "rejected" => "rejected",
+            _ => "status_changed",
+        };
+        let title = format!("{} {}", updated.transaction_type, updated.status);
+        let body = format!(
+            "{} txn {} is {}",
+            updated.transaction_type, updated.id, updated.status
+        );
+        let payload = serde_json::json!({
+            "event_id": event_id,
+            "request_id": request_id,
+            "partner_txn_id": partner_txn_id,
+            "txn": updated,
+        });
+        if let Err(e) = self
+            .emit_outbound_notice(
+                updated.end_user_id,
+                updated.id,
+                notice_type,
+                &title,
+                &body,
+                &payload,
+            )
+            .await
+        {
+            tracing::warn!(txn_id = updated.id, error = %e, "money settle notice insert failed");
+        }
+        Ok(updated)
+    }
+
+    async fn emit_outbound_notice(
+        &self,
+        end_user_id: i64,
+        source_id: i64,
+        event_type: &str,
+        title: &str,
+        body: &str,
+        payload: &serde_json::Value,
+    ) -> Result<(), String> {
+        let pool = self.pool.as_ref().ok_or("POSTGRES_URL required")?;
+        let now = now_ms();
+        sqlx::query(crate::query::wallet::INSERT_OUTBOUND_NOTICE)
+            .bind(end_user_id)
+            .bind(source_id)
+            .bind(event_type)
+            .bind(title)
+            .bind(body)
+            .bind(payload.to_string())
+            .bind(now)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+}
+
+fn map_txn_row(r: sqlx::postgres::PgRow) -> MoneyTxnView {
+    MoneyTxnView {
+        id: r.get("id"),
+        end_user_id: r.get("end_user_id"),
+        game_account_id: r.try_get("game_account_id").ok(),
+        transaction_type: r.get("transaction_type"),
+        amount: r.get("amount"),
+        game_coin_id: r.get("game_coin_id"),
+        game_coin: r.try_get("game_coin").ok(),
+        status: r.get("status"),
+        created_at: r.get("created_at"),
+        updated_at: r.get("updated_at"),
     }
 }

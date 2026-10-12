@@ -120,6 +120,9 @@ pub mod paths {
     pub const SHOP_ORDER_CANCEL: &str = "/v1/shop/orders/{id}/cancel";
     pub const INTERNAL_SHOP_SETTLE: &str = "/v1/internal/shop/settle";
     pub const INTERNAL_CORP_TOKEN_SETTLE: &str = "/v1/internal/corp-token/settle";
+    pub const INTERNAL_MONEY_SETTLE: &str = "/v1/internal/money/settle";
+    /// Lookup existing deposit/withdrawal txn by request_id / partner_txn_id.
+    pub const INTERNAL_MONEY_TXN: &str = "/v1/internal/money/txn";
 
     /// C7 Marketplace (Session) — Client Center via Gateway.
     pub const MARKETPLACE_ELIGIBILITY: &str = "/v1/marketplace/eligibility";
@@ -131,6 +134,8 @@ pub mod paths {
 
     pub const WEBHOOK_SHOP_PAYMENT: &str = "/v1/webhook/shop/payment";
     pub const WEBHOOK_CORP_TOKEN_PAYMENT: &str = "/v1/webhook/corp-token/payment";
+    pub const WEBHOOK_DEPOSIT: &str = "/v1/webhook/deposit";
+    pub const WEBHOOK_WITHDRAWAL: &str = "/v1/webhook/withdrawal";
     pub const WEBHOOK_ENDPOINTS: &str = "/v1/webhook/endpoints";
     pub const WEBHOOK_ENDPOINT: &str = "/v1/webhook/endpoints/{id}";
     pub const WEBHOOK_EVENT: &str = "/v1/webhook/events/{event_id}";
@@ -163,6 +168,11 @@ pub mod paths {
     pub const ADMIN_GAME: &str = "/v1/admin/games/{id}";
     pub const ADMIN_GAME_APPROVE: &str = "/v1/admin/games/{id}/approve";
     pub const ADMIN_GAME_REJECT: &str = "/v1/admin/games/{id}/reject";
+
+    /// Admin CRUD for inbound webhook Post_Auth mapping (`fx_events.webhook_post_auth`).
+    pub const ADMIN_WEBHOOK_POST_AUTH: &str = "/v1/admin/webhook-post-auth";
+    pub const ADMIN_WEBHOOK_POST_AUTH_ITEM: &str = "/v1/admin/webhook-post-auth/{id}";
+    pub const ADMIN_WEBHOOK_POST_AUTH_STATUS: &str = "/v1/admin/webhook-post-auth/{id}/status";
     pub const ADMIN_CORP_DOCUMENT: &str = "/v1/admin/corp/documents/{id}";
 
     pub const CORP_TOKENS: &str = "/v1/corp-tokens";

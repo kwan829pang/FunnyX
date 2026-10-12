@@ -3,6 +3,44 @@ import 'package:dio/dio.dart';
 import '../models/api_error.dart';
 import 'api_client.dart';
 
+class AdminWebhookPostAuth {
+  const AdminWebhookPostAuth({
+    required this.id,
+    required this.sourceCode,
+    required this.domainPattern,
+    required this.authKeySuffix,
+    this.ppk,
+    required this.allowedIps,
+    required this.status,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final int id;
+  final String sourceCode;
+  final String domainPattern;
+  final String authKeySuffix;
+  final String? ppk;
+  final String allowedIps;
+  final String status;
+  final int? createdAt;
+  final int? updatedAt;
+
+  factory AdminWebhookPostAuth.fromJson(Map<String, dynamic> json) {
+    return AdminWebhookPostAuth(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      sourceCode: json['source_code']?.toString() ?? '',
+      domainPattern: json['domain_pattern']?.toString() ?? '',
+      authKeySuffix: json['auth_key_suffix']?.toString() ?? '',
+      ppk: json['ppk']?.toString(),
+      allowedIps: json['allowed_ips']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      createdAt: (json['created_at'] as num?)?.toInt(),
+      updatedAt: (json['updated_at'] as num?)?.toInt(),
+    );
+  }
+}
+
 class AdminRequiredItem {
   const AdminRequiredItem({
     required this.key,
@@ -544,6 +582,105 @@ class AdminSystemProvider {
         data: {'reason': reason},
       );
       return Map<String, dynamic>.from(res.data ?? const {});
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<List<AdminWebhookPostAuth>> listWebhookPostAuth({String? status}) async {
+    try {
+      final res = await api.dio.get<Map<String, dynamic>>(
+        '/v1/admin/webhook-post-auth',
+        queryParameters: <String, dynamic>{
+          if (status != null && status.isNotEmpty) 'status': status,
+        },
+      );
+      final raw = res.data?['items'];
+      if (raw is! List) {
+        return const [];
+      }
+      return raw
+          .whereType<Map>()
+          .map((e) => AdminWebhookPostAuth.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<AdminWebhookPostAuth> createWebhookPostAuth({
+    required String sourceCode,
+    required String domainPattern,
+    required String authKeySuffix,
+    String? ppk,
+    required String allowedIps,
+    String? status,
+  }) async {
+    try {
+      final res = await api.dio.post<Map<String, dynamic>>(
+        '/v1/admin/webhook-post-auth',
+        data: <String, dynamic>{
+          'source_code': sourceCode,
+          'domain_pattern': domainPattern,
+          'auth_key_suffix': authKeySuffix,
+          if (ppk != null && ppk.isNotEmpty) 'ppk': ppk,
+          'allowed_ips': allowedIps,
+          if (status != null) 'status': status,
+        },
+      );
+      final item = res.data?['item'];
+      if (item is! Map) {
+        throw const ApiError('invalid webhook_post_auth response');
+      }
+      return AdminWebhookPostAuth.fromJson(Map<String, dynamic>.from(item));
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<AdminWebhookPostAuth> updateWebhookPostAuth({
+    required int id,
+    required String sourceCode,
+    required String domainPattern,
+    required String authKeySuffix,
+    String? ppk,
+    required String allowedIps,
+  }) async {
+    try {
+      final res = await api.dio.put<Map<String, dynamic>>(
+        '/v1/admin/webhook-post-auth/$id',
+        data: <String, dynamic>{
+          'source_code': sourceCode,
+          'domain_pattern': domainPattern,
+          'auth_key_suffix': authKeySuffix,
+          if (ppk != null) 'ppk': ppk,
+          'allowed_ips': allowedIps,
+        },
+      );
+      final item = res.data?['item'];
+      if (item is! Map) {
+        throw const ApiError('invalid webhook_post_auth response');
+      }
+      return AdminWebhookPostAuth.fromJson(Map<String, dynamic>.from(item));
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
+  Future<AdminWebhookPostAuth> setWebhookPostAuthStatus({
+    required int id,
+    required String status,
+  }) async {
+    try {
+      final res = await api.dio.patch<Map<String, dynamic>>(
+        '/v1/admin/webhook-post-auth/$id/status',
+        data: <String, dynamic>{'status': status},
+      );
+      final item = res.data?['item'];
+      if (item is! Map) {
+        throw const ApiError('invalid webhook_post_auth response');
+      }
+      return AdminWebhookPostAuth.fromJson(Map<String, dynamic>.from(item));
     } on DioException catch (e) {
       throw _mapDio(e);
     }

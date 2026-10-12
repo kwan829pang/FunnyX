@@ -9,6 +9,7 @@ import '../features/dashboard/dashboard_page.dart';
 import '../features/markets/markets_page.dart';
 import '../features/packages/packages_page.dart';
 import '../features/setup/setup_wizard_page.dart';
+import '../features/webhook_auth/webhook_auth_page.dart';
 import '../widgets/admin_shell.dart';
 
 abstract class AppPages {
@@ -58,6 +59,11 @@ abstract class AppPages {
     GetPage(
       name: '/corp-onboard',
       page: () => const AdminShell(child: CorpOnboardPage()),
+      middlewares: [authGuard, setupGuard],
+    ),
+    GetPage(
+      name: '/webhook-auth',
+      page: () => const AdminShell(child: WebhookAuthPage()),
       middlewares: [authGuard, setupGuard],
     ),
   ];

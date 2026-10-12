@@ -7,6 +7,7 @@ import '../controllers/corp_products_controller.dart';
 import '../controllers/markets_controller.dart';
 import '../controllers/packages_controller.dart';
 import '../controllers/setup_controller.dart';
+import '../controllers/webhook_auth_controller.dart';
 
 class AppBinding extends Bindings {
   AppBinding({required this.config});
@@ -42,6 +43,10 @@ class AppBinding extends Bindings {
     Get.lazyPut<MarketsController>(() => MarketsController(), fenix: true);
     Get.lazyPut<CorpOnboardController>(
       () => CorpOnboardController(),
+      fenix: true,
+    );
+    Get.lazyPut<WebhookAuthController>(
+      () => WebhookAuthController(),
       fenix: true,
     );
   }

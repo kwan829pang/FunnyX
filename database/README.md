@@ -40,8 +40,37 @@ Or with path from repo root (adjust `-f` working directory so `\i` resolves):
 cd database && psql -d funnyx -f run_all.sql
 ```
 
+## Local Docker (Postgres + Redis + Mongo)
+
+Shared Phase-1 stores for host-run FunnyX services. First Postgres boot applies `run_all.sql` only (**no seed**).
+
+```bash
+cd database
+cp .env.sample .env   # optional
+docker compose up -d
+```
+
+| Container | Host port | Notes |
+| --- | --- | --- |
+| `funnyx-postgres` | `5432` | User/pass/db `funnyx`; schema via `docker/postgres-init.sh` |
+| `funnyx-redis` | `6379` | AOF enabled |
+| `funnyx-mongo` | `27017` | No auth (local dev) |
+
+Host connection URLs:
+
+```text
+POSTGRES_URL=postgres://funnyx:funnyx@127.0.0.1:5432/funnyx
+REDIS_URL=redis://127.0.0.1:6379
+MONGO_URL=mongodb://127.0.0.1:27017
+```
+
+Networks: `funnyx-db-postgres` `172.20.10.0/24`, `funnyx-db-redis` `172.20.11.0/24`, `funnyx-db-mongo` `172.20.12.0/24` ([technology.md](../technology.md) §15). Seed apply / smoke-test remain manual (see [seed/](seed/)).
+
 ## Layout
 
+- `docker-compose.yml` — local Postgres / Redis / Mongo
+- `docker/postgres-init.sh` — first-boot DDL (`run_all.sql`)
+- `.env.sample` — compose credentials / ports
 - `00_schemas.sql` — create all schemas
 - `fx_*/00_create_schema.sql` — per-schema create
 - `fx_*/01_tables.sql` — tables for that schema

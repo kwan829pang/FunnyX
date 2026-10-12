@@ -39,38 +39,76 @@ flowchart TD
 
 **C8:** Client Web uses Token Server token on APIs (after Public login). Company Partner → Client Center uses Master Account Code + Master ID + API Key + Secret.
 
+**Admin Panel** does **not** go through Gateway for HTTP — it calls the target service (Admin API) directly with an admin Session Bearer. Gateway still validates Client Web / Partner ingress by checking session token status on **Session Token Server** directly.
+
+### 2.1 Client Web / Partner via Gateway
+
 ```mermaid
 sequenceDiagram
     participant CU as Client End User
     participant CW as Client Web
     participant GW as Gateway
+    participant ST as Session Token Server
     participant S as Target Service
 
     CU->>CW: Request data
     CW->>GW: HTTP GET with Session
-    GW->>GW: Validate session token
+    GW->>ST: Validate session token status
+    ST-->>GW: valid / invalid
     GW->>S: Route request to target service
     S-->>GW: Return response payload
     GW-->>CW: Final HTTP response
     CW-->>CU: Return result to end user
 ```
 
+### 2.2 Admin Panel direct to Admin API
+
+```mermaid
+sequenceDiagram
+    participant AP as Admin Panel
+    participant AA as Admin API
+    participant ST as Session Token Server
+
+    AP->>AA: HTTP GET with admin Session Bearer
+    AA->>ST: Validate admin session token
+    ST-->>AA: valid / invalid
+    AA-->>AP: Response payload
+```
+
 ## 3. HTTP POST Flow
+
+### 3.1 Client Web / Partner via Gateway
 
 ```mermaid
 sequenceDiagram
     participant CU as Client End User
     participant CW as Client Web
     participant GW as Gateway
+    participant ST as Session Token Server
     participant S as Target Service
 
     CU->>CW: Submit action
     CW->>GW: HTTP POST with Session and body
-    GW->>GW: Validate session token and payload
+    GW->>ST: Validate session token status
+    ST-->>GW: valid / invalid
     GW->>S: Route POST request to target service
     S-->>GW: Process and return result
     GW-->>CW: Return HTTP response
     CW-->>CU: Confirm success or failure
+```
+
+### 3.2 Admin Panel direct to Admin API
+
+```mermaid
+sequenceDiagram
+    participant AP as Admin Panel
+    participant AA as Admin API
+    participant ST as Session Token Server
+
+    AP->>AA: HTTP POST with admin Session Bearer and body
+    AA->>ST: Validate admin session token
+    ST-->>AA: valid / invalid
+    AA-->>AP: Process and return result
 ```
 
 ## 4. Client Authentication and Socket Session Flow
@@ -215,19 +253,26 @@ sequenceDiagram
 
 ## 10. Client-to-Platform Socket and API Combined Flow
 
+Client Web / Partner HTTP+socket enter Gateway; Gateway checks Session token status on Session Token Server. Admin Panel HTTP goes **direct** to Admin API (not Gateway).
+
 ```mermaid
 flowchart TD
     A[Client App] --> B[HTTP API Request]
     A --> C[Socket Connection]
-    B --> D[Signature Validation]
-    C --> E[Session Token Validation]
+    B --> D[Signature or Session Bearer]
+    C --> E[Session Bearer]
     D --> F[Gateway]
     E --> F
+    F --> ST[Session Token Server validate]
+    ST --> F
     F --> G[Target Service]
     G --> H[Core Engine or Client Center]
     H --> I[Response / Event Payload]
     I --> J[JSON / Gzip or Binary Buffer]
     J --> A
+    AP[Admin Panel] --> AA[Admin API direct]
+    AA --> ST2[Session Token Server validate]
+    ST2 --> AA
 ```
 
 ## 11. E-shop Purchase and Webhook Credit Flow

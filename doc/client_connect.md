@@ -10,8 +10,9 @@ Master auth split: [project.md](project.md) §5.1. This file specifies **how** e
 
 | Caller | Credential | Target |
 | --- | --- | --- |
-| **Client Web** (End User browser/app) | **Token from Session Token Server** (after login / OAuth) | Gateway → Client Center / services |
-| **Company Partner** (Client backend) | **Master Account Code + Master ID + API Key + Secret** | Direct Client Center / corp APIs (via Gateway ingress) |
+| **Client Web** (End User browser/app) | **Token from Session Token Server** (after login / OAuth) | Gateway → Client Center / services (Gateway validates token on Session Token Server) |
+| **Company Partner** (Client backend) | **Master Account Code + Master ID + API Key + Secret** | Client Center / corp APIs via Gateway ingress |
+| **Admin Panel** | **Admin token from Session Token Server** (`actor_type=admin`) | **Direct** Admin API (not via Gateway) |
 
 Master secrets never ship in Client Web. Client Web never uses MasterSigned.
 
@@ -107,7 +108,7 @@ For Client Web: Token Server token on the request only — no Master signature i
 
 1. After login or OAuth, Session Token Server has issued a token.
 2. Client Web connects to Gateway socket with that token.
-3. Gateway validates token (Session Token Server / cache) and establishes the realtime session.
+3. Gateway validates token status on **Session Token Server** directly and establishes the realtime session.
 
 ## 8. Security Requirements
 

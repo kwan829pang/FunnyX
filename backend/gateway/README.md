@@ -1,6 +1,6 @@
 # Gateway
 
-Public HTTP/socket ingress for FunnyX. Reverse-proxies Client Web, Company Partner (MasterSigned), and Admin traffic to Client Center / Message Center / Admin API after auth gates.
+Public HTTP/socket ingress for FunnyX. Reverse-proxies Client Web and Company Partner (MasterSigned) traffic to Client Center / Message Center after auth gates. Session Bearer status is checked on **Session Token Server** directly. **Admin Panel** calls Admin API directly (Gateway `/v1/admin/*` proxy is optional, not required).
 
 Spec: [doc/gateway_core_engine_logic.md](../../doc/gateway_core_engine_logic.md) §2. API index: [api-master.md](../../api-master.md).
 
@@ -23,9 +23,9 @@ cargo run
 | Caller | Credential | Gateway action |
 | --- | --- | --- |
 | Client Web (Public) | none | Forward register/login/OAuth |
-| Client Web (Session) | Bearer STS token | Validate via STS, then forward |
+| Client Web (Session) | Bearer STS token | Validate via Session Token Server, then forward |
 | Company Partner | MasterSigned headers | Require headers present, forward to CC |
-| Admin Panel | Bearer admin token | Require Bearer, forward to Admin API |
+| Admin Panel | Bearer admin token | Prefer **direct Admin API**; optional Gateway proxy still validates Bearer then forwards |
 
 ## Client socket
 

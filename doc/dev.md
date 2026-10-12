@@ -51,6 +51,26 @@ The bot is intended to operate with random timing intervals so that the platform
 
 ## 4. Local Development (Docker-based)
 
+### 4.1 Shared DB stores
+
+PostgreSQL + Redis + MongoDB under [`database/docker-compose.yml`](../database/docker-compose.yml). First Postgres boot applies schema (`run_all.sql`) only — no seed.
+
+```bash
+cd database
+cp .env.sample .env   # optional
+docker compose up -d
+```
+
+| Container | Port | Notes |
+| --- | --- | --- |
+| `funnyx-postgres` | `5432` | `funnyx` / `funnyx` / db `funnyx` |
+| `funnyx-redis` | `6379` | AOF |
+| `funnyx-mongo` | `27017` | Local, no auth |
+
+Networks: `172.20.10.0/24` · `172.20.11.0/24` · `172.20.12.0/24`. Details: [`database/README.md`](../database/README.md).
+
+### 4.2 Dev simulators + Core Engine
+
 Dev simulators + Core Engine compose stack lives under [`dev_simulator/docker-compose.yml`](../dev_simulator/docker-compose.yml).
 
 ```bash
@@ -66,7 +86,7 @@ docker compose up --build
 | `funnyx-market-bot` | `18103` | Book watcher / fill bot → `core-engine` |
 | `funnyx-core-engine` | `18200` | Matching; data volume `core_engine_data` |
 
-Network: `funnyx-dev-sim` (`172.28.0.0/24`). Full platform DB Docker (Postgres/Redis/Mongo) remains a separate Phase 1 item.
+Network: `funnyx-dev-sim` (`172.28.0.0/24`). Early phase: host services use `127.0.0.1` DB URLs; simulators stay on their own compose network.
 
 ## 5. Development Principles
 

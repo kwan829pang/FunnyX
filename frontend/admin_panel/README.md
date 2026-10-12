@@ -4,7 +4,7 @@ Flutter Web admin UI for the platform control plane. Shared code lives under [`.
 
 ## Auth
 
-Admin Panel calls **Gateway** (default `http://127.0.0.1:8080`), which proxies `/v1/admin/*` to Admin API:
+Admin Panel calls **Admin API directly** (default `http://127.0.0.1:18300`) — not via Gateway. Gateway remains for Client Web / Partner public ingress and validates session tokens on Session Token Server.
 
 | UI | API |
 | --- | --- |
@@ -16,7 +16,6 @@ Session Token Server issues `sts_…` with `actor_type=admin` after Admin API ve
 ```bash
 cd backend/session_token_server && cargo run
 cd backend/admin_api && cargo run
-cd backend/gateway && cargo run
 ```
 
 Demo: `seed_admin` / `demo` (or `admin` / `demo`).
@@ -25,10 +24,14 @@ Demo: `seed_admin` / `demo` (or `admin` / `demo`).
 
 `/corp-onboard` — approve/reject pending companies (BR) and games (government + materials). APIs: `GET/POST /v1/admin/corporate-users…`, `GET/POST /v1/admin/games…`. See [doc/corp_onboarding.md](../../doc/corp_onboarding.md).
 
+## Webhook Post_Auth
+
+`/webhook-auth` — list/create/update/activate inbound partner auth mapping (`fx_events.webhook_post_auth`). APIs: `GET/POST/PUT/PATCH /v1/admin/webhook-post-auth*`. See [doc/webhook.md](../../doc/webhook.md) §3.1.
+
 ## App notes
 
 - Public route: `/login`
-- Session routes: `/dashboard`, `/markets`, `/corp-onboard`, `/setup`
+- Session routes: `/dashboard`, `/markets`, `/corp-onboard`, `/webhook-auth`, `/setup`
 - State and routing use **GetX** (`AdminApiAuthProvider`)
 - Locales: `en`, `zh_TW`, `zh_CN`
 

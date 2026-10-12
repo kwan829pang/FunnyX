@@ -1,7 +1,5 @@
 //! Session wallet / deposit / withdraw / transactions.
 
-use std::time::Duration;
-
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
@@ -196,31 +194,14 @@ async fn submit_money(
         }
     };
 
-    // Schedule completion when partner simulates async settle (company-a).
-    let delay_ms = partner_resp.sim_delay_ms.max(100);
-    let wallets = state.wallets.clone();
-    let txn_type = transaction_type.to_string();
-    let ga_row = account.row_id;
-    let amount = body.amount;
-    let partner_txn_id = partner_resp.partner_txn_id.clone();
-    let req_id = request_id.clone();
-    tokio::spawn(async move {
-        tokio::time::sleep(Duration::from_millis(delay_ms)).await;
-        if let Err(e) = wallets
-            .complete_txn(
-                txn_id,
-                &txn_type,
-                ga_row,
-                game_coin_id,
-                amount,
-                &partner_txn_id,
-                &req_id,
-            )
-            .await
-        {
-            tracing::warn!(txn_id, error = %e, "money txn complete failed");
-        }
-    });
+    // Partner finalizes asynchronously and posts Webhook Server → CC money settle.
+    if let Err(e) = state
+        .wallets
+        .attach_partner_ref(txn_id, &request_id, &partner_resp.partner_txn_id)
+        .await
+    {
+        tracing::warn!(txn_id, error = %e, "attach partner_txn_id failed");
+    }
 
     let txn = state
         .wallets

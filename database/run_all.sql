@@ -71,6 +71,7 @@
 \i fx_events/00_create_schema.sql
 \i fx_events/01_tables.sql
 \i fx_events/02_webhook.sql
+\i fx_events/03_webhook_post_auth.sql
 
 \echo '=== 98 deferred FKs ==='
 \i 98_foreign_keys.sql

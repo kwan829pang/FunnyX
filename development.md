@@ -7,7 +7,7 @@ This schedule is derived from the architecture and design documents under `doc` 
 
 | Phase                          | Status          | Notes                                                                                                                                                                                                                                    |
 | ------------------------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1. Database**                | **In progress** | PostgreSQL DDL **done**; Redis/Mongo + env samples **done**; seed SQL **done**; Docker bootstrap / smoke **not started**; **dev_simulator** (payment-gate, message-queue, company-a-server, market-bot + Compose) **done**               |
+| **1. Database**                | **In progress** | PostgreSQL DDL **done**; Redis/Mongo + env samples **done**; seed SQL **done**; Docker/init (**Postgres/Redis/Mongo**) **done**; smoke-test **not started**; **dev_simulator** (payment-gate, message-queue, company-a-server, market-bot + Compose) **done** |
 | **2. Client register / login** | **In progress** | **STS** OAuth **done**; **Client Center** login + Postgres identity **done** (`8083`); **Gateway** ingress **done** (`8080`); Client Web → Gateway                                                                                       |
 | 3. E-shop API + frontend       | **In progress** | Client Center shop + Webhook settle + Client Web GridView/cart/checkout **done**; wallet UI open                                                                                                                                         |
 | **4+. Platform expansion**     | **Partial**     | **Core Engine** done; **Admin API** auth **done** (`18300`); **Config Server** **done** (`8090`); **Webhook Server** **done** (`8084`/`9004`); **Gateway** **done** (`8080`/`9000`); Message Center done (socket push via Gateway later) |
@@ -15,11 +15,11 @@ This schedule is derived from the architecture and design documents under `doc` 
 
 **PostgreSQL (done):** `[database/](database/)` — **12** `fx_`* schemas, **45** tables, deferred FKs, indexes, `run_all.sql`. Aligned with [db_config/database_relationships.md](db_config/database_relationships.md) (corp incl. supply requests + payment records, game, user, market, market_data/OHLCV, marketplace, shop, corp_token, money + status logs, admin, events/`outbound_notices` + `webhook_endpoints`). Timestamps: BIGINT UTC. Seeds: `[database/seed/](database/seed/)` — `00_seed_data.sql` (live+demo), `01_demo_data.sql` (dev only).
 
-**Still open in Phase 1:** local Docker/init for PostgreSQL/Redis/Mongo, smoke-test apply schema + seeds, wire simulators to seed IDs.
+**Still open in Phase 1:** smoke-test apply schema + seeds, wire simulators to seed IDs.
 
 ## Recommended Execution Order
 
-1. Database schema and query contracts ← **schema + seed SQL + simulators done; finish Docker/smoke**
+1. Database schema and query contracts ← **schema + seed SQL + Docker/init + simulators done; finish smoke**
 2. Client registration / login (API + Client Web) ← **STS + Client Center login/OAuth done; next: Client Web ↔ Client Center + Postgres**
 3. E-shop API and frontend (packages, checkout, webhook credit)
 4. Shared contracts, Config Server, and Gateway ← **Config Server done (**`8090`**); Gateway done (**`8080`**/**`9000`**)**
@@ -73,7 +73,7 @@ This schedule is derived from the architecture and design documents under `doc` 
   - `00_seed_data.sql` — **live + demo** baseline (seed admin, `base_fiat_currency=HKD`, Platform Token `PLT`, fixed `PLT_`* packages with fiat prices)
   - `01_demo_data.sql` — **development only** (demo corp/game/user/corp product/wallets)
   - runners: `seed/run_seed.sql` (00), `seed/run_seed_dev.sql` (00+01)
-- [ ] Provide local Docker/init scripts for PostgreSQL, Redis, and MongoDB (shared instances OK for early development).
+- [x] Provide local Docker/init scripts for PostgreSQL, Redis, and MongoDB (shared instances OK for early development) — [`database/docker-compose.yml`](database/docker-compose.yml).
 - [ ] Smoke-test: `run_all.sql` + `seed/run_seed_dev.sql`; package list / order insert / payment-event / outbound_notice checks.
 
 
@@ -233,13 +233,14 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 
 
 
-### 14. Client Center hardening — **DONE** (v1; exchange + webhook money settle later)
+### 14. Client Center hardening — **DONE** (v1; exchange later)
 
 - [x] Session wallet / deposit / withdraw / transactions (`GET/POST /v1/client/wallet|deposit|withdraw|transactions`) via Postgres + company-a partner money APIs.
 - [x] Account/game-account validation on money paths; STS `require_end_user` (Gateway Session socket remains on Gateway).
 - [x] Keep e-shop/CBT settlement local (`/v1/internal/*`); exchange order forward deferred.
 - [x] Dedicated MongoDB `chat_messages` (`MONGO_URL` / `MONGO_DB=funnyx_client`) + Session send/list APIs.
-- [ ] Webhook deposit/withdrawal settle; Client Web wallet UI; Core Engine order path.
+- [x] Webhook deposit/withdrawal settle (`POST /v1/webhook/deposit|withdrawal` → `POST /v1/internal/money/settle` + `outbound_notices`).
+- [ ] Client Web wallet UI; Core Engine order path.
 
 
 
@@ -266,6 +267,7 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 - [x] Config Server registry consume for Core Engine URL (env fallback).
 - [ ] Role-based admin access beyond demo directory; persist `fx_admin`.
 - [x] Corporate onboarding (Client Web BR wizard + game docs wizard; Admin approve/reject companies & games).
+- [x] Admin webhook Post_Auth control (`/v1/admin/webhook-post-auth*` + Panel `/webhook-auth`).
 - [ ] C6/C9 fees / license / notices UI.
 
 
@@ -310,11 +312,12 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 
 
 
-### 19. Deposit / withdrawal / transfer partner flow
+### 19. Deposit / withdrawal / transfer partner flow — **PARTIAL** (money webhook settle done)
 
-- Reuse partner endpoints for game deposit/withdrawal and Marketplace Transfer.
-- Validate identity, balance, and game-account mapping.
-- Record transaction status (`deposit_withdrawal_status_logs`) and notify users (`outbound_notices`).
+- [x] Reuse partner endpoints for game deposit/withdrawal; Marketplace Transfer (C7).
+- [x] Validate identity, balance, and game-account mapping on Session money paths.
+- [x] Record transaction status (`deposit_withdrawal_status_logs`) and notify users (`outbound_notices` via webhook settle).
+- [ ] Client Web wallet UI for balances / txn history after settle.
 
 ---
 
