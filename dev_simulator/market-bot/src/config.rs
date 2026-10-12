@@ -5,6 +5,11 @@ pub struct Config {
     pub host: String,
     pub port: u16,
     pub core_engine_url: String,
+    /// When set, place orders via Gateway Session APIs; empty = direct Core Engine.
+    pub gateway_url: Option<String>,
+    pub bot_username: String,
+    pub bot_password: String,
+    pub game_account_id: i64,
     pub symbols: Vec<String>,
     pub poll_interval_ms: u64,
     pub jitter_ms: u64,
@@ -30,6 +35,10 @@ impl Config {
         }
         let min_qty = env_u64("MIN_QTY", 1)?.max(1);
         let max_qty = env_u64("MAX_QTY", 3)?.max(min_qty);
+        let gateway_url = std::env::var("GATEWAY_URL")
+            .ok()
+            .map(|s| s.trim().trim_end_matches('/').to_string())
+            .filter(|s| !s.is_empty());
         Ok(Self {
             host: std::env::var("HTTP_HOST").unwrap_or_else(|_| "0.0.0.0".into()),
             port: env_u64("HTTP_PORT", 18103)? as u16,
@@ -37,6 +46,11 @@ impl Config {
                 .unwrap_or_else(|_| "http://127.0.0.1:18200".into())
                 .trim_end_matches('/')
                 .to_string(),
+            gateway_url,
+            bot_username: std::env::var("BOT_USERNAME")
+                .unwrap_or_else(|_| "demo_user".into()),
+            bot_password: std::env::var("BOT_PASSWORD").unwrap_or_else(|_| "demo".into()),
+            game_account_id: env_i64("GAME_ACCOUNT_ID", 1)?,
             symbols: std::env::var("SYMBOLS")
                 .unwrap_or_default()
                 .split(',')
@@ -59,6 +73,13 @@ impl Config {
                 .map(|s| s.parse().context("END_USER_ID"))
                 .transpose()?,
         })
+    }
+}
+
+fn env_i64(key: &str, default: i64) -> anyhow::Result<i64> {
+    match std::env::var(key) {
+        Ok(v) if !v.is_empty() => v.parse().with_context(|| format!("parse {key}")),
+        _ => Ok(default),
     }
 }
 

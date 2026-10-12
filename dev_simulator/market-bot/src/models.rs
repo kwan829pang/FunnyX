@@ -68,6 +68,26 @@ pub struct PlaceResult {
     pub trades: Vec<serde_json::Value>,
 }
 
+/// Client Center Session place response (`POST /v1/orders` via Gateway).
+#[derive(Debug, Clone, Deserialize)]
+pub struct SessionPlaceResult {
+    pub order: SessionOrderView,
+    #[serde(default)]
+    pub trades: Vec<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SessionOrderView {
+    #[allow(dead_code)]
+    pub id: i64,
+    #[serde(default)]
+    pub price: u64,
+    #[serde(default)]
+    pub remaining: u64,
+    #[serde(default)]
+    pub status: String,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct OrderView {
     pub order_id: u64,
@@ -115,6 +135,8 @@ pub struct BotStatus {
     pub running: bool,
     pub paused: bool,
     pub core_engine_url: String,
+    pub gateway_url: Option<String>,
+    pub place_via: String,
     pub engine_id: Option<String>,
     pub last_error: Option<String>,
     pub ticks: u64,

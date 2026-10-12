@@ -2,6 +2,10 @@
 
 This is the single project changelog for the frontend work. Older frontend changelog files were merged here to avoid duplicate release notes.
 
+## 0.1.24
+
+- Market-bot (§22): place take/make orders via Gateway Session (`POST /v1/client/login` + `POST /v1/orders`); book/health remain on Core Engine. Set `GATEWAY_URL=` empty for legacy direct engine place.
+
 ## 0.1.23
 
 - Phase 4 remaining: Gateway Session push (`/v1/internal/socket/push` + Client Web `/v1/ws`); Client Center → Core Engine Session trade (`/trade`); Admin `fx_admin` Postgres login + role gates; C6/C9 fees/license UI (`/fees`, `/v1/admin/fees*`).

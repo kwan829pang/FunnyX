@@ -345,10 +345,11 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 
 
 
-### 22. Auto order matching bot
+### 22. Auto order matching bot — **PARTIAL**
 
 - [x] Local bot for exchange pressure testing after Core Engine exists (`dev_simulator/market-bot`).
-- [ ] Random timing through Gateway → Client Center → Core Engine (direct engine poll for now).
+- [x] Place orders through Gateway → Client Center → Core Engine (`GATEWAY_URL` + Session login; book/health still direct engine).
+- [ ] Book / markets read via Gateway Session APIs (optional follow-up).
 
 
 

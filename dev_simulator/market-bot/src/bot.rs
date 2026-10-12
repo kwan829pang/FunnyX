@@ -11,6 +11,7 @@ use crate::engine::EngineClient;
 use crate::models::{
     ActionKind, BookSnapshot, BotAction, BotStatus, OrderType, PlaceOrderRequest, Side,
 };
+use crate::session_client::SessionClient;
 
 const ACTION_CAP: usize = 200;
 
@@ -18,6 +19,7 @@ const ACTION_CAP: usize = 200;
 pub struct Bot {
     cfg: Config,
     engine: EngineClient,
+    session: Option<SessionClient>,
     inner: Arc<Mutex<Inner>>,
 }
 
@@ -32,10 +34,11 @@ struct Inner {
 }
 
 impl Bot {
-    pub fn new(cfg: Config, engine: EngineClient) -> Self {
+    pub fn new(cfg: Config, engine: EngineClient, session: Option<SessionClient>) -> Self {
         Self {
             cfg,
             engine,
+            session,
             inner: Arc::new(Mutex::new(Inner {
                 paused: false,
                 running: true,
@@ -58,6 +61,12 @@ impl Bot {
             running: g.running,
             paused: g.paused,
             core_engine_url: self.cfg.core_engine_url.clone(),
+            gateway_url: self.cfg.gateway_url.clone(),
+            place_via: if self.session.is_some() {
+                "gateway".into()
+            } else {
+                "core_engine".into()
+            },
             engine_id: g.engine_id.clone(),
             last_error: g.last_error.clone(),
             ticks: g.ticks,
@@ -205,43 +214,74 @@ impl Bot {
             }
         };
 
-        let req = PlaceOrderRequest {
-            symbol: symbol.to_string(),
-            side,
-            order_type,
-            price: if matches!(order_type, OrderType::Market) {
-                None
-            } else {
-                Some(price)
-            },
-            quantity,
-            account_id: format!(
-                "{}:{}",
-                self.cfg.account_id,
-                match kind {
-                    ActionKind::Make => "maker",
-                    _ => "taker",
-                }
-            ),
-            end_user_id: self.cfg.end_user_id,
+        let price_opt = if matches!(order_type, OrderType::Market) {
+            None
+        } else {
+            Some(price)
         };
 
-        match self.engine.place(&req).await? {
-            Ok(result) => {
+        let placed = if let Some(session) = &self.session {
+            match session
+                .place(symbol, side, order_type, price_opt, quantity)
+                .await?
+            {
+                Ok(result) => Ok((
+                    result.order.price,
+                    result.order.status,
+                    result.order.remaining,
+                    result.trades.len(),
+                )),
+                Err(msg) => Err(msg),
+            }
+        } else {
+            let req = PlaceOrderRequest {
+                symbol: symbol.to_string(),
+                side,
+                order_type,
+                price: price_opt,
+                quantity,
+                account_id: format!(
+                    "{}:{}",
+                    self.cfg.account_id,
+                    match kind {
+                        ActionKind::Make => "maker",
+                        _ => "taker",
+                    }
+                ),
+                end_user_id: self.cfg.end_user_id,
+            };
+            match self.engine.place(&req).await? {
+                Ok(result) => Ok((
+                    result.order.price,
+                    result.order.status,
+                    result.order.remaining_quantity,
+                    result.trades.len(),
+                )),
+                Err(msg) => Err(msg),
+            }
+        };
+
+        match placed {
+            Ok((order_price, order_status, remaining_quantity, fills)) => {
                 let action = BotAction {
                     timestamp_ms: Utc::now().timestamp_millis(),
                     kind,
                     symbol: symbol.to_string(),
                     side,
                     order_type,
-                    price: result.order.price,
+                    price: order_price,
                     quantity,
-                    fills: result.trades.len(),
-                    order_status: result.order.status.clone(),
-                    remaining_quantity: result.order.remaining_quantity,
+                    fills,
+                    order_status,
+                    remaining_quantity,
                     note,
                 };
                 tracing::info!(
+                    via = if self.session.is_some() {
+                        "gateway"
+                    } else {
+                        "core_engine"
+                    },
                     kind = ?kind,
                     symbol,
                     side = ?side,
@@ -261,7 +301,7 @@ impl Bot {
                 }
             }
             Err(msg) => {
-                tracing::warn!(%msg, "engine rejected bot order");
+                tracing::warn!(%msg, "place rejected bot order");
                 self.inner.lock().await.last_error = Some(msg);
             }
         }

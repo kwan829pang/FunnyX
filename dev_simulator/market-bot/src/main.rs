@@ -2,6 +2,7 @@ mod bot;
 mod config;
 mod engine;
 mod models;
+mod session_client;
 
 use std::net::SocketAddr;
 
@@ -19,6 +20,7 @@ use bot::Bot;
 use config::Config;
 use engine::EngineClient;
 use models::{ErrorBody, HealthResponse};
+use session_client::SessionClient;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -29,7 +31,16 @@ async fn main() -> anyhow::Result<()> {
 
     let cfg = Config::from_env()?;
     let engine = EngineClient::new(cfg.core_engine_url.clone())?;
-    let bot = Bot::new(cfg.clone(), engine);
+    let session = SessionClient::new(&cfg)?;
+    if let Some(ref s) = session {
+        tracing::info!(
+            gateway = %s.gateway_url(),
+            "place orders via Gateway Session APIs"
+        );
+    } else {
+        tracing::info!("GATEWAY_URL unset; place orders direct on Core Engine");
+    }
+    let bot = Bot::new(cfg.clone(), engine, session);
     bot.clone().spawn_loop();
 
     let app = Router::new()
@@ -44,8 +55,11 @@ async fn main() -> anyhow::Result<()> {
 
     let addr: SocketAddr = format!("{}:{}", cfg.host, cfg.port).parse()?;
     tracing::info!(
-        "market-bot listening on http://{addr} → {}",
-        cfg.core_engine_url
+        "market-bot listening on http://{addr} book={} place={}",
+        cfg.core_engine_url,
+        cfg.gateway_url
+            .as_deref()
+            .unwrap_or("(direct core_engine)")
     );
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app)
