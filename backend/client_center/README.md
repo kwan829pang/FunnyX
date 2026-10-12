@@ -103,13 +103,15 @@ Detail: [doc/marketplace.md](../../doc/marketplace.md).
 
 ## Wallet / deposit / withdraw (Session)
 
-Requires `POSTGRES_URL`. Deposit/withdraw call company-a `/api/deposit` / `/api/withdrawal`, then complete after `sim_delay_ms` (v1; webhook settle later).
+Requires `POSTGRES_URL`. Deposit/withdraw call company-a `/api/deposit` / `/api/withdrawal` (txn stays `pending`). Partner posts Webhook Server → Client Center lookup + `POST /v1/internal/money/settle` only when that pending txn already exists (`request_id` + `partner_txn_id`); unknown callbacks are rejected. Settle credits/debits and emits `outbound_notices` (`source_type=deposit_withdrawal_txn`).
 
 ```bash
+# Needs company-a (18102) + webhook_server (8084) with matching CALLBACK_SIGNATURE
 curl -s http://127.0.0.1:8083/v1/client/wallet -H "authorization: Bearer $TOKEN"
 curl -s http://127.0.0.1:8083/v1/client/deposit \
   -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
   -d '{"game_account_id":1,"game_coin":"PLT","amount":10}'
+# Poll until completed:
 curl -s http://127.0.0.1:8083/v1/client/transactions -H "authorization: Bearer $TOKEN"
 ```
 

@@ -4,6 +4,8 @@ use funnyx_config::constants::{
     DEFAULT_HTTP_HOST, DEFAULT_WEBHOOK_HTTP_PORT, DEFAULT_WEBHOOK_SOCKET_PORT,
 };
 
+use crate::post_auth::PostAuthRow;
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub host: String,
@@ -22,6 +24,10 @@ pub struct Config {
     pub demo_api_key: String,
     pub demo_master_secret: String,
     pub postgres_url: Option<String>,
+    /// When true, client IP / Host may come from X-Forwarded-* / X-Real-IP.
+    pub trust_proxy: bool,
+    /// Memory fallback rows when POSTGRES_URL unset (from POST_AUTH_DEMO_SOURCES).
+    pub demo_post_auth_rows: Vec<PostAuthRow>,
 }
 
 impl Config {
@@ -68,6 +74,43 @@ impl Config {
                 .ok()
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty() && !s.contains("xxx.xxx.xxx.xxx")),
+            trust_proxy: env::var("TRUST_PROXY")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false),
+            demo_post_auth_rows: parse_demo_post_auth(
+                &env::var("POST_AUTH_DEMO_SOURCES").unwrap_or_else(|_| {
+                    "payment_gate:payment-gate.local:demo_key:ppk_payment_gate:127.0.0.1|::1,\
+partner_2001:*.company-a.local:demo_key:ppk_partner_2001:127.0.0.1|::1"
+                        .into()
+                }),
+            ),
         })
     }
+}
+
+/// `source:domain:auth_key:ppk:ip|ip,...` comma-separated entries.
+fn parse_demo_post_auth(raw: &str) -> Vec<PostAuthRow> {
+    raw.split(',')
+        .filter_map(|entry| {
+            let parts: Vec<&str> = entry.trim().split(':').collect();
+            if parts.len() < 5 {
+                return None;
+            }
+            let source_code = parts[0].trim().to_string();
+            let domain_pattern = parts[1].trim().to_string();
+            let auth_key_suffix = parts[2].trim().to_string();
+            let ppk = parts[3].trim().to_string();
+            let allowed_ips = parts[4..].join(":").replace('|', ",");
+            if source_code.is_empty() || domain_pattern.is_empty() || auth_key_suffix.is_empty() {
+                return None;
+            }
+            Some(PostAuthRow {
+                source_code,
+                domain_pattern,
+                auth_key_suffix,
+                ppk: if ppk.is_empty() { None } else { Some(ppk) },
+                allowed_ips,
+            })
+        })
+        .collect()
 }

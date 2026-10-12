@@ -3,7 +3,7 @@
 use serde_json::Value;
 
 use crate::config::Config;
-use crate::ingest::{CorpTokenPaymentCallback, ShopPaymentCallback};
+use crate::ingest::{CorpTokenPaymentCallback, MoneyCallback, ShopPaymentCallback};
 use crate::store::{backoff_ms, now_ms, EventStore, InsertOutcome};
 
 pub async fn accept_shop_payment(
@@ -93,6 +93,169 @@ pub async fn accept_corp_token_payment(
                 "last_error": latest.last_error,
             }))
         }
+    }
+}
+
+pub async fn accept_money_callback(
+    store: &EventStore,
+    config: &Config,
+    http: &reqwest::Client,
+    body: MoneyCallback,
+    source: &str,
+) -> Result<Value, String> {
+    if body.event_id.trim().is_empty() {
+        return Err("event_id required".into());
+    }
+    if body.signature != config.callback_signature {
+        return Err("invalid callback signature".into());
+    }
+    let txn_type = body.transaction_type.trim();
+    if txn_type != "deposit" && txn_type != "withdrawal" {
+        return Err("transaction_type must be deposit or withdrawal".into());
+    }
+    if body.request_id.trim().is_empty() || body.partner_txn_id.trim().is_empty() {
+        return Err("request_id and partner_txn_id required".into());
+    }
+    // Only handle callbacks that match an existing Client Center money txn.
+    ensure_money_txn_exists(config, http, &body).await?;
+
+    let event_type = txn_type;
+    let payload = serde_json::to_value(&body).unwrap_or(Value::Null);
+    let outcome = store
+        .insert_received(
+            &body.event_id,
+            source,
+            event_type,
+            &payload,
+            None,
+            Some(body.partner_txn_id.as_str()),
+        )
+        .await?;
+    match outcome {
+        InsertOutcome::Duplicate(ev) => Ok(serde_json::json!({
+            "accepted": true,
+            "duplicate": true,
+            "event_id": ev.event_id,
+            "delivery_status": ev.delivery_status,
+        })),
+        InsertOutcome::Inserted(ev) => {
+            settle_money_event(store, config, http, &ev.event_id, &body).await?;
+            let latest = store.get_by_event_id(&ev.event_id).await.unwrap_or(ev);
+            Ok(serde_json::json!({
+                "accepted": true,
+                "duplicate": false,
+                "event_id": latest.event_id,
+                "delivery_status": latest.delivery_status,
+                "last_error": latest.last_error,
+            }))
+        }
+    }
+}
+
+async fn ensure_money_txn_exists(
+    config: &Config,
+    http: &reqwest::Client,
+    body: &MoneyCallback,
+) -> Result<(), String> {
+    let url = format!(
+        "{}{}?request_id={}&partner_txn_id={}",
+        config.client_center_url,
+        funnyx_net_api::paths::INTERNAL_MONEY_TXN,
+        urlencoding_lite(&body.request_id),
+        urlencoding_lite(&body.partner_txn_id),
+    );
+    let res = http
+        .get(&url)
+        .header("x-internal-key", &config.internal_api_key)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = res.status();
+    if status.as_u16() == 404 {
+        return Err("deposit/withdrawal txn not found".into());
+    }
+    if !status.is_success() {
+        let json: Value = res.json().await.unwrap_or(Value::Null);
+        return Err(format!("money txn lookup failed ({status}): {json}"));
+    }
+    let json: Value = res.json().await.unwrap_or(Value::Null);
+    let Some(txn) = json.get("txn") else {
+        return Err("deposit/withdrawal txn not found".into());
+    };
+    let got_type = txn
+        .get("transaction_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    if got_type != body.transaction_type.trim() {
+        return Err(format!(
+            "transaction_type mismatch (have {got_type}, got {})",
+            body.transaction_type
+        ));
+    }
+    Ok(())
+}
+
+fn urlencoding_lite(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.as_bytes() {
+        match *b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(*b as char);
+            }
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
+pub async fn settle_money_event(
+    store: &EventStore,
+    config: &Config,
+    http: &reqwest::Client,
+    event_id: &str,
+    body: &MoneyCallback,
+) -> Result<(), String> {
+    let _ = store.mark_processing(event_id).await;
+    let url = format!(
+        "{}{}",
+        config.client_center_url,
+        funnyx_net_api::paths::INTERNAL_MONEY_SETTLE
+    );
+    let req = serde_json::json!({
+        "event_id": body.event_id,
+        "request_id": body.request_id,
+        "partner_txn_id": body.partner_txn_id,
+        "transaction_type": body.transaction_type,
+        "status": body.status,
+        "amount": body.amount,
+        "game_coin": body.game_coin,
+    });
+    let res = http
+        .post(&url)
+        .header("x-internal-key", &config.internal_api_key)
+        .json(&req)
+        .send()
+        .await;
+    match res {
+        Ok(resp) => {
+            let status = resp.status();
+            let json: Value = resp.json().await.unwrap_or(Value::Null);
+            if status.is_success() {
+                store.mark_settled(event_id).await?;
+                // User notice is inserted by Client Center on settle.
+                let _ = json;
+                Ok(())
+            } else if status.as_u16() == 404 {
+                // Missing txn is permanent — do not retry.
+                store
+                    .mark_failed(event_id, "deposit/withdrawal txn not found", 99, 0)
+                    .await?;
+                Err("deposit/withdrawal txn not found".into())
+            } else {
+                fail_retry(store, event_id, &format!("cc {status}: {json}")).await
+            }
+        }
+        Err(e) => fail_retry(store, event_id, &e.to_string()).await,
     }
 }
 
@@ -349,6 +512,23 @@ pub fn spawn_retry_worker(store: EventStore, config: Config, http: reqwest::Clie
                             continue;
                         };
                         let _ = settle_cbt_event(&store, &config, &http, &ev.event_id, &body).await;
+                    }
+                    "deposit" | "withdrawal" => {
+                        let Ok(body) =
+                            serde_json::from_value::<MoneyCallback>(ev.payload.clone())
+                        else {
+                            let _ = store
+                                .mark_failed(
+                                    &ev.event_id,
+                                    "payload not money callback",
+                                    ev.retry_count + 1,
+                                    now_ms(),
+                                )
+                                .await;
+                            continue;
+                        };
+                        let _ =
+                            settle_money_event(&store, &config, &http, &ev.event_id, &body).await;
                     }
                     _ => {}
                 }

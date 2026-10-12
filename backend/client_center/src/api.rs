@@ -107,6 +107,8 @@ pub fn router(state: AppState) -> Router {
             paths::INTERNAL_CORP_TOKEN_SETTLE,
             post(internal::cbt_settle),
         )
+        .route(paths::INTERNAL_MONEY_SETTLE, post(internal::money_settle))
+        .route(paths::INTERNAL_MONEY_TXN, get(internal::money_txn_lookup))
         .route(
             paths::CORP_BASIC_TOKENS,
             get(corp_cbt::list_tokens).post(corp_cbt::create_token),

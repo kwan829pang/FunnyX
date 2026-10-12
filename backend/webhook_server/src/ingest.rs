@@ -43,3 +43,25 @@ pub struct CorpTokenPaymentCallback {
     pub paid_at: Option<Value>,
     pub signature: String,
 }
+
+/// Partner deposit / withdrawal finalize callback.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MoneyCallback {
+    pub event_id: String,
+    pub request_id: String,
+    pub partner_txn_id: String,
+    pub transaction_type: String,
+    /// Partner final status: `success` | `failed` | `cancelled`.
+    pub status: String,
+    #[serde(default)]
+    pub amount: f64,
+    #[serde(default)]
+    pub game_coin: String,
+    pub signature: String,
+}
+
+impl MoneyCallback {
+    pub fn from_value(v: &Value) -> Result<Self, String> {
+        serde_json::from_value(v.clone()).map_err(|e| e.to_string())
+    }
+}

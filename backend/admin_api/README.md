@@ -47,6 +47,9 @@ Admin Panel
 | `GET`/`POST`/`PUT`/`PATCH` | `/v1/admin/shop/packages*` | Bearer | PLT packages |
 | `GET`/`POST`/`PUT` | `/v1/admin/system/*` | Bearer | Setup wizard + base currency |
 | `GET`/`POST` | `/v1/admin/basic-tokens*` | Bearer | CBT approve / reject |
+| `GET`/`POST` | `/v1/admin/webhook-post-auth` | Bearer | List / create inbound Post_Auth mapping |
+| `GET`/`PUT` | `/v1/admin/webhook-post-auth/{id}` | Bearer | Get / update mapping |
+| `PATCH` | `/v1/admin/webhook-post-auth/{id}/status` | Bearer | `active` / `inactive` |
 
 Demo admins: `seed_admin` / `admin` (password `demo`).
 
@@ -64,7 +67,7 @@ curl -s -X POST http://127.0.0.1:18300/v1/admin/markets/1/approve \
 
 Market approve resolves Core Engine via Config Server registry (`CONFIG_SERVER_URL`) or `CORE_ENGINE_URL` / `CORE_ENGINE_ADMIN_KEY` fallback.
 
-Without `POSTGRES_URL`, game-coins + a demo pending market run in memory. Set `POSTGRES_URL` for shared `fx_game` / `fx_market` with Client Center.
+Without `POSTGRES_URL`, game-coins + a demo pending market + webhook Post_Auth rows run in memory. Set `POSTGRES_URL` for shared `fx_game` / `fx_market` / `fx_events` with Client Center / Webhook Server.
 
 ## Env
 

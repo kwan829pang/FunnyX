@@ -25,6 +25,8 @@ use crate::shop_store::CorpProductStore;
 use crate::sts::{StsClient, StsValidate};
 use crate::system;
 use crate::system_store::SystemStore;
+use crate::webhook_post_auth;
+use crate::webhook_post_auth_store::WebhookPostAuthStore;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -37,6 +39,7 @@ pub struct AppState {
     pub game_coins: GameCoinStore,
     pub markets: AdminMarketStore,
     pub corp_users: CorpUsersStore,
+    pub webhook_post_auth: WebhookPostAuthStore,
     pub engine: EngineClient,
     #[allow(dead_code)]
     pub http: Client,
@@ -104,6 +107,18 @@ pub fn router(state: AppState) -> Router {
         .route(paths::ADMIN_GAME_APPROVE, post(corp_users::approve_game))
         .route(paths::ADMIN_GAME_REJECT, post(corp_users::reject_game))
         .route(paths::ADMIN_CORP_DOCUMENT, get(corp_users::download_document))
+        .route(
+            paths::ADMIN_WEBHOOK_POST_AUTH,
+            get(webhook_post_auth::list_items).post(webhook_post_auth::create_item),
+        )
+        .route(
+            paths::ADMIN_WEBHOOK_POST_AUTH_ITEM,
+            get(webhook_post_auth::get_item).put(webhook_post_auth::update_item),
+        )
+        .route(
+            paths::ADMIN_WEBHOOK_POST_AUTH_STATUS,
+            patch(webhook_post_auth::patch_status),
+        )
         .with_state(state)
 }
 

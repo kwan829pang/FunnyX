@@ -1,4 +1,6 @@
-use axum::extract::{Path, State};
+use std::net::SocketAddr;
+
+use axum::extract::{ConnectInfo, Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{get, post, put};
@@ -9,8 +11,9 @@ use serde::Deserialize;
 
 use crate::config::Config;
 use crate::corp;
-use crate::ingest::{CorpTokenPaymentCallback, ShopPaymentCallback};
+use crate::ingest::{CorpTokenPaymentCallback, MoneyCallback, ShopPaymentCallback};
 use crate::models::ErrorBody;
+use crate::post_auth;
 use crate::settle;
 use crate::store::{EventStore, WebhookEndpoint};
 
@@ -27,6 +30,8 @@ pub fn router(state: AppState) -> Router {
         .route(paths::HEALTH, get(health))
         .route(paths::WEBHOOK_SHOP_PAYMENT, post(shop_payment))
         .route(paths::WEBHOOK_CORP_TOKEN_PAYMENT, post(corp_token_payment))
+        .route(paths::WEBHOOK_DEPOSIT, post(deposit_callback))
+        .route(paths::WEBHOOK_WITHDRAWAL, post(withdrawal_callback))
         .route(paths::WEBHOOK_ENDPOINTS, get(list_endpoints).post(create_endpoint))
         .route(paths::WEBHOOK_ENDPOINT, put(update_endpoint))
         .route(paths::WEBHOOK_EVENT, get(get_event))
@@ -42,8 +47,11 @@ async fn health(State(state): State<AppState>) -> impl IntoResponse {
 
 async fn shop_payment(
     State(state): State<AppState>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     Json(body): Json<ShopPaymentCallback>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
+    require_post_auth(&state, peer, &headers).await?;
     let out = settle::accept_shop_payment(
         &state.store,
         &state.config,
@@ -52,20 +60,17 @@ async fn shop_payment(
         "http",
     )
     .await
-    .map_err(|e| {
-        if e.contains("signature") {
-            err_status(StatusCode::UNAUTHORIZED, e)
-        } else {
-            err_status(StatusCode::BAD_REQUEST, e)
-        }
-    })?;
+    .map_err(map_settle_err)?;
     Ok(Json(out))
 }
 
 async fn corp_token_payment(
     State(state): State<AppState>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     Json(body): Json<CorpTokenPaymentCallback>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
+    require_post_auth(&state, peer, &headers).await?;
     let out = settle::accept_corp_token_payment(
         &state.store,
         &state.config,
@@ -74,14 +79,72 @@ async fn corp_token_payment(
         "http",
     )
     .await
-    .map_err(|e| {
-        if e.contains("signature") {
-            err_status(StatusCode::UNAUTHORIZED, e)
-        } else {
-            err_status(StatusCode::BAD_REQUEST, e)
-        }
-    })?;
+    .map_err(map_settle_err)?;
     Ok(Json(out))
+}
+
+async fn deposit_callback(
+    State(state): State<AppState>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+    Json(mut body): Json<MoneyCallback>,
+) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
+    if body.transaction_type.trim().is_empty() {
+        body.transaction_type = "deposit".into();
+    }
+    money_callback(state, peer, headers, body).await
+}
+
+async fn withdrawal_callback(
+    State(state): State<AppState>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+    Json(mut body): Json<MoneyCallback>,
+) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
+    if body.transaction_type.trim().is_empty() {
+        body.transaction_type = "withdrawal".into();
+    }
+    money_callback(state, peer, headers, body).await
+}
+
+async fn money_callback(
+    state: AppState,
+    peer: SocketAddr,
+    headers: HeaderMap,
+    body: MoneyCallback,
+) -> Result<impl IntoResponse, (StatusCode, Json<ErrorBody>)> {
+    require_post_auth(&state, peer, &headers).await?;
+    let out = settle::accept_money_callback(
+        &state.store,
+        &state.config,
+        &state.http,
+        body,
+        "http",
+    )
+    .await
+    .map_err(map_settle_err)?;
+    Ok(Json(out))
+}
+
+async fn require_post_auth(
+    state: &AppState,
+    peer: SocketAddr,
+    headers: &HeaderMap,
+) -> Result<(), (StatusCode, Json<ErrorBody>)> {
+    post_auth::verify(state.pool.as_ref(), &state.config, peer, headers)
+        .await
+        .map(|_| ())
+        .map_err(|e| err_status(StatusCode::UNAUTHORIZED, e))
+}
+
+fn map_settle_err(e: String) -> (StatusCode, Json<ErrorBody>) {
+    if e.contains("signature") || e.contains("post auth") || e.contains("source") {
+        err_status(StatusCode::UNAUTHORIZED, e)
+    } else if e.contains("txn not found") {
+        err_status(StatusCode::NOT_FOUND, e)
+    } else {
+        err_status(StatusCode::BAD_REQUEST, e)
+    }
 }
 
 async fn get_event(

@@ -17,6 +17,7 @@
 //! | `notices`   | Queue end-user / corp partner notices      | Insert only |
 //! | `endpoints` | Resolve & CRUD corp webhook callbacks      | URL / endpoint row |
 //! | `corp`      | Auth corp via master_code + api_key        | `corporate_users.id` |
+//! | `post_auth` | Inbound Post_Auth source / domain / IP map | Auth row |
 
 /// Inbound webhook_events: lookup by event_id, insert, status updates, due retries.
 pub mod events {
@@ -110,4 +111,13 @@ pub mod corp {
              JOIN fx_corp.corp_api_keys k ON k.corporate_user_id = u.id \
              WHERE u.master_code = $1 AND u.master_id = $2 AND k.api_key = $3 \
                AND u.status = 'active' AND k.status = 'active' AND u.api_enabled = TRUE";
+}
+
+/// Inbound Post_Auth mapping rows (domain / IP / auth_key / ppk).
+pub mod post_auth {
+    pub const LIST_ACTIVE: &str = "SELECT id, source_code, domain_pattern, auth_key_suffix, ppk, \
+                allowed_ips, status \
+         FROM fx_events.webhook_post_auth \
+         WHERE status = 'active' \
+         ORDER BY id ASC";
 }

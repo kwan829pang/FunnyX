@@ -365,6 +365,46 @@ pub mod wallet {
              FROM fx_money.deposit_withdrawal_txns t \
              LEFT JOIN fx_game.game_coins c ON c.id = t.game_coin_id \
              WHERE t.id = $1";
+
+    /// Lookup by request_id or partner_txn_id stored in status-log payloads.
+    /// Only deposit / withdrawal rows (never shop_topup / corp_shop_purchase).
+    pub const FIND_BY_PARTNER_REF: &str =
+        "SELECT t.id, t.end_user_id, t.game_account_id, t.transaction_type, \
+                    t.amount::float8 AS amount, t.game_coin_id, c.code AS game_coin, \
+                    t.status, t.created_at, t.updated_at \
+             FROM fx_money.deposit_withdrawal_txns t \
+             LEFT JOIN fx_game.game_coins c ON c.id = t.game_coin_id \
+             WHERE t.transaction_type IN ('deposit', 'withdrawal') \
+               AND EXISTS ( \
+                SELECT 1 FROM fx_money.deposit_withdrawal_status_logs l \
+                WHERE l.deposit_withdrawal_txn_id = t.id \
+                  AND ( \
+                    ($1 <> '' AND l.payload->>'request_id' = $1) \
+                    OR ($2 <> '' AND l.payload->>'partner_txn_id' = $2) \
+                  ) \
+             ) \
+             ORDER BY t.id DESC \
+             LIMIT 1";
+
+    pub const INSERT_STATUS_LOG_PARTNER_REF: &str =
+        "INSERT INTO fx_money.deposit_withdrawal_status_logs ( \
+                deposit_withdrawal_txn_id, old_status, new_status, event_type, note, payload, created_at \
+             ) VALUES ($1, 'pending', 'pending', 'status_changed', $2, $3::jsonb, $4)";
+
+    pub const MARK_TERMINAL: &str =
+        "UPDATE fx_money.deposit_withdrawal_txns \
+             SET status = $2, updated_at = $3 \
+             WHERE id = $1 AND status IN ('pending', 'processing')";
+
+    pub const INSERT_STATUS_LOG_TERMINAL: &str =
+        "INSERT INTO fx_money.deposit_withdrawal_status_logs ( \
+                deposit_withdrawal_txn_id, old_status, new_status, event_type, note, payload, created_at \
+             ) VALUES ($1, 'pending', $2, $3, $4, $5::jsonb, $6)";
+
+    pub const INSERT_OUTBOUND_NOTICE: &str = "INSERT INTO fx_events.outbound_notices ( \
+            end_user_id, source_type, source_id, event_type, title, body, payload, \
+            delivery_status, retry_count, scheduled_at, sent_at, created_at, updated_at \
+         ) VALUES ($1,'deposit_withdrawal_txn',$2,$3,$4,$5,$6::jsonb,'pending',0,0,0,$7,0)";
 }
 
 /// Shop catalog (packages / corp products), orders, payment settle, and wallet credit.

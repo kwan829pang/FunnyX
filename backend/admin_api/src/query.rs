@@ -19,6 +19,7 @@
 //! | `system`    | Platform packages + `system_settings`              | Package / setting value |
 //! | `market`    | List markets; approve (transfer lock→pool) / reject (unlock) | Market detail / status |
 //! | `game_coin` | CRUD + status for `fx_game.game_coins` + logs      | Coin row |
+//! | `webhook_post_auth` | CRUD + status for inbound Post_Auth mapping     | Auth row |
 
 /// Corp CBT review: list/filter, get, decision update, notify corp partner.
 pub mod cbt {
@@ -376,4 +377,43 @@ pub mod game_coin {
     pub const INSERT_STATUS_ACTION_LOG: &str =
         "INSERT INTO fx_admin.admin_action_logs (admin_id, action, metadata, created_at, updated_at) \
                  SELECT id, 'game_coin.status', $2::jsonb, $3, 0 FROM fx_admin.admin_users WHERE id = $1";
+}
+
+/// Admin CRUD for `fx_events.webhook_post_auth` (inbound Post_Auth mapping).
+pub mod webhook_post_auth {
+    pub const LIST: &str = "SELECT id, source_code, domain_pattern, auth_key_suffix, ppk, \
+                allowed_ips, status, created_at, updated_at \
+         FROM fx_events.webhook_post_auth \
+         WHERE ($1::text IS NULL OR status = $1) \
+         ORDER BY id";
+
+    pub const GET: &str = "SELECT id, source_code, domain_pattern, auth_key_suffix, ppk, \
+                allowed_ips, status, created_at, updated_at \
+         FROM fx_events.webhook_post_auth WHERE id = $1";
+
+    pub const INSERT: &str = "INSERT INTO fx_events.webhook_post_auth ( \
+            source_code, domain_pattern, auth_key_suffix, ppk, allowed_ips, status, created_at, updated_at \
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0) \
+         RETURNING id, source_code, domain_pattern, auth_key_suffix, ppk, \
+                   allowed_ips, status, created_at, updated_at";
+
+    pub const UPDATE: &str = "UPDATE fx_events.webhook_post_auth SET \
+            source_code = $2, domain_pattern = $3, auth_key_suffix = $4, ppk = $5, \
+            allowed_ips = $6, updated_at = $7 \
+         WHERE id = $1 \
+         RETURNING id, source_code, domain_pattern, auth_key_suffix, ppk, \
+                   allowed_ips, status, created_at, updated_at";
+
+    pub const UPDATE_STATUS: &str = "UPDATE fx_events.webhook_post_auth SET status = $2, updated_at = $3 \
+         WHERE id = $1 \
+         RETURNING id, source_code, domain_pattern, auth_key_suffix, ppk, \
+                   allowed_ips, status, created_at, updated_at";
+
+    pub const EXISTS_SOURCE: &str =
+        "SELECT EXISTS(SELECT 1 FROM fx_events.webhook_post_auth \
+         WHERE source_code = $1 AND ($2::bigint IS NULL OR id <> $2))";
+
+    pub const EXISTS_PPK_ACTIVE: &str =
+        "SELECT EXISTS(SELECT 1 FROM fx_events.webhook_post_auth \
+         WHERE ppk = $1 AND status = 'active' AND ($2::bigint IS NULL OR id <> $2))";
 }

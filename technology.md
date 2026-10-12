@@ -49,7 +49,7 @@ This platform is built around a reusable Game Partner Game Coin model across mul
 | Runtime | Rust | Internal orchestration and client service logic |
 | API layer | `axum` / `actix-web` | Authenticated API endpoints |
 | Socket layer | socket server with message dispatch | Client session and push notifications |
-| Auth | Session (Client Web) / MasterSigned (Partner servers) / OAuth 2.0 | End User login or Partner/Platform OAuth → Session Token Server; Gateway validates Session; Partner must expose OAuth + Transfer |
+| Auth | Session (Client Web) / MasterSigned (Partner servers) / OAuth 2.0 | End User login or Partner/Platform OAuth → Session Token Server; Gateway validates Session via Session Token Server; Admin Panel calls Admin API directly; Partner must expose OAuth + Transfer |
 | Event bus | internal event/message dispatcher | Route user and account events |
 | Persistence | PostgreSQL + Redis + MongoDB | Account/order/session in PostgreSQL+Redis; **required** MongoDB for client chat message records |
 | Chat storage | dedicated Client Center MongoDB | Persist client chat message history |

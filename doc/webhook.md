@@ -9,6 +9,7 @@ This doc is a detail file for [project.md](project.md) §5 (Webhook Server). HTT
 Webhook Server is **partner / payment-gate ingress** only.
 
 - Accepts **inbound** shop payment, **Company Basic Token** payment, and **deposit / withdrawal** finalize callbacks (HTTP; shop / money also S2S socket).
+- Authenticates HTTP ingest with **Post_Auth** (`X-Post-Auth` hash + optional `X-Callback-Source` / Host wild-domain + caller IP) using `fx_events.webhook_post_auth` — see §3.1.
 - Persists `fx_events.webhook_events` (`event_id` unique, `retry_count`) and shop audit `fx_shop.shop_payment_events`.
 - Calls Client Center **internal** settle so orders/wallets update (`/v1/internal/shop/settle`, `/v1/internal/corp-token/settle`, `/v1/internal/money/settle`).
 - Writes `fx_events.outbound_notices` (`shop_order` / `corp_token_order` from Webhook; `deposit_withdrawal_txn` from Client Center on money settle) for Message Center later; on CBT paid also Corp `corp_partner_notices` and HTTP **balance callback** to Corp (`webhook_endpoints` kind `corp_token` or `partner_endpoints` type `callback`).
@@ -41,8 +42,8 @@ Pick the **target service** first, then the path. Webhook Server does not replac
 
 | Intent | Call this target | Transport | Method / message | Path or envelope | Auth |
 | --- | --- | --- | --- | --- | --- |
-| Partner: shop fiat paid/failed/cancelled | **Webhook Server** | HTTP | `POST` | `/v1/webhook/shop/payment` | Body `signature` = `CALLBACK_SIGNATURE` (dev `test-signature`) |
-| Partner / payment-gate: same shop event over socket | **Webhook Server** | Socket `:9004` | Ingest frame | `{ "event_type": "shop_payment", "body": { …same as HTTP… } }` or flattened shop JSON | Same `signature` field in JSON |
+| Partner: shop fiat paid/failed/cancelled | **Webhook Server** | HTTP | `POST` | `/v1/webhook/shop/payment` | `X-Post-Auth` + body `signature`; see §3.1 |
+| Partner / payment-gate: same shop event over socket | **Webhook Server** | Socket `:9004` | Ingest frame | `{ "event_type": "shop_payment", "body": { …same as HTTP… } }` or flattened shop JSON | Body `signature` only (no Post_Auth on socket v1) |
 | Partner: liveness | **Webhook Server** | HTTP | `GET` | `/health` | Public |
 | Partner: socket liveness | **Webhook Server** | Socket `:9004` | `PING` | — | None |
 | Corp: list own callback URLs | **Webhook Server** | HTTP | `GET` | `/v1/webhook/endpoints` | MasterSigned (`X-Master-Account-Code`, `X-Master-Id`, `X-Api-Key`, `X-Signature`, `X-Timestamp`). **No** Session Bearer |
@@ -51,17 +52,77 @@ Pick the **target service** first, then the path. Webhook Server does not replac
 | Ops/debug: one inbound event | **Webhook Server** | HTTP | `GET` | `/v1/webhook/events/{event_id}` | `X-Internal-Key` |
 | FunnyX: apply wallet/order after accept | **Client Center** | HTTP (server-to-server) | `POST` | `/v1/internal/shop/settle` | `X-Internal-Key` (Webhook Server calls this; Partners do not) |
 | FunnyX: apply CBT order after accept | **Client Center** | HTTP (server-to-server) | `POST` | `/v1/internal/corp-token/settle` | `X-Internal-Key` |
-| Partner: Company Basic Token buy paid/failed/cancelled | **Webhook Server** | HTTP | `POST` | `/v1/webhook/corp-token/payment` | Body `signature` = `CALLBACK_SIGNATURE` |
+| Partner: Company Basic Token buy paid/failed/cancelled | **Webhook Server** | HTTP | `POST` | `/v1/webhook/corp-token/payment` | `X-Post-Auth` + body `signature`; see §3.1 |
 | FunnyX → Corp: user balance updated after CBT paid | **Corp User server** | HTTP | `POST` | Corp `callback_url` / `partner_endpoints.callback` | Outbound from Webhook Server |
 | Client Web: catalog / checkout / order status | **Client Center** (via Gateway when live) | HTTP | `GET`/`POST` | `/v1/shop/*` | Session Bearer |
 | Client Web: CBT buyable list / orders | **Client Center** | HTTP | `GET`/`POST` | `/v1/corp-tokens*` | Session Bearer |
 | Client Web: “payment done” until MC exists | **Client Center** | HTTP | `GET` | `/v1/shop/orders/{id}` or `/v1/corp-tokens/orders/{order_id}` | Session Bearer |
 | Client Web: “payment done” after MC + Gateway | **Gateway** | Socket `:9000` | Session messages | shop_order / corp_token_order `completed` / `failed` | Session token |
 | payment-gate: create checkout (not webhook) | **payment-gate** | HTTP | `POST` | payment-gate create APIs (`18100`) | Simulator contract; `callback_url` must point at Webhook `/v1/webhook/shop/payment` |
-| Partner: deposit / withdrawal finalize | **Webhook Server** | HTTP | `POST` | `/v1/webhook/deposit`, `/v1/webhook/withdrawal` | Partner `signature` = `CALLBACK_SIGNATURE` |
+| Partner: deposit / withdrawal finalize | **Webhook Server** | HTTP | `POST` | `/v1/webhook/deposit`, `/v1/webhook/withdrawal` | `X-Post-Auth` + body `signature`; see §3.1 |
 | FunnyX: apply wallet after money accept | **Client Center** | HTTP (S2S) | `POST` | `/v1/internal/money/settle` | `X-Internal-Key` (Webhook Server → CC) |
 
 Duplicate `event_id` on shop ingest: HTTP **200** no-op (no second settle). Socket ingest uses the same persist path.
+
+### 3.1 HTTP Post_Auth (inbound)
+
+Server **never decodes** the partner hash. It resolves an auth row, re-hashes `Post_Auth_{auth_key_suffix}`, and compares.
+
+| Header | Required | Role |
+| --- | --- | --- |
+| `X-Post-Auth` | Yes | SHA-256 hex (lowercase) of UTF-8 `Post_Auth_{suffix}` |
+| `X-Callback-Source` | No | If set: search key = **real IP** or **auth-key** (`auth_key_suffix`) or **ppk** |
+| `Host` | When source omitted | Incoming domain; matched to `domain_pattern` (exact or `*.suffix`) |
+
+After row resolve: **caller IP** must be in `allowed_ips` (TCP peer; if `TRUST_PROXY=true`, first `X-Forwarded-For` / `X-Real-IP`). Then body `signature` = `CALLBACK_SIGNATURE`.
+
+Table `fx_events.webhook_post_auth` (`database/fx_events/03_webhook_post_auth.sql`). Demo seed: `payment_gate` / `partner_2001` with `demo_key` and loopback IPs. Without Postgres, env `POST_AUTH_DEMO_SOURCES` supplies the same mapping in memory.
+
+**Admin CRUD** (Admin Panel → Admin API directly with Bearer admin; Panel `/webhook-auth`):
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/v1/admin/webhook-post-auth` | List; optional `?status=active\|inactive` |
+| `GET` | `/v1/admin/webhook-post-auth/{id}` | One row |
+| `POST` | `/v1/admin/webhook-post-auth` | Create: `source_code`, `domain_pattern`, `auth_key_suffix`, `ppk?`, `allowed_ips`, `status?` |
+| `PUT` | `/v1/admin/webhook-post-auth/{id}` | Update same fields (incl. unique `source_code`) |
+| `PATCH` | `/v1/admin/webhook-post-auth/{id}/status` | `{ "status": "active"\|"inactive" }` |
+
+Corp MasterSigned endpoint CRUD (`/v1/webhook/endpoints`) stays separate.
+
+```mermaid
+flowchart TD
+  req[HTTP_webhook_POST]
+  src{X-Callback-Source_set}
+  byKey[Lookup_by_IP_or_auth_key_or_ppk]
+  byHost[Lookup_by_Host_wild_domain]
+  ipCheck[Caller_IP_in_allowed_ips]
+  hashCheck[SHA256_Post_Auth_compare]
+  settle[Persist_and_settle]
+  rej[Reject_401]
+
+  req --> src
+  src -->|yes| byKey
+  src -->|no| byHost
+  byKey --> ipCheck
+  byHost --> ipCheck
+  ipCheck -->|ok| hashCheck
+  ipCheck -->|fail| rej
+  hashCheck -->|ok| settle
+  hashCheck -->|fail| rej
+```
+
+Example (source = ppk):
+
+```bash
+# Post_Auth_demo_key → SHA-256 hex
+POST_AUTH=$(printf 'Post_Auth_demo_key' | openssl dgst -sha256 -hex | awk '{print $2}')
+curl -s http://127.0.0.1:8084/v1/webhook/deposit \
+  -H "content-type: application/json" \
+  -H "x-post-auth: $POST_AUTH" \
+  -H "x-callback-source: ppk_partner_2001" \
+  -d '{"event_id":"money_evt_1","request_id":"req_1","partner_txn_id":"PTXN1","transaction_type":"deposit","status":"success","amount":10,"game_coin":"PLT","signature":"test-signature"}'
+```
 
 ## 4. Socket ingest payload
 
@@ -172,6 +233,8 @@ sequenceDiagram
 
 #### Deposit / withdrawal
 
+Callbacks are accepted only when Client Center already has a matching `deposit` / `withdrawal` txn (`request_id` + `partner_txn_id`). Unknown refs are rejected **before** `webhook_events` insert (no retry storm).
+
 ```mermaid
 sequenceDiagram
   participant CW as ClientWeb
@@ -187,11 +250,16 @@ sequenceDiagram
   Partner-->>CC: pending partner_txn_id
   Note over Partner: after sim delay finalize
   Partner->>WH: POST /v1/webhook/deposit or withdrawal
-  WH->>PG: INSERT webhook_events deposit or withdrawal
-  WH->>CC: POST /v1/internal/money/settle
-  CC->>PG: complete_txn or mark_terminal wallets
-  CC->>PG: INSERT outbound_notices deposit_withdrawal_txn
-  MC->>PG: drain notices to notifications
+  WH->>CC: GET /v1/internal/money/txn
+  alt txn missing
+    WH-->>Partner: 400 txn not found
+  else txn exists
+    WH->>PG: INSERT webhook_events deposit or withdrawal
+    WH->>CC: POST /v1/internal/money/settle
+    CC->>PG: complete_txn or mark_terminal wallets
+    CC->>PG: INSERT outbound_notices deposit_withdrawal_txn
+    MC->>PG: drain notices to notifications
+  end
 ```
 
 ### Deposit / withdrawal body (HTTP)
@@ -209,7 +277,7 @@ sequenceDiagram
 }
 ```
 
-`status`: `success` | `failed` | `cancelled` (also `rejected`). Path must match `transaction_type` (`/deposit` vs `/withdrawal`).
+`status`: `success` | `failed` | `cancelled` (also `rejected`). Path must match `transaction_type` (`/deposit` vs `/withdrawal`). Both `request_id` and `partner_txn_id` are required and must match an existing Client Center money txn created by Session deposit/withdraw — otherwise the webhook is rejected and not persisted.
 
 ### CBT payment body (HTTP)
 

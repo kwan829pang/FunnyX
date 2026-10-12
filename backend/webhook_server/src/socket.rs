@@ -6,7 +6,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
 use crate::config::Config;
-use crate::ingest::ShopPaymentCallback;
+use crate::ingest::{CorpTokenPaymentCallback, MoneyCallback, ShopPaymentCallback};
 use crate::settle;
 use crate::store::EventStore;
 
@@ -64,29 +64,14 @@ async fn handle_conn(
                         stream.write_all(&pong).await?;
                         continue;
                     }
-                    match parse_ingest(&body) {
-                        Ok(cb) => {
-                            let out = settle::accept_shop_payment(
-                                &store, &config, &http, cb, "socket",
-                            )
-                            .await;
-                            let reply = match out {
-                                Ok(v) => serde_json::to_vec(&v).unwrap_or_else(|_| b"{}".to_vec()),
-                                Err(e) => serde_json::to_vec(&serde_json::json!({"error": e}))
-                                    .unwrap_or_else(|_| b"{}".to_vec()),
-                            };
-                            stream
-                                .write_all(&funnyx_socket::encode_frame(&reply))
-                                .await?;
-                        }
-                        Err(e) => {
-                            let reply = serde_json::json!({"error": e});
-                            let bytes = serde_json::to_vec(&reply).unwrap_or_default();
-                            stream
-                                .write_all(&funnyx_socket::encode_frame(&bytes))
-                                .await?;
-                        }
-                    }
+                    let reply = match dispatch_ingest(&store, &config, &http, &body).await {
+                        Ok(v) => serde_json::to_vec(&v).unwrap_or_else(|_| b"{}".to_vec()),
+                        Err(e) => serde_json::to_vec(&serde_json::json!({"error": e}))
+                            .unwrap_or_else(|_| b"{}".to_vec()),
+                    };
+                    stream
+                        .write_all(&funnyx_socket::encode_frame(&reply))
+                        .await?;
                 }
             }
         }
@@ -94,7 +79,12 @@ async fn handle_conn(
     Ok(())
 }
 
-fn parse_ingest(raw: &[u8]) -> Result<ShopPaymentCallback, String> {
+async fn dispatch_ingest(
+    store: &EventStore,
+    config: &Config,
+    http: &reqwest::Client,
+    raw: &[u8],
+) -> Result<serde_json::Value, String> {
     let json = match funnyx_socket::decompress_client_json(raw) {
         Ok(s) => s,
         Err(_) => String::from_utf8(raw.to_vec()).map_err(|e| e.to_string())?,
@@ -103,12 +93,27 @@ fn parse_ingest(raw: &[u8]) -> Result<ShopPaymentCallback, String> {
     let event_type = v
         .get("event_type")
         .and_then(|x| x.as_str())
-        .unwrap_or("shop_payment");
-    if event_type != "shop_payment" {
-        return Err(format!("unsupported event_type: {event_type}"));
+        .unwrap_or("shop_payment")
+        .to_string();
+    let body = v.get("body").cloned().unwrap_or(v);
+
+    match event_type.as_str() {
+        "shop_payment" => {
+            let cb = ShopPaymentCallback::from_value(&body)?;
+            settle::accept_shop_payment(store, config, http, cb, "socket").await
+        }
+        "corp_token" => {
+            let cb: CorpTokenPaymentCallback =
+                serde_json::from_value(body).map_err(|e| e.to_string())?;
+            settle::accept_corp_token_payment(store, config, http, cb, "socket").await
+        }
+        "deposit" | "withdrawal" => {
+            let mut cb = MoneyCallback::from_value(&body)?;
+            if cb.transaction_type.trim().is_empty() {
+                cb.transaction_type = event_type.clone();
+            }
+            settle::accept_money_callback(store, config, http, cb, "socket").await
+        }
+        other => Err(format!("unsupported event_type: {other}")),
     }
-    if let Some(body) = v.get("body") {
-        return ShopPaymentCallback::from_value(body);
-    }
-    ShopPaymentCallback::from_value(&v)
 }

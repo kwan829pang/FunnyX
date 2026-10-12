@@ -18,6 +18,8 @@ mod shop_store;
 mod sts;
 mod system;
 mod system_store;
+mod webhook_post_auth;
+mod webhook_post_auth_store;
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -37,6 +39,7 @@ use market_store::AdminMarketStore;
 use shop_store::CorpProductStore;
 use sts::StsClient;
 use system_store::SystemStore;
+use webhook_post_auth_store::WebhookPostAuthStore;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -101,6 +104,7 @@ async fn main() -> anyhow::Result<()> {
         game_coins: GameCoinStore::new(pool.clone()),
         markets,
         corp_users: CorpUsersStore::new(pool.clone(), config.upload_dir.clone()),
+        webhook_post_auth: WebhookPostAuthStore::new(pool.clone()),
         engine,
         http,
         config: config.clone(),
