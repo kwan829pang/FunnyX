@@ -51,14 +51,18 @@ The bot is intended to operate with random timing intervals so that the platform
 
 ## 4. Local Development (Docker-based)
 
+**Scope:** this section is **DB stores + `dev_simulator`** only. Platform cargo/Docker mesh (Gateway, Client Center, Webhook, …) → [`deploy/README.md`](../deploy/README.md). Deep E2E against cargo services → [`local_e2e_checklist.md`](local_e2e_checklist.md).
+
 ### 4.1 Shared DB stores
 
-PostgreSQL + Redis + MongoDB under [`database/docker-compose.yml`](../database/docker-compose.yml). First Postgres boot applies schema (`run_all.sql`) only — no seed.
+PostgreSQL + Redis + MongoDB under [`database/docker-compose.yml`](../database/docker-compose.yml). First Postgres boot applies schema (`run_all.sql`) only — no seed. Apply seeds after boot (canonical: [`database/seed/README.md`](../database/seed/README.md)); local E2E needs `run_seed_dev.sql` (00 + 01).
 
 ```bash
 cd database
 cp .env.sample .env   # optional
 docker compose up -d
+# After Postgres is up:
+# psql -d funnyx -f seed/run_seed_dev.sql
 ```
 
 | Container | Port | Notes |
@@ -83,7 +87,7 @@ docker compose up --build
 | `funnyx-payment-gate` | `18100` | Fiat / deposit webhook sim |
 | `funnyx-message-queue` | `18101` | Notice queue (Core Engine `MESSAGE_CENTER_URL`) |
 | `funnyx-company-a-server` | `18102` | Partner APIs + notice callback |
-| `funnyx-market-bot` | `18103` | Book watcher / fill bot → `core-engine` |
+| `funnyx-market-bot` | `18103` | Fill bot; place via Gateway Session when `GATEWAY_URL` set |
 | `funnyx-core-engine` | `18200` | Matching; data volume `core_engine_data` |
 
 Network: `funnyx-dev-sim` (`172.28.0.0/24`). Early phase: host services use `127.0.0.1` DB URLs; simulators stay on their own compose network.

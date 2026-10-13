@@ -34,7 +34,7 @@ The database model should support the platform lifecycle described in the projec
 
 ## Suggested structure
 
-- **[`../database/`](../database/)** — runnable PostgreSQL DDL (**12** `fx_*` schemas, **43** tables; one folder per schema)
+- **[`../database/`](../database/)** — runnable PostgreSQL DDL (**12** `fx_*` schemas, **48** tables; one folder per schema)
 - redis/ / mongodb/ / sqlite/ — reserved for other stores
 - queries/ — Redis/Mongo design notes (PostgreSQL DDL lives in [`../database/`](../database/))
 
@@ -42,7 +42,7 @@ The database model should support the platform lifecycle described in the projec
 
 - **ERD source of truth:** [database_relationships.md](database_relationships.md) — includes `corporate_users`, `games`, `market_pools`, `platform_fees`, balance locks, and e-shop tables.
 - **Runnable DDL:** [`../database/`](../database/) (`run_all.sql`) — authoritative PostgreSQL schema.
-- **Counts:** 12 PostgreSQL schemas (`fx_corp`, `fx_game`, `fx_user`, `fx_market`, `fx_market_data`, `fx_marketplace`, `fx_config`, `fx_shop`, `fx_corp_token`, `fx_money`, `fx_admin`, `fx_events`) and **43** tables.
+- **Counts:** 12 PostgreSQL schemas (`fx_corp`, `fx_game`, `fx_user`, `fx_market`, `fx_market_data`, `fx_marketplace`, `fx_config`, `fx_shop`, `fx_corp_token`, `fx_money`, `fx_admin`, `fx_events`) and **48** tables.
 - Use UTC timestamps stored as BIGINT for all time-based records.
 - Keep database access patterns consistent across services.
 - Prefer explicit query modules over inline SQL scattered across the codebase.

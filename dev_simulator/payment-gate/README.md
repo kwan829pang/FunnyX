@@ -70,8 +70,8 @@ curl -s http://127.0.0.1:18100/v1/shop/payment \
   "credit_game_coin": "PLT",
   "credit_amount": 1000,
   "fiat_currency": "HKD",
-  "fiat_price": 88.00,
-  "callback_url": "http://127.0.0.1:8080/webhook/shop/payment",
+  "fiat_price": 8.8,
+  "callback_url": "http://127.0.0.1:8084/v1/webhook/shop/payment",
   "return_url": "http://127.0.0.1:3000/shop/orders/5001"
 }'
 ```

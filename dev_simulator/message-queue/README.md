@@ -44,7 +44,7 @@ curl -s http://127.0.0.1:18101/v1/notices \
   "title": "Shop order pending payment",
   "body": "Order 5001 awaiting partner fiat payment",
   "payload": {"shop_order_id": 5001},
-  "callback_url": "http://127.0.0.1:8080/webhook/notice"
+  "callback_url": "http://127.0.0.1:18102/api/callback"
 }'
 ```
 

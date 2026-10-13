@@ -12,11 +12,11 @@ Webhook Server is **partner / payment-gate ingress** only.
 - Authenticates HTTP ingest with **Post_Auth** (`X-Post-Auth` hash + optional `X-Callback-Source` / Host wild-domain + caller IP) using `fx_events.webhook_post_auth` — see §3.1.
 - Persists `fx_events.webhook_events` (`event_id` unique, `retry_count`) and shop audit `fx_shop.shop_payment_events`.
 - Calls Client Center **internal** settle so orders/wallets update (`/v1/internal/shop/settle`, `/v1/internal/corp-token/settle`, `/v1/internal/money/settle`).
-- Writes `fx_events.outbound_notices` (`shop_order` / `corp_token_order` from Webhook; `deposit_withdrawal_txn` from Client Center on money settle) for Message Center later; on CBT paid also Corp `corp_partner_notices` and HTTP **balance callback** to Corp (`webhook_endpoints` kind `corp_token` or `partner_endpoints` type `callback`).
+- Writes `fx_events.outbound_notices` (`shop_order` / `corp_token_order` from Webhook; `deposit_withdrawal_txn` from Client Center on money settle) for **Message Center** (`8085`) to drain; on CBT paid also Corp `corp_partner_notices` and HTTP **balance callback** to Corp (`webhook_endpoints` kind `corp_token` or `partner_endpoints` type `callback`).
 - Marketplace deal notices are produced by **Client Center** (not Webhook Server ingest) and drained by Message Center with partner webhook kind `marketplace` — see [marketplace.md](marketplace.md) §4.
 - Lets **Corporate Users** create/update **their** callback endpoint rows (MasterSigned). CBT paid settle **does** call the Corp callback URL when configured.
 
-Client Web does **not** open a socket to Webhook Server. Until Message Center + Gateway exist, the browser polls Client Center `GET /v1/shop/orders/{id}` (Session). After those services exist, Client Web uses **Gateway** socket (Session token); Message Center drains notices.
+Client Web does **not** open a socket to Webhook Server. Prefer Session HTTP via **Gateway** (`8080`) for shop APIs; optional Gateway Session socket (`9000`) for realtime after Message Center drains. Polling `GET /v1/shop/orders/{id}` remains a valid fallback. Gateway **blocks** `/v1/webhook/*` — partners must call Webhook Server `:8084` directly.
 
 Default local listen: HTTP **8084**, socket **9004** (`funnyx-config`: `DEFAULT_WEBHOOK_HTTP_PORT` / `DEFAULT_WEBHOOK_SOCKET_PORT`). Client Center `SHOP_PAYMENT_CALLBACK_URL` must be `http://127.0.0.1:8084/v1/webhook/shop/payment`.
 
@@ -28,9 +28,9 @@ Who opens a **TCP socket**, to which process, and what to send. Length-prefixed 
 | --- | --- | --- | --- | --- |
 | payment-gate / Partner payment backend | **Webhook Server ingest** | `127.0.0.1:9004` | `PING`; or ingest JSON (`event_type` + body, same fields as HTTP shop callback) | `PONG`; JSON `{ accepted, duplicate, event_id, delivery_status }` or `{ error }` |
 | Config Server registry probe | **Webhook Server ingest** | `127.0.0.1:9004` | `PING` | `PONG` |
-| Client Web | **Gateway** (not Webhook) | `127.0.0.1:9000` (Gateway; not started) | Session token + client gzip JSON | Shop order `completed` / `failed` after Message Center drains notices |
+| Client Web | **Gateway** (not Webhook) | `127.0.0.1:9000` | Session token + client gzip JSON | Shop order `completed` / `failed` after Message Center drains notices |
 | Client Center | — | no socket to Webhook | HTTP only (Webhook → CC settle) | — |
-| Message Center | — | no socket to Webhook | HTTP/DB drain of `outbound_notices` (later) | Client Web via Gateway |
+| Message Center | — | no socket to Webhook | HTTP/DB drain of `outbound_notices` (`8085`) | Client Web via Gateway |
 | Admin Panel / Admin API | — | do not use `:9004` | — | — |
 | Corporate User browser | — | do not use `:9004` | Corp endpoint CRUD is **HTTP MasterSigned**, not socket | — |
 
@@ -54,10 +54,10 @@ Pick the **target service** first, then the path. Webhook Server does not replac
 | FunnyX: apply CBT order after accept | **Client Center** | HTTP (server-to-server) | `POST` | `/v1/internal/corp-token/settle` | `X-Internal-Key` |
 | Partner: Company Basic Token buy paid/failed/cancelled | **Webhook Server** | HTTP | `POST` | `/v1/webhook/corp-token/payment` | `X-Post-Auth` + body `signature`; see §3.1 |
 | FunnyX → Corp: user balance updated after CBT paid | **Corp User server** | HTTP | `POST` | Corp `callback_url` / `partner_endpoints.callback` | Outbound from Webhook Server |
-| Client Web: catalog / checkout / order status | **Client Center** (via Gateway when live) | HTTP | `GET`/`POST` | `/v1/shop/*` | Session Bearer |
-| Client Web: CBT buyable list / orders | **Client Center** | HTTP | `GET`/`POST` | `/v1/corp-tokens*` | Session Bearer |
-| Client Web: “payment done” until MC exists | **Client Center** | HTTP | `GET` | `/v1/shop/orders/{id}` or `/v1/corp-tokens/orders/{order_id}` | Session Bearer |
-| Client Web: “payment done” after MC + Gateway | **Gateway** | Socket `:9000` | Session messages | shop_order / corp_token_order `completed` / `failed` | Session token |
+| Client Web: catalog / checkout / order status | **Client Center** (via Gateway `:8080`) | HTTP | `GET`/`POST` | `/v1/shop/*` | Session Bearer |
+| Client Web: CBT buyable list / orders | **Client Center** (via Gateway) | HTTP | `GET`/`POST` | `/v1/corp-tokens*` | Session Bearer |
+| Client Web: “payment done” (poll fallback) | **Client Center** (via Gateway) | HTTP | `GET` | `/v1/shop/orders/{id}` or `/v1/corp-tokens/orders/{order_id}` | Session Bearer |
+| Client Web: “payment done” (realtime) | **Gateway** | Socket `:9000` | Session messages | shop_order / corp_token_order `completed` / `failed` | Session token |
 | payment-gate: create checkout (not webhook) | **payment-gate** | HTTP | `POST` | payment-gate create APIs (`18100`) | Simulator contract; `callback_url` must point at Webhook `/v1/webhook/shop/payment` |
 | Partner: deposit / withdrawal finalize | **Webhook Server** | HTTP | `POST` | `/v1/webhook/deposit`, `/v1/webhook/withdrawal` | `X-Post-Auth` + body `signature`; see §3.1 |
 | FunnyX: apply wallet after money accept | **Client Center** | HTTP (S2S) | `POST` | `/v1/internal/money/settle` | `X-Internal-Key` (Webhook Server → CC) |
@@ -138,7 +138,7 @@ v1 envelope (recommended):
     "seller_type": "platform",
     "status": "paid",
     "fiat_currency": "HKD",
-    "fiat_paid": 88.00,
+    "fiat_paid": 8.8,
     "credit_game_coin": "PLT",
     "credit_amount": 1000,
     "paid_at": "2026-09-28T01:05:00Z",
@@ -166,7 +166,7 @@ Client Center         --update orders, wallets (CBT: 99.9% credit + fee ledger; 
 Client Center (money) --INSERT outbound_notices (source_type=deposit_withdrawal_txn)-->  PostgreSQL
 Webhook Server        --INSERT outbound_notices (pending)-->  PostgreSQL  (shop / CBT)
 Webhook Server (CBT)  --POST balance payload-->  Corp callback_url (kind corp_token / partner callback)
-Message Center (:8085)--drain notices-->  notifications + partner POST; Gateway socket later
+Message Center (:8085)--drain notices-->  notifications + partner POST; Gateway Session socket :9000 fan-out
 ```
 
 ### 5.1 Flow charts

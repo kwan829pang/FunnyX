@@ -51,7 +51,7 @@ curl -s http://127.0.0.1:8084/v1/webhook/shop/payment \
   -H "content-type: application/json" \
   -H "x-post-auth: $POST_AUTH" \
   -H "x-callback-source: ppk_payment_gate" \
-  -d '{"event_id":"pay_evt_1","partner_order_no":"PAY-1","shop_order_id":1,"status":"paid","fiat_currency":"HKD","fiat_paid":88,"signature":"test-signature"}'
+  -d '{"event_id":"pay_evt_1","partner_order_no":"PAY-1","shop_order_id":1,"status":"paid","fiat_currency":"HKD","fiat_paid":8.8,"signature":"test-signature"}'
 
 curl -s http://127.0.0.1:8084/v1/webhook/deposit \
   -H "content-type: application/json" \

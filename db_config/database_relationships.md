@@ -13,7 +13,7 @@ Aligned with [readme.md](../readme.md):
 - **C7 Marketplace place deal:** verified (bought Platform Token) + playing ≥1 listed game + partner Transfer API open for asset
 - Company Basic Token: Corp submit → Admin approve → buyable; on buy charge **0.1%** Company Basic Token fee (user gets 99.9%)
 
-Status: **ERD + [`../database/`](../database/) aligned** (first draft, **12** schemas / **44** tables). Seeds, migrations, and runtime services still open. Prefer [§2 module diagrams](#2-module-split-er-diagrams) for attributes; §1 is overview edges only (key fields in boxes; full columns in `database/fx_*/01_tables.sql`).
+Status: **ERD + [`../database/`](../database/) aligned** (**12** schemas / **48** tables). Seeds and runtime services exist (`database/seed/`, backend cargo services); ERD remains the attribute/overview draft. Prefer [§2 module diagrams](#2-module-split-er-diagrams) for attributes; §1 is overview edges only (key fields in boxes; full columns in `database/fx_*/01_tables.sql`).
 
 ## 1. Core Database Relationship Diagram
 
@@ -1667,7 +1667,7 @@ erDiagram
 ## 6. Implementation notes
 
 - Prefer this ERD over older `client_accounts`-only drafts.
-- **Runnable DDL:** [`../database/`](../database/) — **12** schemas (`fx_*`), **43** tables, one folder per schema; apply via `database/run_all.sql`.
+- **Runnable DDL:** [`../database/`](../database/) — **12** schemas (`fx_*`), **48** tables, one folder per schema; apply via `database/run_all.sql`.
 - Entity attribute boxes list key domain fields; full columns live in `database/fx_*/01_tables.sql` (corp supply/payments: `fx_corp/02_supply_and_payments.sql`).
 - Corp payment records are partner accounting only; e-shop settlement stays on `SHOP_ORDER` + `DEPOSIT_WITHDRAWAL_TXN`.
 - On approved `GAME_COIN_SUPPLY_REQUEST`, increase `GAME_BALANCE.total_supply` (and available as product rules define).

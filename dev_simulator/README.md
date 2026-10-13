@@ -8,7 +8,7 @@ Local helpers for FunnyX integration testing (see [doc/dev.md](../doc/dev.md)). 
 | [payment-gate](payment-gate/) | Ready | `18100` | Partner fiat pay + deposit webhook simulator |
 | [message-queue](message-queue/) | Ready | `18101` | `outbound_notices` drain / inspection queue |
 | [company-a-server](company-a-server/) | Ready | `18102` | Company Partner APIs (OAuth, Transfer, Item List, balance/deposit/withdraw) |
-| [market-bot](market-bot/) | Ready | `18103` | Watch Core Engine books; place partial/full fills + resting orders |
+| [market-bot](market-bot/) | Ready | `18103` | Place take/make via Gateway Session (`GATEWAY_URL`); book/health on Core Engine |
 
 
 Each ready simulator is a small standalone Rust crate. Copy `.env.sample` → `.env`, then `cargo run` in its folder.
@@ -103,8 +103,8 @@ curl -s http://127.0.0.1:18100/v1/shop/payment \
   "credit_game_coin": "PLT",
   "credit_amount": 1000,
   "fiat_currency": "HKD",
-  "fiat_price": 88.00,
-  "callback_url": "http://127.0.0.1:8080/webhook/shop/payment",
+  "fiat_price": 8.8,
+  "callback_url": "http://127.0.0.1:8084/v1/webhook/shop/payment",
   "return_url": "http://127.0.0.1:3000/shop/orders/5001"
 }'
 ```
@@ -133,7 +133,7 @@ curl -s http://127.0.0.1:18100/v1/shop/payment \
   "seller_type": "platform",
   "status": "paid",
   "fiat_currency": "HKD",
-  "fiat_paid": 88.0,
+  "fiat_paid": 8.8,
   "credit_game_coin": "PLT",
   "credit_amount": 1000,
   "paid_at": "2026-10-02T03:00:03Z",
@@ -161,7 +161,7 @@ curl -s http://127.0.0.1:18100/v1/deposit/payment \
   "game_coin": "PLT",
   "channel": "partner_token",
   "source": "test",
-  "callback_url": "http://127.0.0.1:8080/webhook/deposit",
+  "callback_url": "http://127.0.0.1:8084/v1/webhook/deposit",
   "metadata": { "order_no": "ORD-1001", "remark": "top up game wallet" }
 }'
 ```
@@ -259,7 +259,7 @@ curl -s http://127.0.0.1:18101/v1/notices \
   "body": "Order 5001 awaiting partner fiat payment",
   "payload": { "shop_order_id": 5001, "status": "pending" },
   "scheduled_at": 0,
-  "callback_url": "http://127.0.0.1:8080/webhook/notice"
+  "callback_url": "http://127.0.0.1:18102/api/callback"
 }'
 ```
 
@@ -278,7 +278,7 @@ curl -s http://127.0.0.1:18101/v1/notices \
   "delivery_status": "pending",
   "sim_status": "SUCCESS",
   "sim_delay_ms": 3000,
-  "callback_url": "http://127.0.0.1:8080/webhook/notice",
+  "callback_url": "http://127.0.0.1:18102/api/callback",
   "retry_count": 0,
   "scheduled_at": 0,
   "sent_at": 0,
@@ -446,7 +446,7 @@ Demo OAuth users: `alice_01` / `bob_02` (password `demo`).
 
 Detail: [market-bot/README.md](market-bot/README.md)
 
-Polls Core Engine books and places maker/taker orders (partial fill, full fill, rest). Talks to `CORE_ENGINE_URL` directly.
+Places maker/taker orders via Gateway Session by default (`GATEWAY_URL`). Book/health still use Core Engine; set `GATEWAY_URL=` empty for legacy direct engine place. Detail: [market-bot/README.md](market-bot/README.md).
 
 | Method | Path | Purpose |
 | --- | --- | --- |

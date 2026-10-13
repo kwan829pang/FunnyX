@@ -1,19 +1,19 @@
 # FunnyX PostgreSQL DDL
 
-Runnable create scripts for **12 schemas** and **45 tables**. Design/ERD remains in [`db_config/`](../db_config/).
+Runnable create scripts for **12 schemas** and **48 tables**. Design/ERD remains in [`db_config/`](../db_config/).
 
 ## Counts
 
 | Layer | Count |
 | --- | --- |
 | Schemas (`fx_*`) | 12 |
-| Tables | 45 |
+| Tables | 48 |
 
 ## Schemas
 
 | Folder / schema | Tables |
 | --- | --- |
-| `fx_corp` | `corporate_users`, `corp_api_keys`, `partner_endpoints`, `platform_fees`, `corp_partner_notices`, `game_coin_supply_requests`, `corp_payment_records` (7) |
+| `fx_corp` | `corporate_users`, `corp_api_keys`, `partner_endpoints`, `platform_fees`, `corp_partner_notices`, `game_coin_supply_requests`, `corp_payment_records`, `corp_documents`, `corp_web_sessions` (9) |
 | `fx_game` | `games`, `game_accounts`, `game_coins`, `game_balances` (4) |
 | `fx_user` | `end_users`, `user_sessions`, `user_wallets`, `oauth_identities` (4) |
 | `fx_market` | `core_engines`, `market_pairs`, `market_balance_locks`, `market_pools`, `pool_wallets`, `pool_transfer_events`, `market_status_logs`, `orders`, `trades` (9) |
@@ -24,7 +24,7 @@ Runnable create scripts for **12 schemas** and **45 tables**. Design/ERD remains
 | `fx_corp_token` | `company_basic_tokens`, `corp_token_orders`, `corp_token_payment_events`, `coin_fee_ledger` (4) |
 | `fx_money` | `deposit_withdrawal_txns`, `deposit_withdrawal_status_logs` (2) |
 | `fx_admin` | `admin_users`, `admin_action_logs` (2) |
-| `fx_events` | `notifications`, `outbound_notices`, `webhook_events`, `webhook_endpoints` (4) |
+| `fx_events` | `notifications`, `outbound_notices`, `webhook_events`, `webhook_endpoints`, `webhook_post_auth` (5) |
 
 ## Apply
 
@@ -64,7 +64,7 @@ REDIS_URL=redis://127.0.0.1:6379
 MONGO_URL=mongodb://127.0.0.1:27017
 ```
 
-Networks: `funnyx-db-postgres` `172.20.10.0/24`, `funnyx-db-redis` `172.20.11.0/24`, `funnyx-db-mongo` `172.20.12.0/24` ([technology.md](../technology.md) §15). Seed apply / smoke-test remain manual (see [seed/](seed/)).
+Networks: `funnyx-db-postgres` `172.20.10.0/24`, `funnyx-db-redis` `172.20.11.0/24`, `funnyx-db-mongo` `172.20.12.0/24` ([technology.md](../technology.md) §15). Seed apply: [seed/README.md](seed/README.md) (`run_seed_dev.sql` for local E2E). Smoke: [`scripts/db_smoke.ps1`](../scripts/db_smoke.ps1).
 
 ## Layout
 

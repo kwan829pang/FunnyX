@@ -2,6 +2,11 @@
 
 This is the single project changelog for the frontend work. Older frontend changelog files were merged here to avoid duplicate release notes.
 
+## 0.1.28
+
+- Docs conflict cleanup: Phases 2–3 marked Done in [`development.md`](development.md); PLT examples aligned to seed **8.8**; webhook samples use `:8084/v1/webhook/...`; table count **48**; runbooks/webhook/config/dev cross-links refreshed.
+- **Human-only** ([`readme.md`](readme.md) is AI-readonly): fix shared callback example `fiat_paid` **88.00** → **8.8** (price table already 8.8); e-shop step 3 “token payment” → **fiat**; typo “Exchagne”.
+
 ## 0.1.27
 
 - Phase 6 deep E2E: modular checklist [`scripts/e2e/*`](scripts/e2e/) (e-shop + duplicate webhook settle, deposit/withdraw via company-a, market approve + place/cancel, marketplace eligibility gates); demo market `DEMO_COIN/PLT` in seed; runbook [`doc/local_e2e_checklist.md`](doc/local_e2e_checklist.md).

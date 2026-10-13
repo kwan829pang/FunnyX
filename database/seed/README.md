@@ -30,3 +30,5 @@ psql -d funnyx -f seed/run_seed_dev.sql      # 00 + 01
 ```
 
 All seed scripts are idempotent (`ON CONFLICT`).
+
+**Local deep E2E** ([`doc/local_e2e_checklist.md`](../../doc/local_e2e_checklist.md)) expects `run_seed_dev.sql` (baseline + demo corp/game/user/market).

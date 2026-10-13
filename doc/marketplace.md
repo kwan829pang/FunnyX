@@ -6,7 +6,7 @@ This doc is a detail file for the master architecture in [project.md](project.md
 
 Master gate summary: [project.md](project.md) §4 step 9. **C7** rules below are authoritative for who may **place** a deal.
 
-- Users may sell value into **Platform Coin**, or into **Company Coin** — but only the **parent company’s** Company Coin, never another company’s coin.
+- Users may sell value into **Platform Token**, or into **Company Coin** (company-owned token / Company Basic Token asset on that corp) — but only the **parent company’s** Company Coin, never another company’s coin.
 - Supported deal assets: **Game Coin**, **Company Coin**, and **Game Items**.
 - Deal settlement moves game assets via the Company Partner **Transfer** API (token/asset movement; not e-shop fiat).
 - Game items: partner **Item / game-assets list API** (readme #5) returns opaque `item_ref_id` values; platform stores `offer_item_ref_id` / transfer `item_ref_id` (`VARCHAR`). No platform item catalog or escrow table (`database/fx_marketplace`).

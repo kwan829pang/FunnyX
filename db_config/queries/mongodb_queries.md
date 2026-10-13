@@ -77,7 +77,7 @@ Client Center owns chat persistence. Do not treat this collection as optional.
   "payload": {
     "package_code": "PLT_1000",
     "fiat_currency": "HKD",
-    "fiat_paid": 88.00,
+    "fiat_paid": 8.8,
     "credit_amount": 1000,
     "credit_game_coin": "PLT"
   },

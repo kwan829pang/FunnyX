@@ -1,6 +1,6 @@
 # FunnyX common Rust workspace
 
-Shared libraries for backend services. See `doc/project.md` §8 and `development.md` Phase 4 §11.
+Shared libraries for backend services. See `doc/project.md` §8 and `development.md` Phase 4 §12.
 
 | Crate | Role |
 | --- | --- |

@@ -16,6 +16,9 @@ API index: [api-master.md](../api-master.md). Schedule: [development.md](../deve
 | E-shop catalog, fiat pay, settlement | [e-shop.md](e-shop.md) |
 | Webhook Server ingress, socket targets, which API to call | [webhook.md](webhook.md) |
 | Marketplace place-deal gates (C7) | [marketplace.md](marketplace.md) |
+| Corp BR registration + game document approval | [corp_onboarding.md](corp_onboarding.md) |
+| Message Center drain / partner push / Session inbox | [message_center.md](message_center.md) |
+| Local cargo deep E2E checklist (§24 / Phase 6) | [local_e2e_checklist.md](local_e2e_checklist.md) |
 | End-to-end diagrams | [flow_chart.md](flow_chart.md) |
 | Gateway LB + Core Engine matching | [gateway_core_engine_logic.md](gateway_core_engine_logic.md) |
 | Socket byte protocols | [socket_message.md](socket_message.md) |
@@ -222,5 +225,5 @@ UTC+0 BIGINT timestamps for trades, audits, sessions, messages, and config sync.
 | [api-master.md](../api-master.md) | HTTP API tables |
 | [development.md](../development.md) | Build schedule |
 | [technology.md](../technology.md) | Stack and Docker nets |
-| [database/](../database/) | PostgreSQL DDL (12 `fx_*` schemas, 43 tables) |
+| [database/](../database/) | PostgreSQL DDL (12 `fx_*` schemas, 48 tables) |
 | [db_config/](../db_config/) | ERD and SQL drafts |

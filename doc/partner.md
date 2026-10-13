@@ -496,8 +496,8 @@ Recommended create-payment payload:
   "credit_game_coin": "PLT",
   "credit_amount": 1000,
   "fiat_currency": "HKD",
-  "fiat_price": 88.00,
-  "callback_url": "https://platform.example.com/webhook/shop/payment",
+  "fiat_price": 8.8,
+  "callback_url": "https://platform.example.com/v1/webhook/shop/payment",
   "return_url": "https://client.example.com/shop/orders/5001",
   "created_at": "2026-09-28T01:00:00Z"
 }
@@ -525,7 +525,7 @@ Recommended create-payment response:
   "shop_order_id": 5001,
   "status": "paid",
   "fiat_currency": "HKD",
-  "fiat_paid": 88.00,
+  "fiat_paid": 8.8,
   "credit_game_coin": "PLT",
   "credit_amount": 1000,
   "paid_at": "2026-09-28T01:05:00Z",

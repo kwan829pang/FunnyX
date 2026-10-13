@@ -2,35 +2,37 @@
 
 This schedule is derived from the architecture and design documents under `doc` and `db_config`, with product rules mastered in [readme.md](readme.md). It prioritizes a usable vertical slice first: **database → client registration → e-shop API/frontend**, then the remaining platform services in dependency order. Educational / non-commercial scope follows the readme disclaimer.
 
-## Current status (2026-10-02)
+## Current status (2026-10-13)
 
 
 | Phase                          | Status          | Notes                                                                                                                                                                                                                                    |
 | ------------------------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1. Database**                | **Done (v1)**   | PostgreSQL DDL **done**; Redis/Mongo + env samples **done**; seed SQL **done**; Docker/init **done**; DB smoke script **done**; **dev_simulator** Compose **done**                                                                                         |
-| **2. Client register / login** | **In progress** | **STS** OAuth **done**; **Client Center** login + Postgres identity **done** (`8083`); **Gateway** ingress **done** (`8080`); Client Web shell + wallet UI **done**                                                                     |
-| 3. E-shop API + frontend       | **In progress** | Client Center shop + Webhook settle + Client Web GridView/cart/checkout **done**; wallet UI **done** (`/wallet`)                                                                                                                         |
+| **2. Client register / login** | **Done (v1)**   | **STS** OAuth **done**; **Client Center** login + Postgres identity **done** (`8083`); **Gateway** ingress **done** (`8080`); Client Web shell + wallet UI **done**                                                                     |
+| **3. E-shop API + frontend**   | **Done (v1)**   | Client Center shop + Webhook settle + Client Web GridView/cart/checkout **done**; wallet UI **done** (`/wallet`)                                                                                                                         |
 | **4+. Platform expansion**     | **Done (v1)**   | Phase 4 + Phase 5 v1 + **Phase 6** deep E2E scripts (`scripts/local_e2e_checklist.ps1` / `scripts/e2e/*`)                                                                                                                                    |
 
 
-**PostgreSQL (done):** `[database/](database/)` — **12** `fx_`* schemas, **45** tables, deferred FKs, indexes, `run_all.sql`. Aligned with [db_config/database_relationships.md](db_config/database_relationships.md) (corp incl. supply requests + payment records, game, user, market, market_data/OHLCV, marketplace, shop, corp_token, money + status logs, admin, events/`outbound_notices` + `webhook_endpoints`). Timestamps: BIGINT UTC. Seeds: `[database/seed/](database/seed/)` — `00_seed_data.sql` (live+demo), `01_demo_data.sql` (dev only).
+**PostgreSQL (done):** `[database/](database/)` — **12** `fx_`* schemas, **48** tables, deferred FKs, indexes, `run_all.sql`. Aligned with [db_config/database_relationships.md](db_config/database_relationships.md) (corp incl. supply requests + payment records, game, user, market, market_data/OHLCV, marketplace, shop, corp_token, money + status logs, admin, events/`outbound_notices` + `webhook_endpoints`). Timestamps: BIGINT UTC. Seeds: `[database/seed/](database/seed/)` — `00_seed_data.sql` (live+demo), `01_demo_data.sql` (dev only).
 
-**Still open in Phase 1:** smoke-test apply schema + seeds, wire simulators to seed IDs.
+**Optional Phase 1 follow-up:** keep simulators aligned with seed/demo IDs (`01_demo_data.sql`) when partner account strings drift.
 
 ## Recommended Execution Order
 
-1. Database schema and query contracts ← **schema + seed SQL + Docker/init + simulators done; finish smoke**
-2. Client registration / login (API + Client Web) ← **STS + Client Center login/OAuth done; next: Client Web ↔ Client Center + Postgres**
-3. E-shop API and frontend (packages, checkout, webhook credit)
-4. Shared contracts, Config Server, and Gateway ← **Config Server done (**`8090`**); Gateway done (**`8080`**/**`9000`**)**
-5. Session Token Server and Client Center hardening ← **STS + CC auth + wallet/money + Mongo chat done; Redis prod path later**
-6. Webhook Server (partner payment callbacks) ← **done (**`8084` **/ socket** `9004`**)**
-7. Admin API / Admin Panel (packages, markets, Game Partner Game Coin) ← **auth login/logout/me done via STS**
-8. Message Center (notices and partner push)
-9. Market onboarding and Game Partner Game Coin / pool lock-up
-10. Core Engine and exchange order matching ← **engine skeleton + maintenance done; wire via Client Center**
-11. Health, Docker local env, simulation bot
-12. Hardening and end-to-end validation
+Phases **1–6 v1** below are complete. Remaining deferred work: Redis claim assist (§15), ring-buffer / queue-depth metrics (§23).
+
+1. Database schema and query contracts ← **done** (schema + seed SQL + Docker/init + simulators + DB smoke)
+2. Client registration / login (API + Client Web) ← **done**
+3. E-shop API and frontend (packages, checkout, webhook credit) ← **done**
+4. Shared contracts, Config Server, and Gateway ← **done** (`8090` / `8080` / `9000`)
+5. Session Token Server and Client Center hardening ← **done** (Redis prod path deferred)
+6. Webhook Server (partner payment callbacks) ← **done** (`8084` / `9004`)
+7. Admin API / Admin Panel (packages, markets, Game Partner Game Coin) ← **done**
+8. Message Center (notices and partner push) ← **done**
+9. Market onboarding and Game Partner Game Coin / pool lock-up ← **done**
+10. Core Engine and exchange order matching ← **done**
+11. Health, Docker local env, simulation bot ← **done**
+12. Hardening and end-to-end validation ← **done** (Phase 6 deep E2E; Redis/metrics deferred)
 
 ---
 
@@ -78,20 +80,20 @@ This schedule is derived from the architecture and design documents under `doc` 
 
 
 
-### 4. Dev simulator — **DONE** (seed wiring still open)
+### 4. Dev simulator — **DONE** (v1)
 
 - [x] Create `[dev_simulator/](dev_simulator/)` workspace (see also [doc/dev.md](doc/dev.md)).
 - [x] Complete **payment-gate** — Rust API (`dev_simulator/payment-gate`, port `18100`): shop fiat create/complete + deposit create/complete + webhook callbacks (`source=test`).
 - [x] Complete **company-a-server** — Rust API (`dev_simulator/company-a-server`, port `18102`): OAuth 2.0, Transfer, Item List, optional balance/deposit/withdraw; UML [doc/partner-uml.md](doc/partner-uml.md).
 - [x] Complete **message-queue** — Rust API (`dev_simulator/message-queue`, port `18101`): enqueue / drain / ack aligned with `outbound_notices`.
-- [x] Complete **market-bot** — Rust bot (`dev_simulator/market-bot`, port `18103`): poll Core Engine books, rest liquidity, take for partial/full fills (Gateway/Client Center later).
-- [ ] Wire simulators to seed/demo data (`database/seed/01_demo_data.sql`) and `common/env.sample` IP-style URLs.
+- [x] Complete **market-bot** — Rust bot (`dev_simulator/market-bot`, port `18103`): place take/make via Gateway Session (`GATEWAY_URL`); book/health on Core Engine.
+- [x] Demo seed IDs in `database/seed/01_demo_data.sql` (corp/game/user/transfer); keep simulator env aligned when local strings drift.
 - [x] Document how to run payment-gate + message-queue + company-a-server + market-bot (`dev_simulator/README.md` + per-folder READMEs).
 - [x] Docker Compose for all dev tools: `[dev_simulator/docker-compose.yml](dev_simulator/docker-compose.yml)` (+ Core Engine).
 
 ---
 
-**Flutter frontends (skeleton):** `[frontend/](frontend/)` — `common` (`funnyx_common`), `admin_panel`, `client_web` (envied + **GetX** state/routing; login/register pages; JWT/session token on Session APIs). Partner OAuth UI entry on Client Web still open.
+**Flutter frontends (v1):** `[frontend/](frontend/)` — `common` (`funnyx_common`), `admin_panel`, `client_web` (envied + **GetX**; login/register, Partner OAuth Path B, e-shop, wallet, marketplace).
 
 **Session Token Server (done):** `[backend/session_token_server](backend/session_token_server/)` — sessions + **OAuth 2.0** (platform IdP + Partner broker); port `8082`.
 
@@ -107,7 +109,7 @@ This schedule is derived from the architecture and design documents under `doc` 
 
 **Gateway (done v1):** `[backend/gateway](backend/gateway/)` — public HTTP/socket ingress, Session/Corp/Admin auth gates, reverse proxy to CC/Admin/MC, in-memory registry; port `8080` / socket `9000`.
 
-## Phase 2 - Client Relative (Register First) — **IN PROGRESS**
+## Phase 2 - Client Relative (Register First) — **DONE** (v1)
 
 
 
@@ -153,7 +155,7 @@ This schedule is derived from the architecture and design documents under `doc` 
 
 
 
-## Phase 3 - E-shop API and Frontend — **IN PROGRESS** (Client Center catalog/orders)
+## Phase 3 - E-shop API and Frontend — **DONE** (v1)
 
 Goal: end users can buy **platform fixed** `PLT_`* packages **and** **Corp-created e-shop products** with partner **fiat** payment (HKD/USD); credit/fulfill after webhook. See `doc/e-shop.md` (C2 + C4).
 
@@ -164,7 +166,7 @@ Goal: end users can buy **platform fixed** `PLT_`* packages **and** **Corp-creat
 - [x] Call partner **fiat** payment create API (payment-gate `18100`); store `partner_order_no`.
 - [x] Expose order status query / cancel for Client Web (`GET /v1/shop/orders`, `GET /v1/shop/orders/{id}`, `POST .../cancel`).
 - [x] Keep shop orders outside the Core Engine matching path.
-- [x] Webhook credit/fulfill (step 9); Client Web catalog UI still placeholder.
+- [x] Webhook credit/fulfill (step 9); Client Web catalog UI (step 10).
 
 
 
@@ -175,13 +177,13 @@ Goal: end users can buy **platform fixed** `PLT_`* packages **and** **Corp-creat
 - [x] On paid platform: credit Platform Token once and insert `shop_topup` txn (Postgres).
 - [x] On paid corp: credit coin package; insert `corp_shop_purchase` txn (Postgres; item-only fulfill later).
 - [x] On failed/cancelled: update shop order status without credit/fulfill.
-- [x] Emit `outbound_notices` (`source_type=shop_order`) on settle; Client Web polls order status until Message Center / Gateway exist.
+- [x] Emit `outbound_notices` (`source_type=shop_order`) on settle; Client Web polls order status (Message Center / Gateway Session push also available).
 - [x] Retry failed settle (`retry_count`, backoff 5s/30s/2m/10m, then `dead`).
 - [x] Append `deposit_withdrawal_status_logs` (`event_type=completed`) with money txn insert on paid settle; idempotent backfill on retry.
 
 
 
-### 10. Client Web e-shop UI — **DONE** (wallet page later)
+### 10. Client Web e-shop UI — **DONE**
 
 - [x] Catalog GridView: platform packages + Corp products with fiat prices in base currency.
 - [x] Classic cart + checkout (game account) + payment **DataTable**; pending orders **24h** TTL in Client Center.
@@ -399,7 +401,7 @@ Scripted, repeatable deep paths against local cargo services (payment-gate / com
 | Priority | Focus                                | Reason                                                                                                                                                                  |
 | -------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1        | Database + local simulators          | Stable schema/seeds plus `dev_simulator/` helpers so later APIs can be smoke-tested without live partners                                                               |
-| 2        | Client register/login/OAuth          | **STS + Client Center login/OAuth done**; finish Client Web ↔ CC and Postgres; Partner OAuth + Transfer (+ Item List for Marketplace); Master credentials for Corp APIs |
+| 2        | Client register/login/OAuth          | **STS + Client Center + Client Web done** (Partner OAuth Path B, game bind, wallet); Transfer / Item List for Marketplace via company-a + Session APIs                                      |
 | 3        | E-shop API + frontend                | Delivers the first complete user value path (buy Platform Token)                                                                                                        |
 | 4+       | Gateway, admin, markets, Core Engine | Core Engine local matching already usable; exchange via Gateway/Client Center once top-up path is proven                                                                |
 
