@@ -1,11 +1,3 @@
-mod api;
-mod book;
-mod engine;
-mod notice;
-mod order;
-mod persist;
-mod types;
-
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -14,11 +6,11 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
-use api::{router, AppState};
-use engine::CoreEngine;
-use notice::NoticePublisher;
-use persist::EngineSnapshot;
-use types::TradingPair;
+use funnyx_core_engine::api::{router, AppState};
+use funnyx_core_engine::engine::CoreEngine;
+use funnyx_core_engine::notice::NoticePublisher;
+use funnyx_core_engine::persist::EngineSnapshot;
+use funnyx_core_engine::types::{self, MaintenanceStatus, TradingPair};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -33,14 +25,15 @@ async fn main() -> anyhow::Result<()> {
         .parse()?;
     let engine_id = std::env::var("ENGINE_ID").unwrap_or_else(|_| "core-engine-usdt-1".into());
     let quote_asset = std::env::var("QUOTE_ASSET").unwrap_or_else(|_| "USDT".into());
-    let data_dir = PathBuf::from(
-        std::env::var("DATA_DIR").unwrap_or_else(|_| "./data".into()),
-    );
-    let message_center_url = std::env::var("MESSAGE_CENTER_URL").ok().filter(|s| !s.is_empty());
-    let partner_notice_url = std::env::var("PARTNER_NOTICE_URL").ok().filter(|s| !s.is_empty());
-    let bootstrap_pairs = std::env::var("BOOTSTRAP_PAIRS").unwrap_or_else(|_| {
-        "BTC/USDT,ETH/USDT".into()
-    });
+    let data_dir = PathBuf::from(std::env::var("DATA_DIR").unwrap_or_else(|_| "./data".into()));
+    let message_center_url = std::env::var("MESSAGE_CENTER_URL")
+        .ok()
+        .filter(|s| !s.is_empty());
+    let partner_notice_url = std::env::var("PARTNER_NOTICE_URL")
+        .ok()
+        .filter(|s| !s.is_empty());
+    let bootstrap_pairs =
+        std::env::var("BOOTSTRAP_PAIRS").unwrap_or_else(|_| "BTC/USDT,ETH/USDT".into());
     let save_interval_secs: u64 = std::env::var("SNAPSHOT_INTERVAL_SECS")
         .unwrap_or_else(|_| "30".into())
         .parse()
@@ -53,8 +46,7 @@ async fn main() -> anyhow::Result<()> {
         data_dir.clone(),
         notices,
     );
-    let admin_api_key =
-        std::env::var("ADMIN_API_KEY").unwrap_or_else(|_| "demo-admin-key".into());
+    let admin_api_key = std::env::var("ADMIN_API_KEY").unwrap_or_else(|_| "demo-admin-key".into());
 
     // Startup: restore local snapshot into memory if present; else bootstrap pairs.
     if EngineSnapshot::exists(&data_dir) {
@@ -98,7 +90,7 @@ async fn main() -> anyhow::Result<()> {
         let mut ticker = tokio::time::interval(Duration::from_secs(save_interval_secs.max(5)));
         loop {
             ticker.tick().await;
-            if engine_bg.maintenance_status().await != types::MaintenanceStatus::Running {
+            if engine_bg.maintenance_status().await != MaintenanceStatus::Running {
                 continue;
             }
             if let Err(e) = engine_bg.save_snapshot().await {

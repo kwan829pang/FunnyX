@@ -21,6 +21,7 @@ API index: [api-master.md](../api-master.md). Schedule: [development.md](../deve
 | Local cargo deep E2E checklist (§24 / Phase 6) | [local_e2e_checklist.md](local_e2e_checklist.md) |
 | End-to-end diagrams | [flow_chart.md](flow_chart.md) |
 | Gateway LB + Core Engine matching | [gateway_core_engine_logic.md](gateway_core_engine_logic.md) |
+| Core Engine match + latency tests | §15 below · [`backend/core_engine/tests/`](../backend/core_engine/tests/) |
 | Socket byte protocols | [socket_message.md](socket_message.md) |
 | System constants / enums | [system_type.md](system_type.md) |
 | Dev simulators / local helpers | [dev.md](dev.md) |
@@ -217,6 +218,76 @@ UTC+0 BIGINT timestamps for trades, audits, sessions, messages, and config sync.
 
 ---
 
+## 15. Core Engine testing scripts
+
+Matching design: [gateway_core_engine_logic.md](gateway_core_engine_logic.md). Service notes: [`backend/core_engine/README.md`](../backend/core_engine/README.md).
+
+Integration tests live under [`backend/core_engine/tests/`](../backend/core_engine/tests/). They exercise the real `OrderBook` (**01 Market** / **02 Price**). Pair under test: `UAT/PLT` (base = Testing Game Token `UAT`, quote = Platform Token `PLT`). Each simulated user starts with **100 PLT** and **1000 UAT**.
+
+### 15.1 Order-match simulator
+
+File: [`tests/order_match_sim.rs`](../backend/core_engine/tests/order_match_sim.rs)
+
+Asserts PLT and UAT totals stay conserved. Logging:
+
+| Mode | Flag | Output |
+| --- | --- | --- |
+| Quiet (default) | _(none)_ | Case title + start/end **balance tables** |
+| Detail | `--detail` | Also place / match / order-result / wallet **tables** per step |
+
+| Test | Coverage |
+| --- | --- |
+| `two_users_limit_then_limit_match` | Alice sell limit ↔ Bob buy limit (full fill) |
+| `two_users_limit_then_market_buy` | Alice sell limit ↔ Bob market buy (full fill) |
+| `two_users_maker_partial_fill_rests` | Maker sell partially filled; remainder stays `PartiallyFilled` on the book |
+| `two_users_taker_partial_fill_rests` | Taker limit partially filled; remainder rests as `PartiallyFilled` bid |
+| `two_users_market_partial_then_reject` | Market buys a thin book; filled part settles, leftover is `Rejected` |
+| `three_users_partial_limit_and_market` | Maker goes `PartiallyFilled` after Bob, then Carol market completes it |
+| `three_users_two_asks_price_time_priority` | Better ask first, then same-price time priority |
+| `four_users_mixed_limit_and_market` | Resting bid + asks, market take |
+| `four_users_market_sell_hits_bids` | Market sell walks resting bids |
+
+```bash
+cd backend/core_engine
+# quiet — start + end balances only
+cargo test -p funnyx-core-engine --test order_match_sim
+
+# detail — every place / lock / match step
+cargo test -p funnyx-core-engine --test order_match_sim -- --detail
+```
+
+(`harness = false` so cargo accepts `--detail`. Env `FX_MATCH_DETAIL=1` also turns detail on.)
+
+### 15.2 Place-order and complete-order latency
+
+File: [`tests/order_latency.rs`](../backend/core_engine/tests/order_latency.rs)
+
+Times the `OrderBook` path used by place order (2k warmup + 20k samples). Prints min / avg / p50 / p95 / p99 / max.
+
+| Test | Measures |
+| --- | --- |
+| `latency_place_resting_limit_order` | Place resting Price/limit (no fill) |
+| `latency_complete_order_limit_fill` | Complete — incoming Price/limit full fill |
+| `latency_complete_order_market_fill` | Complete — incoming Market full fill |
+| `latency_place_then_complete_round_trip` | Place maker, then complete with taker |
+| `latency_complete_order_walks_multiple_levels` | Market walks 5 ask levels |
+
+```bash
+cd backend/core_engine
+cargo test -p funnyx-core-engine --test order_latency -- --nocapture
+```
+
+Run both:
+
+```bash
+cd backend/core_engine
+cargo test -p funnyx-core-engine --tests -- --nocapture
+# match sim detail only:
+cargo test -p funnyx-core-engine --test order_match_sim -- --detail
+```
+
+---
+
 ## Related roots (outside `doc/`)
 
 | File | Role |
@@ -227,3 +298,4 @@ UTC+0 BIGINT timestamps for trades, audits, sessions, messages, and config sync.
 | [technology.md](../technology.md) | Stack and Docker nets |
 | [database/](../database/) | PostgreSQL DDL (12 `fx_*` schemas, 48 tables) |
 | [db_config/](../db_config/) | ERD and SQL drafts |
+| [`backend/core_engine/tests/`](../backend/core_engine/tests/) | Match simulator + place/complete latency tests (§15) |

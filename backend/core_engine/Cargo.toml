@@ -20,3 +20,9 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
+
+# Custom harness so `--detail` is accepted (libtest would reject unknown flags).
+[[test]]
+name = "order_match_sim"
+path = "tests/order_match_sim.rs"
+harness = false
