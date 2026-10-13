@@ -1,4 +1,5 @@
 /// Corp onboarding models (Client Center `/v1/corp/*`).
+library;
 
 class CorpDocument {
   const CorpDocument({

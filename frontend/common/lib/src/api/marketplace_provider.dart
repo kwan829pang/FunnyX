@@ -96,7 +96,7 @@ class ClientCenterMarketplaceProvider implements MarketplaceDataProvider {
         '/v1/marketplace/deals/$id',
       );
       final data = res.data;
-      if (data is! Map) throw const ApiError('deal not found');
+      if (data == null) throw const ApiError('deal not found');
       return MarketplaceDeal.fromJson(Map<String, dynamic>.from(data));
     } on DioException catch (e) {
       throw _mapDio(e);
@@ -134,7 +134,7 @@ class ClientCenterMarketplaceProvider implements MarketplaceDataProvider {
         data: body,
       );
       final data = res.data;
-      if (data is! Map) throw const ApiError('invalid place response');
+      if (data == null) throw const ApiError('invalid place response');
       return MarketplaceDeal.fromJson(Map<String, dynamic>.from(data));
     } on DioException catch (e) {
       throw _mapDio(e);
@@ -152,7 +152,7 @@ class ClientCenterMarketplaceProvider implements MarketplaceDataProvider {
         data: {'requester_game_account_id': requesterGameAccountId},
       );
       final data = res.data;
-      if (data is! Map) throw const ApiError('invalid take response');
+      if (data == null) throw const ApiError('invalid take response');
       return MarketplaceDeal.fromJson(Map<String, dynamic>.from(data));
     } on DioException catch (e) {
       throw _mapDio(e);
@@ -166,7 +166,7 @@ class ClientCenterMarketplaceProvider implements MarketplaceDataProvider {
         '/v1/marketplace/deals/$dealId/cancel',
       );
       final data = res.data;
-      if (data is! Map) throw const ApiError('invalid cancel response');
+      if (data == null) throw const ApiError('invalid cancel response');
       return MarketplaceDeal.fromJson(Map<String, dynamic>.from(data));
     } on DioException catch (e) {
       throw _mapDio(e);

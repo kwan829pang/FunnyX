@@ -77,7 +77,8 @@ class _MarketplaceDealPageState extends State<MarketplaceDealPage> {
             const SizedBox(height: 24),
             if (canTake) ...[
               DropdownButtonFormField<GameAccountBinding>(
-                value: _takerAccount,
+                key: ValueKey(_takerAccount?.id ?? 'taker'),
+                initialValue: _takerAccount,
                 decoration: InputDecoration(labelText: l10n.marketplaceYourGameAccount),
                 items: ctrl.gameAccounts
                     .where((a) => a.gameId == deal.gameId)

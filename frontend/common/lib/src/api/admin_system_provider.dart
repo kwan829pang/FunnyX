@@ -407,7 +407,7 @@ class AdminSystemProvider {
           'name': name,
           'coin_amount': coinAmount,
           'fiat_price': fiatPrice,
-          if (status != null) 'status': status,
+          'status': ?status,
         },
       );
       final pkg = res.data?['package'];
@@ -431,8 +431,8 @@ class AdminSystemProvider {
         '/v1/admin/shop/packages/$id',
         data: <String, dynamic>{
           'fiat_price': fiatPrice,
-          if (name != null) 'name': name,
-          if (status != null) 'status': status,
+          'name': ?name,
+          'status': ?status,
         },
       );
       final pkg = res.data?['package'];
@@ -487,8 +487,8 @@ class AdminSystemProvider {
       final res = await api.dio.get<Map<String, dynamic>>(
         '/v1/admin/shop/corp-products',
         queryParameters: <String, dynamic>{
-          if (status != null && status.isNotEmpty) 'status': status,
-          if (corporateUserId != null) 'corporate_user_id': corporateUserId,
+          'status': ?(status != null && status.isNotEmpty ? status : null),
+          'corporate_user_id': ?corporateUserId,
         },
       );
       final raw = res.data?['products'];
@@ -690,9 +690,9 @@ class AdminSystemProvider {
           'source_code': sourceCode,
           'domain_pattern': domainPattern,
           'auth_key_suffix': authKeySuffix,
-          if (ppk != null && ppk.isNotEmpty) 'ppk': ppk,
+          'ppk': ?(ppk != null && ppk.isNotEmpty ? ppk : null),
           'allowed_ips': allowedIps,
-          if (status != null) 'status': status,
+          'status': ?status,
         },
       );
       final item = res.data?['item'];
@@ -720,7 +720,7 @@ class AdminSystemProvider {
           'source_code': sourceCode,
           'domain_pattern': domainPattern,
           'auth_key_suffix': authKeySuffix,
-          if (ppk != null) 'ppk': ppk,
+          'ppk': ?ppk,
           'allowed_ips': allowedIps,
         },
       );
@@ -807,7 +807,7 @@ class AdminSystemProvider {
           'fee_type': feeType,
           'amount': amount,
           'pay_currency': payCurrency,
-          if (licenseYear != null) 'license_year': licenseYear,
+          'license_year': ?licenseYear,
         },
       );
       final fee = res.data?['fee'];
@@ -840,8 +840,8 @@ class AdminSystemProvider {
       final res = await api.dio.patch<Map<String, dynamic>>(
         '/v1/admin/fees/corps/$id/access',
         data: <String, dynamic>{
-          if (apiEnabled != null) 'api_enabled': apiEnabled,
-          if (licenseDeadlineAt != null) 'license_deadline_at': licenseDeadlineAt,
+          'api_enabled': ?apiEnabled,
+          'license_deadline_at': ?licenseDeadlineAt,
         },
       );
       final corp = res.data?['corporate_user'];

@@ -1,4 +1,5 @@
 /// E-shop catalog and order models (Client Center `/v1/shop/*`).
+library;
 
 class ShopPackage {
   const ShopPackage({

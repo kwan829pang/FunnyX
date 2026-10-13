@@ -90,11 +90,12 @@ class ClientCenterShopProvider implements ShopDataProvider {
         '/v1/shop/orders',
         data: <String, dynamic>{
           'seller_type': sellerType,
-          if (packageId != null) 'package_id': packageId,
-          if (corpProductId != null) 'corp_product_id': corpProductId,
+          'package_id': ?packageId,
+          'corp_product_id': ?corpProductId,
           'game_account_id': gameAccountId,
-          if (returnUrl != null && returnUrl.isNotEmpty)
-            'return_url': returnUrl,
+          'return_url': ?(returnUrl != null && returnUrl.isNotEmpty
+              ? returnUrl
+              : null),
         },
       );
       final data = res.data;

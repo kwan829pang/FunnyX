@@ -1,4 +1,5 @@
 /// C7 Marketplace deals (Client Center `/v1/marketplace/*`).
+library;
 
 class MarketplaceEligibility {
   const MarketplaceEligibility({

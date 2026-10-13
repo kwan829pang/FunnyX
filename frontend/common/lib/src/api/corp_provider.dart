@@ -140,7 +140,7 @@ class ClientCenterCorpProvider implements CorpDataProvider {
           'partner_code': partnerCode,
         if (partnerGameId != null && partnerGameId.isNotEmpty)
           'partner_game_id': partnerGameId,
-        if (description != null) 'description': description,
+        'description': ?description,
       };
       if (governmentBytes != null && governmentBytes.isNotEmpty) {
         map['government_approval'] = MultipartFile.fromBytes(

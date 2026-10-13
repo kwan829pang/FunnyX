@@ -64,7 +64,8 @@ class _MarketplacePlacePageState extends State<MarketplacePlacePage> {
           Obx(() {
             final accounts = ctrl.gameAccounts;
             return DropdownButtonFormField<GameAccountBinding>(
-              value: _account,
+              key: ValueKey(_account?.id ?? 'account'),
+              initialValue: _account,
               decoration: InputDecoration(labelText: l10n.shopGameAccount),
               items: accounts
                   .map(
@@ -87,7 +88,8 @@ class _MarketplacePlacePageState extends State<MarketplacePlacePage> {
           }),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _offerType,
+            key: ValueKey('offer_$_offerType'),
+            initialValue: _offerType,
             decoration: InputDecoration(labelText: l10n.marketplaceOfferType),
             items: [
               DropdownMenuItem(value: 'game_coin', child: Text(l10n.marketplaceOfferGameCoin)),
@@ -106,7 +108,8 @@ class _MarketplacePlacePageState extends State<MarketplacePlacePage> {
           if (_offerType == 'game_item')
             Obx(() {
               return DropdownButtonFormField<String>(
-                value: _itemRefId,
+                key: ValueKey(_itemRefId ?? 'item'),
+                initialValue: _itemRefId,
                 decoration: InputDecoration(labelText: l10n.marketplaceItemRef),
                 items: ctrl.items
                     .map(
@@ -133,7 +136,8 @@ class _MarketplacePlacePageState extends State<MarketplacePlacePage> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _wantType,
+            key: ValueKey('want_$_wantType'),
+            initialValue: _wantType,
             decoration: InputDecoration(labelText: l10n.marketplaceWantType),
             items: [
               DropdownMenuItem(value: 'platform_token', child: Text(l10n.marketplaceWantPlt)),

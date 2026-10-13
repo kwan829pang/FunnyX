@@ -152,7 +152,7 @@ class ClientCenterExchangeProvider implements ExchangeDataProvider {
           'quantity': quantity,
           'price': price,
           'game_account_id': gameAccountId,
-          if (marketPairId != null) 'market_pair_id': marketPairId,
+          'market_pair_id': ?marketPairId,
         },
       );
       final order = res.data?['order'];
