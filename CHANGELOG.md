@@ -2,6 +2,10 @@
 
 This is the single project changelog for the frontend work. Older frontend changelog files were merged here to avoid duplicate release notes.
 
+## 0.1.27
+
+- Phase 6 deep E2E: modular checklist [`scripts/e2e/*`](scripts/e2e/) (e-shop + duplicate webhook settle, deposit/withdraw via company-a, market approve + place/cancel, marketplace eligibility gates); demo market `DEMO_COIN/PLT` in seed; runbook [`doc/local_e2e_checklist.md`](doc/local_e2e_checklist.md).
+
 ## 0.1.26
 
 - Gateway failover uses Config Server **socket** heartbeat (`device-status`), not upstream HTTP `/health`; Gateways discover peers from Config listing and PING each other (`INSTANCE_ID` / `SOCKET_ADVERTISE_URL`).

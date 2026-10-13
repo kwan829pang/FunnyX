@@ -10,6 +10,7 @@
 --   - demo game + company coin + game balance
 --   - demo corp e-shop product
 --   - demo end user + game account + wallet
+--   - demo market pair DEMO_COIN/PLT (pending_locked) for Admin approve + Session exchange E2E
 
 \set ON_ERROR_STOP on
 
@@ -235,5 +236,92 @@ ON CONFLICT (game_account_id, game_coin_id) DO UPDATE
 SET available = EXCLUDED.available,
     locked = EXCLUDED.locked,
     updated_at = :demo_ts;
+
+\echo '=== demo: market pair DEMO_COIN/PLT (pending_locked) ==='
+-- Quote = PLT → run Core Engine with QUOTE_ASSET=PLT for local exchange E2E.
+INSERT INTO fx_market.core_engines (id, name, host, status, created_at, updated_at)
+VALUES (1, 'demo-core-engine', 'http://127.0.0.1:18200', 'active', :demo_ts, 0)
+ON CONFLICT (id) DO UPDATE
+SET name = EXCLUDED.name,
+    host = EXCLUDED.host,
+    status = EXCLUDED.status,
+    updated_at = :demo_ts;
+
+SELECT setval(
+    pg_get_serial_sequence('fx_market.core_engines', 'id'),
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_market.core_engines), 1)
+);
+
+INSERT INTO fx_market.market_pairs (
+    id, corporate_user_id, game_id, base_game_coin_id, quote_game_coin_id,
+    market_name, funding_source, engine_id, status, created_at, updated_at
+)
+VALUES (
+    1, 1, 1, 2, 1, 'DEMO_COIN/PLT', 'gamecoin_lockup', 1,
+    'pending_locked', :demo_ts, 0
+)
+ON CONFLICT (id) DO UPDATE
+SET corporate_user_id = EXCLUDED.corporate_user_id,
+    game_id = EXCLUDED.game_id,
+    base_game_coin_id = EXCLUDED.base_game_coin_id,
+    quote_game_coin_id = EXCLUDED.quote_game_coin_id,
+    market_name = EXCLUDED.market_name,
+    funding_source = EXCLUDED.funding_source,
+    engine_id = EXCLUDED.engine_id,
+    -- Keep active if already approved in a prior E2E run.
+    status = CASE
+        WHEN fx_market.market_pairs.status = 'active' THEN 'active'
+        ELSE EXCLUDED.status
+    END,
+    updated_at = :demo_ts;
+
+SELECT setval(
+    pg_get_serial_sequence('fx_market.market_pairs', 'id'),
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_market.market_pairs), 1)
+);
+
+-- Ensure enough locked_balance for Admin approve (consumes lock → pool).
+UPDATE fx_game.game_balances
+SET locked_balance = GREATEST(locked_balance, 1000),
+    updated_at = :demo_ts
+WHERE game_id = 1 AND game_coin_id = 2;
+
+INSERT INTO fx_market.market_balance_locks (
+    id, market_pair_id, game_id, game_coin_id, locked_amount, status, created_at, updated_at
+)
+VALUES (1, 1, 1, 2, 1000, 'locked', :demo_ts, 0)
+ON CONFLICT (id) DO UPDATE
+SET locked_amount = EXCLUDED.locked_amount,
+    status = CASE
+        WHEN fx_market.market_balance_locks.status = 'transferred' THEN 'transferred'
+        ELSE EXCLUDED.status
+    END,
+    updated_at = :demo_ts;
+
+SELECT setval(
+    pg_get_serial_sequence('fx_market.market_balance_locks', 'id'),
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_market.market_balance_locks), 1)
+);
+
+INSERT INTO fx_market.market_pools (
+    id, market_pair_id, pool_depth, initial_price, base_amount, quote_amount,
+    status, created_at, updated_at
+)
+VALUES (1, 1, 1000, 1, 100, 100, 'pending', :demo_ts, 0)
+ON CONFLICT (market_pair_id) DO UPDATE
+SET pool_depth = EXCLUDED.pool_depth,
+    initial_price = EXCLUDED.initial_price,
+    base_amount = EXCLUDED.base_amount,
+    quote_amount = EXCLUDED.quote_amount,
+    status = CASE
+        WHEN fx_market.market_pools.status = 'active' THEN 'active'
+        ELSE EXCLUDED.status
+    END,
+    updated_at = :demo_ts;
+
+SELECT setval(
+    pg_get_serial_sequence('fx_market.market_pools', 'id'),
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_market.market_pools), 1)
+);
 
 \echo '=== demo: 01_demo_data done (development only) ==='

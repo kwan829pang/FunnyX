@@ -10,7 +10,7 @@ This schedule is derived from the architecture and design documents under `doc` 
 | **1. Database**                | **Done (v1)**   | PostgreSQL DDL **done**; Redis/Mongo + env samples **done**; seed SQL **done**; Docker/init **done**; DB smoke script **done**; **dev_simulator** Compose **done**                                                                                         |
 | **2. Client register / login** | **In progress** | **STS** OAuth **done**; **Client Center** login + Postgres identity **done** (`8083`); **Gateway** ingress **done** (`8080`); Client Web shell + wallet UI **done**                                                                     |
 | 3. E-shop API + frontend       | **In progress** | Client Center shop + Webhook settle + Client Web GridView/cart/checkout **done**; wallet UI **done** (`/wallet`)                                                                                                                         |
-| **4+. Platform expansion**     | **Done (v1)**   | Phase 4 + Phase 5 v1: Gateway failover, Docker mesh (`deploy/`), market-bot via Gateway, local/DB smoke scripts                                                                                                                              |
+| **4+. Platform expansion**     | **Done (v1)**   | Phase 4 + Phase 5 v1 + **Phase 6** deep E2E scripts (`scripts/local_e2e_checklist.ps1` / `scripts/e2e/*`)                                                                                                                                    |
 
 
 **PostgreSQL (done):** `[database/](database/)` — **12** `fx_`* schemas, **45** tables, deferred FKs, indexes, `run_all.sql`. Aligned with [db_config/database_relationships.md](db_config/database_relationships.md) (corp incl. supply requests + payment records, game, user, market, market_data/OHLCV, marketplace, shop, corp_token, money + status logs, admin, events/`outbound_notices` + `webhook_endpoints`). Timestamps: BIGINT UTC. Seeds: `[database/seed/](database/seed/)` — `00_seed_data.sql` (live+demo), `01_demo_data.sql` (dev only).
@@ -326,7 +326,7 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 
 
 
-## Phase 5 - Reliability, Local Env, and Hardening — **DONE** (v1; deep E2E paths still open)
+## Phase 5 - Reliability, Local Env, and Hardening — **DONE** (v1)
 
 
 
@@ -363,14 +363,31 @@ After the e-shop vertical slice works, expand the rest of the platform in this o
 
 
 
-### 24. Final integration testing — **PARTIAL** (checklists)
+### 24. Final integration testing — **DONE** (v1; Redis claim assist / ring-buffer metrics still deferred)
 
 - [x] Local cargo checklist: [`scripts/local_e2e_checklist.ps1`](scripts/local_e2e_checklist.ps1) + [`doc/local_e2e_checklist.md`](doc/local_e2e_checklist.md).
 - [x] Docker mesh `/health` smoke: [`scripts/docker_smoke.ps1`](scripts/docker_smoke.ps1); DB smoke: [`scripts/db_smoke.ps1`](scripts/db_smoke.ps1).
-- [ ] E-shop purchase, partner callback, single wallet credit; duplicate webhook does not double-credit (optional env-driven).
-- [ ] Deposit/withdrawal partner path (full).
-- [ ] Market approval and exchange order lifecycle (full).
-- [ ] Marketplace place-deal gates (Platform Token buy + listed game + Transfer API + Item List for game_item).
+- [x] E-shop purchase, partner callback, single wallet credit; duplicate webhook does not double-credit ([`scripts/e2e/shop.ps1`](scripts/e2e/shop.ps1); needs payment-gate + webhook).
+- [x] Deposit/withdrawal partner path ([`scripts/e2e/money.ps1`](scripts/e2e/money.ps1); needs company-a + webhook).
+- [x] Market approval and exchange order lifecycle ([`scripts/e2e/exchange.ps1`](scripts/e2e/exchange.ps1); demo `DEMO_COIN/PLT`, Core Engine `QUOTE_ASSET=PLT`).
+- [x] Marketplace place-deal gates ([`scripts/e2e/marketplace.ps1`](scripts/e2e/marketplace.ps1); eligible place + intentional gate fail).
+
+---
+
+
+
+## Phase 6 - Full E2E validation — **DONE** (v1)
+
+Scripted, repeatable deep paths against local cargo services (payment-gate / company-a / demo seed). No new product features beyond validation glue and demo market seed.
+
+### 25. Deep E2E runner — **DONE**
+
+- [x] Modular runner: [`scripts/local_e2e_checklist.ps1`](scripts/local_e2e_checklist.ps1) + [`scripts/e2e/`](scripts/e2e/) (shop, money, exchange, marketplace).
+- [x] Runbook: [`doc/local_e2e_checklist.md`](doc/local_e2e_checklist.md) (required services, simulators, `QUOTE_ASSET=PLT`).
+- [x] Demo market seed `DEMO_COIN/PLT` (`pending_locked`) in [`database/seed/01_demo_data.sql`](database/seed/01_demo_data.sql) for Admin approve + Session place/cancel.
+- [x] Hard FAIL on required steps; `SKIP` only when optional simulators (payment-gate / company-a) are down.
+
+**Out of Phase 6 (deferred):** Redis claim assist (§15), ring-buffer / queue-depth metrics (§23).
 
 ---
 
