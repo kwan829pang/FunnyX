@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FunnyX — visual map</title>
+  <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="#top">FX</a>
+    <nav>
+      <a href="#status">Status</a>
+      <a href="#layers">Tokens</a>
+      <a href="#map">System</a>
+      <a href="#people">People</a>
+      <a href="#flows">Flows</a>
+      <a href="#parts">Parts</a>
+      <a href="#access">Access</a>
+      <a href="client_portal/">Sign in</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Cross-game token platform</p>
+        <h1>FunnyX</h1>
+        <p class="lede">One root token. Many companies. Many games.</p>
+      </div>
+      <svg class="hero-art" viewBox="0 0 520 420" aria-hidden="true">
+        <defs>
+          <linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#f6d365"/>
+            <stop offset="1" stop-color="#fda085"/>
+          </linearGradient>
+          <linearGradient id="gCyan" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#7ee8fa"/>
+            <stop offset="1" stop-color="#4b6cb7"/>
+          </linearGradient>
+          <linearGradient id="gViolet" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#c084fc"/>
+            <stop offset="1" stop-color="#6366f1"/>
+          </linearGradient>
+        </defs>
+        <circle class="orbit o1" cx="260" cy="210" r="168"/>
+        <circle class="orbit o2" cx="260" cy="210" r="112"/>
+        <circle class="core" cx="260" cy="210" r="58"/>
+        <text x="260" y="206" text-anchor="middle" class="core-label">PLT</text>
+        <text x="260" y="226" text-anchor="middle" class="core-sub">root</text>
+        <g class="sat s1"><circle cx="260" cy="42" r="28"/><text x="260" y="47" text-anchor="middle">Co</text></g>
+        <g class="sat s2"><circle cx="430" cy="250" r="28"/><text x="430" y="255" text-anchor="middle">Co</text></g>
+        <g class="sat s3"><circle cx="100" cy="280" r="28"/><text x="100" y="285" text-anchor="middle">Co</text></g>
+        <g class="chip c1"><rect x="210" y="78" width="36" height="18" rx="6"/><text x="228" y="91" text-anchor="middle">G</text></g>
+        <g class="chip c2"><rect x="368" y="200" width="36" height="18" rx="6"/><text x="386" y="213" text-anchor="middle">G</text></g>
+        <g class="chip c3"><rect x="140" y="230" width="36" height="18" rx="6"/><text x="158" y="243" text-anchor="middle">G</text></g>
+      </svg>
+    </section>
+
+    <section id="status" class="band dark">
+      <h2>Action and status</h2>
+      <p class="lede-sm">Each step names who acts, what they do, and which object changes.</p>
+      <div class="flow-tabs" id="status-tabs">
+        <button type="button" class="on" data-chart="shop">Shop order</button>
+        <button type="button" data-chart="wallet">Game wallet</button>
+        <button type="button" data-chart="market">Market</button>
+        <button type="button" data-chart="deal">Deal</button>
+        <button type="button" data-chart="trade">Exchange</button>
+        <button type="button" data-chart="auth">Sign-in</button>
+      </div>
+      <p class="case-note" id="chart-note"></p>
+      <div class="flow-diagram status-diagram">
+        <canvas id="status-canvas"></canvas>
+      </div>
+    </section>
+
+    <section id="layers" class="band">
+      <h2>Three layers</h2>
+      <ol class="stack">
+        <li class="layer l1">
+          <span class="badge">1</span>
+          <strong>Platform Token</strong>
+          <em>PLT</em>
+          <span class="hint">E-shop packages</span>
+        </li>
+        <li class="arrow" aria-hidden="true"></li>
+        <li class="layer l2">
+          <span class="badge">2</span>
+          <strong>Company Basic Token</strong>
+          <em>per company</em>
+          <span class="hint">Admin approves</span>
+        </li>
+        <li class="arrow" aria-hidden="true"></li>
+        <li class="layer l3">
+          <span class="badge">3</span>
+          <strong>Game Coin</strong>
+          <em>per game</em>
+          <span class="hint">In-game value</span>
+        </li>
+      </ol>
+      <div class="trio">
+        <article>
+          <div class="ico shop"></div>
+          <h3>Shop</h3>
+          <p>Buy PLT with fiat.</p>
+        </article>
+        <article>
+          <div class="ico book"></div>
+          <h3>Exchange</h3>
+          <p>Trade pairs on a book.</p>
+        </article>
+        <article>
+          <div class="ico deal"></div>
+          <h3>Marketplace</h3>
+          <p>List items and coins.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="map" class="band dark">
+      <h2>How requests move</h2>
+      <div class="flow-diagram map-diagram">
+        <canvas id="map-canvas"></canvas>
+      </div>
+    </section>
+
+    <section id="people" class="band">
+      <h2>Who acts with whom</h2>
+      <div class="people">
+        <article class="person">
+          <header>
+            <span class="who player">N</span>
+            <div>
+              <b>Normal user</b>
+              <small>Player on Client Web</small>
+            </div>
+          </header>
+          <ul>
+            <li><em>Platform</em><span>Buy PLT · trade · list a deal · wallet</span></li>
+            <li><em>Company</em><span>Buy that company’s token · play its game</span></li>
+            <li><em>Game partner</em><span>OAuth login · bind a game account</span></li>
+            <li><em>Admin</em><span>No direct call. Admin only approves behind the shop</span></li>
+          </ul>
+        </article>
+        <article class="person">
+          <header>
+            <span class="who corp">C</span>
+            <div>
+              <b>Corp user</b>
+              <small>Company master keys</small>
+            </div>
+          </header>
+          <ul>
+            <li><em>Admin</em><span>Submit company, game, token, market · wait for yes</span></li>
+            <li><em>Platform</em><span>Shop products · lock coin · pay the company fee</span></li>
+            <li><em>Own game server</em><span>OAuth · transfer · item list for players</span></li>
+            <li><em>Normal user</em><span>Their players buy, trade, and take deals</span></li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="flows" class="band">
+      <h2>Three paths</h2>
+      <div class="flow-tabs" id="path-tabs">
+        <button type="button" class="on" data-flow="shop">Buy coin</button>
+        <button type="button" data-flow="trade">Trade</button>
+        <button type="button" data-flow="deal">Deal</button>
+      </div>
+      <div class="flow-diagram" id="steps">
+        <canvas id="flow-canvas"></canvas>
+      </div>
+    </section>
+
+    <section id="parts" class="band">
+      <h2>Pieces</h2>
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <section id="access" class="band">
+      <h2>Who signs in</h2>
+      <div class="auth-row">
+        <article>
+          <b>Player</b>
+          <span>Public login or OAuth</span>
+          <em>Session token</em>
+          <small>Gateway checks Session Token Server</small>
+        </article>
+        <article>
+          <b>Company</b>
+          <span>Master code + Master ID</span>
+          <em>API key + secret</em>
+          <small>Corp APIs via Gateway</small>
+        </article>
+        <article>
+          <b>Admin</b>
+          <span>Admin session token</span>
+          <em>Direct to Admin API</em>
+          <small>Not through Gateway</small>
+        </article>
+        <article>
+          <b>Partner callback</b>
+          <span>Post_Auth hash</span>
+          <em>Webhook :8084</em>
+          <small>Gateway blocks /v1/webhook</small>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="foot-row">
+      <div>
+        <h2>Author</h2>
+        <ul>
+          <li>Kwan PANG</li>
+          <li>Game, Exchange &amp; Survival</li>
+          <li>Hong Kong developer</li>
+          <li>15+ years</li>
+        </ul>
+      </div>
+      <div>
+        <h2>About</h2>
+        <ul>
+          <li>Toy project for study</li>
+          <li>Shows career knowledge</li>
+          <li>University final-year idea</li>
+          <li>Free for learning</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Disclaimer</h2>
+        <ul>
+          <li>Education and experiment</li>
+          <li>Personal learning</li>
+          <li>Legal review before commercial use</li>
+          <li>Legal review before real-money use</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Terms</h2>
+        <ul>
+          <li>Free to study and fork</li>
+          <li>No profit from this project</li>
+          <li>A fork takes a new name</li>
+          <li>Author keeps the FunnyX name</li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+  <script src="js/site.js"></script>
+</body>
+</html>

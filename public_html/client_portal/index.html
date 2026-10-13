@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FunnyX — Sign in</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #171f3a;
+      --ink: #eef2ff;
+      --muted: #9aa6c7;
+      --line: rgba(255, 255, 255, 0.08);
+      --gold: #f6c453;
+      --cyan: #67e8f9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(700px 420px at 80% -10%, rgba(103, 232, 249, 0.16), transparent 60%),
+        radial-gradient(600px 380px at 0% 100%, rgba(167, 139, 250, 0.14), transparent 55%),
+        var(--bg);
+    }
+    .card {
+      width: min(440px, 100%);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 28px 24px 22px;
+    }
+    .mark {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--gold), #fda085);
+      color: #1a1204;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: -0.03em; }
+    p { margin: 0 0 22px; color: var(--muted); line-height: 1.45; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+    input {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #0e1630;
+      color: var(--ink);
+      font: inherit;
+    }
+    .primary, .ghost {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font: inherit;
+      cursor: default;
+    }
+    .primary {
+      border: 0;
+      background: var(--gold);
+      color: #1a1204;
+      font-weight: 700;
+    }
+    .ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .quiet {
+      display: block;
+      margin-top: 14px;
+      text-align: center;
+      color: var(--cyan);
+      font-size: 14px;
+    }
+    .back {
+      display: inline-block;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      text-decoration: none;
+    }
+    .back:hover { color: var(--ink); }
+    .notice {
+      margin: 18px 0 0;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(246, 196, 83, 0.45);
+      background: rgba(246, 196, 83, 0.08);
+      color: var(--gold);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark">FX</div>
+    <h1>FunnyX</h1>
+    <p>Password login, register, or Partner OAuth. Session APIs need a Token Server token.</p>
+    <label>Username
+      <input type="text" name="username" autocomplete="username" />
+    </label>
+    <label>Password
+      <input type="password" name="password" autocomplete="current-password" />
+    </label>
+    <button class="primary" type="button">Login</button>
+    <button class="ghost" type="button">Continue with Partner OAuth</button>
+    <span class="quiet">No account? Register</span>
+    <a class="back" href="../index.html">Back to the map</a>
+    <p class="notice">Placeholder only. Replace this page with the Flutter web release, or with another client website, in this folder.</p>
+  </main>
+</body>
+</html>
