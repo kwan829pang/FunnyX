@@ -80,7 +80,7 @@ impl UserDirectory {
         }
     }
 
-    /// Fill Argon2 hashes for seeded demo users that still have NULL `password_hash`.
+    /// Fill Argon2 hashes for seeded demo end users + corp users with NULL `password_hash`.
     pub async fn ensure_demo_password_hashes(&self) -> anyhow::Result<()> {
         let Some(pool) = &self.pool else {
             return Ok(());
@@ -105,6 +105,24 @@ impl UserDirectory {
             .bind(id)
             .execute(pool)
             .await?;
+        }
+
+        let corp_rows = sqlx::query(crate::query::users::DEMO_CORP_PASSWORD_HASHES)
+            .fetch_all(pool)
+            .await?;
+        for row in corp_rows {
+            let hash: Option<String> = row.get("password_hash");
+            if hash.as_deref().filter(|s| !s.is_empty()).is_some() {
+                continue;
+            }
+            let id: i64 = row.get("id");
+            let hashed = hash_password("demo").map_err(|e| anyhow::anyhow!(e))?;
+            sqlx::query(crate::query::users::UPDATE_CORP_PASSWORD_HASH)
+                .bind(&hashed)
+                .bind(now_ms())
+                .bind(id)
+                .execute(pool)
+                .await?;
         }
         Ok(())
     }

@@ -54,12 +54,17 @@ pub fn domain_matches(pattern: &str, host: &str) -> bool {
 }
 
 pub fn ip_allowed(client_ip: &str, allowed_ips: &str) -> bool {
+    let raw = allowed_ips.trim();
+    // `*` = allow any client (local Docker mesh / demos). Exact match otherwise.
+    if raw == "*" {
+        return true;
+    }
     let ip = normalize_ip(client_ip);
     allowed_ips
         .split(&[',', '|'][..])
         .map(|s| normalize_ip(s.trim()))
         .filter(|s| !s.is_empty())
-        .any(|allowed| allowed == ip)
+        .any(|allowed| allowed == "*" || allowed == ip)
 }
 
 pub fn normalize_ip(ip: &str) -> String {

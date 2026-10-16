@@ -32,6 +32,14 @@ pub mod users {
     pub const UPDATE_PASSWORD_HASH: &str =
         "UPDATE fx_user.end_users SET password_hash = $1, updated_at = $2 WHERE id = $3";
 
+    /// Seeded corp logins (contact_email / master_code); NULL password_hash → fill "demo".
+    pub const DEMO_CORP_PASSWORD_HASHES: &str = "SELECT id, master_code, password_hash \
+             FROM fx_corp.corporate_users \
+             WHERE master_code IN ('DEMO_MASTER_CODE', 'DEMO_CORP_B_CODE')";
+
+    pub const UPDATE_CORP_PASSWORD_HASH: &str =
+        "UPDATE fx_corp.corporate_users SET password_hash = $1, updated_at = $2 WHERE id = $3";
+
     pub const BY_ID: &str = "SELECT id, username, email, password_hash, status \
                      FROM fx_user.end_users WHERE id = $1";
 
