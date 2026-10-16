@@ -5,6 +5,7 @@ import 'package:toastification/toastification.dart';
 
 import '../../controllers/corp_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/corp_shell.dart';
 
 class CorpGameWizardPage extends StatefulWidget {
   const CorpGameWizardPage({super.key});
@@ -36,72 +37,98 @@ class _CorpGameWizardPageState extends State<CorpGameWizardPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final ctrl = Get.find<CorpController>();
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.corpSubmitGame)),
-      body: Center(
+    return CorpShell(
+      title: l10n.corpSubmitGame,
+      showBack: true,
+      child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              Text(l10n.corpGameWizardHint),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _name,
-                decoration: InputDecoration(labelText: l10n.corpGameName),
-              ),
-              TextField(
-                controller: _code,
-                decoration: InputDecoration(labelText: l10n.corpGameCode),
-              ),
-              TextField(
-                controller: _partnerCode,
-                decoration: InputDecoration(labelText: l10n.corpPartnerCode),
-              ),
-              TextField(
-                controller: _partnerGameId,
-                decoration: InputDecoration(labelText: l10n.corpPartnerGameId),
-              ),
-              TextField(
-                controller: _description,
-                maxLines: 3,
-                decoration: InputDecoration(labelText: l10n.corpGameDescription),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => _pick(true),
-                icon: const Icon(Icons.gavel),
-                label: Text(
-                  _gov == null
-                      ? l10n.corpUploadGovDoc
-                      : '${l10n.corpGovSelected}: ${_gov!.name}',
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(l10n.corpGameWizardHint),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _name,
+                        decoration:
+                            InputDecoration(labelText: l10n.corpGameName),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _code,
+                        decoration:
+                            InputDecoration(labelText: l10n.corpGameCode),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _partnerCode,
+                        decoration:
+                            InputDecoration(labelText: l10n.corpPartnerCode),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _partnerGameId,
+                        decoration:
+                            InputDecoration(labelText: l10n.corpPartnerGameId),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _description,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: l10n.corpGameDescription,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => _pick(true),
+                        icon: const Icon(Icons.gavel),
+                        label: Text(
+                          _gov == null
+                              ? l10n.corpUploadGovDoc
+                              : '${l10n.corpGovSelected}: ${_gov!.name}',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: () => _pick(false),
+                        icon: const Icon(Icons.description),
+                        label: Text(
+                          _material == null
+                              ? l10n.corpUploadMaterial
+                              : '${l10n.corpMaterialSelected}: ${_material!.name}',
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Obx(
+                        () => FilledButton(
+                          onPressed: ctrl.loading.value ? null : _submit,
+                          child: Text(l10n.corpSubmitGame),
+                        ),
+                      ),
+                      Obx(() {
+                        final err = ctrl.error.value;
+                        if (err == null) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            err,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => _pick(false),
-                icon: const Icon(Icons.description),
-                label: Text(
-                  _material == null
-                      ? l10n.corpUploadMaterial
-                      : '${l10n.corpMaterialSelected}: ${_material!.name}',
-                ),
-              ),
-              const SizedBox(height: 24),
-              Obx(
-                () => FilledButton(
-                  onPressed: ctrl.loading.value ? null : _submit,
-                  child: Text(l10n.corpSubmitGame),
-                ),
-              ),
-              Obx(() {
-                final err = ctrl.error.value;
-                if (err == null) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(err, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                );
-              }),
             ],
           ),
         ),

@@ -5,6 +5,7 @@ import 'package:toastification/toastification.dart';
 
 import '../../controllers/corp_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/auth_layout.dart';
 
 class CorpRegisterPage extends StatefulWidget {
   const CorpRegisterPage({super.key});
@@ -33,63 +34,75 @@ class _CorpRegisterPageState extends State<CorpRegisterPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final ctrl = Get.find<CorpController>();
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.corpRegisterTitle)),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              Text(l10n.corpRegisterHint),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _company,
-                decoration: InputDecoration(labelText: l10n.corpCompanyName),
-              ),
-              TextField(
-                controller: _contact,
-                decoration: InputDecoration(labelText: l10n.corpContactName),
-              ),
-              TextField(
-                controller: _email,
-                decoration: InputDecoration(labelText: l10n.corpContactEmail),
-              ),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                decoration: InputDecoration(labelText: l10n.password),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _pickBr,
-                icon: const Icon(Icons.upload_file),
-                label: Text(
-                  _br == null ? l10n.corpUploadBr : '${l10n.corpBrSelected}: ${_br!.name}',
-                ),
-              ),
-              const SizedBox(height: 24),
-              Obx(
-                () => FilledButton(
-                  onPressed: ctrl.loading.value ? null : _submit,
-                  child: Text(l10n.corpSubmitRegistration),
-                ),
-              ),
-              Obx(() {
-                final err = ctrl.error.value;
-                if (err == null) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(err, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                );
-              }),
-              TextButton(
-                onPressed: () => Get.toNamed('/corp/login'),
-                child: Text(l10n.corpHaveAccount),
-              ),
-            ],
+    final theme = Theme.of(context);
+    return AuthLayout(
+      corp: true,
+      maxWidth: 520,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.corpRegisterTitle,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(l10n.corpRegisterHint),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _company,
+            decoration: InputDecoration(labelText: l10n.corpCompanyName),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _contact,
+            decoration: InputDecoration(labelText: l10n.corpContactName),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _email,
+            decoration: InputDecoration(labelText: l10n.corpContactEmail),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _password,
+            obscureText: true,
+            decoration: InputDecoration(labelText: l10n.password),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _pickBr,
+            icon: const Icon(Icons.upload_file),
+            label: Text(
+              _br == null
+                  ? l10n.corpUploadBr
+                  : '${l10n.corpBrSelected}: ${_br!.name}',
+            ),
+          ),
+          const SizedBox(height: 24),
+          Obx(
+            () => FilledButton(
+              onPressed: ctrl.loading.value ? null : _submit,
+              child: Text(l10n.corpSubmitRegistration),
+            ),
+          ),
+          Obx(() {
+            final err = ctrl.error.value;
+            if (err == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                err,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            );
+          }),
+          TextButton(
+            onPressed: () => Get.toNamed('/corp/login'),
+            child: Text(l10n.corpHaveAccount),
+          ),
+        ],
       ),
     );
   }

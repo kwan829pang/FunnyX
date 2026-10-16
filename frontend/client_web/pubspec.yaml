@@ -16,6 +16,7 @@ dependencies:
   envied: ^1.1.1
   file_picker: ^8.1.7
   get: ^4.7.2
+  google_fonts: ^6.2.1
   http_parser: ^4.1.2
   intl: any
   toastification: ^3.0.2

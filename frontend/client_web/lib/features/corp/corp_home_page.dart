@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../controllers/corp_controller.dart';
 import '../../controllers/corp_session_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/corp_shell.dart';
 
 class CorpHomePage extends StatefulWidget {
   const CorpHomePage({super.key});
@@ -31,21 +32,11 @@ class _CorpHomePageState extends State<CorpHomePage> {
     final l10n = AppLocalizations.of(context);
     final ctrl = Get.find<CorpController>();
     final session = Get.find<CorpSessionController>();
+    final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.corpHomeTitle),
-        actions: [
-          TextButton(
-            onPressed: () {
-              ctrl.logout();
-              Get.offAllNamed('/corp/login');
-            },
-            child: Text(l10n.logout),
-          ),
-        ],
-      ),
-      body: Obx(() {
+    return CorpShell(
+      title: l10n.corpHomeTitle,
+      child: Obx(() {
         final p = ctrl.profile ?? session.profile.value;
         if (ctrl.loading.value && p == null) {
           return const Center(child: CircularProgressIndicator());
@@ -56,18 +47,33 @@ class _CorpHomePageState extends State<CorpHomePage> {
         return ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Text(p.companyName, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text('${l10n.shopColStatus}: ${p.status}'),
-            if (p.contactEmail != null) Text(p.contactEmail!),
-            Text('${l10n.corpMasterCode}: ${p.masterCode}'),
-            if (session.lastApiSecret.value != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                l10n.corpSecretOnce(session.lastApiSecret.value!),
-                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.companyName,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('${l10n.shopColStatus}: ${p.status}'),
+                    if (p.contactEmail != null) Text(p.contactEmail!),
+                    Text('${l10n.corpMasterCode}: ${p.masterCode}'),
+                    if (session.lastApiSecret.value != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.corpSecretOnce(session.lastApiSecret.value!),
+                        style: TextStyle(color: theme.colorScheme.primary),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ],
+            ),
             if (p.isPending) ...[
               const SizedBox(height: 16),
               Card(
@@ -80,7 +86,7 @@ class _CorpHomePageState extends State<CorpHomePage> {
             if (p.isRejected) ...[
               const SizedBox(height: 16),
               Card(
-                color: Theme.of(context).colorScheme.errorContainer,
+                color: theme.colorScheme.errorContainer,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(p.rejectReason ?? l10n.corpRejected),
@@ -89,22 +95,27 @@ class _CorpHomePageState extends State<CorpHomePage> {
             ],
             if (p.isActive) ...[
               const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () => Get.toNamed('/corp/games/new'),
-                icon: const Icon(Icons.videogame_asset),
-                label: Text(l10n.corpSubmitGame),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  onPressed: () => Get.toNamed('/corp/games/new'),
+                  icon: const Icon(Icons.videogame_asset),
+                  label: Text(l10n.corpSubmitGame),
+                ),
               ),
             ],
             const SizedBox(height: 24),
-            Text(l10n.corpGames, style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.corpGames, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             if (ctrl.games.isEmpty)
               Text(l10n.corpNoGames)
             else
               ...ctrl.games.map(
-                (g) => ListTile(
-                  title: Text('${g.gameName} (${g.gameCode})'),
-                  subtitle: Text(g.status),
+                (g) => Card(
+                  child: ListTile(
+                    title: Text('${g.gameName} (${g.gameCode})'),
+                    subtitle: Text(g.status),
+                  ),
                 ),
               ),
             if (ctrl.error.value != null)
@@ -112,7 +123,7 @@ class _CorpHomePageState extends State<CorpHomePage> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
                   ctrl.error.value!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(color: theme.colorScheme.error),
                 ),
               ),
           ],

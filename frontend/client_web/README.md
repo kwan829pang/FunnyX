@@ -80,6 +80,17 @@ Public/Corp Bearer routes (not end-user session):
 
 Detail: [doc/corp_onboarding.md](../../doc/corp_onboarding.md).
 
+## Themes & layouts
+
+Client Web ships **two** visual systems (see `lib/theme/client_theme.dart`):
+
+| Audience | Theme | Layout shell | Routes |
+| --- | --- | --- | --- |
+| Normal user (shop) | Light e‑commerce look inspired by [NexaraCart `nexara_cart`](https://github.com/Mahmud0808/NexaraCart) — black accent, soft grey, Nunito | `ClientShell` — top bar + rail / bottom nav | `/login`, `/home`, `/wallet`, `/shop`, `/marketplace`, … |
+| Corporate | Slate portal (Source Sans 3) | `CorpShell` — dark sidebar; auth uses `AuthLayout` | `/corp/login`, `/corp/register`, `/corp/home`, `/corp/games/new` |
+
+`ClientThemeController` switches `ThemeData` when the route is under `/corp/*`.
+
 ## App notes
 
 - Public routes: `/login`, `/register`, `/oauth/callback`, `/corp/register`, `/corp/login`

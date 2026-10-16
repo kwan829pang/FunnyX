@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
 import '../controllers/cart_controller.dart';
+import '../controllers/client_theme_controller.dart';
 import '../controllers/corp_controller.dart';
 import '../controllers/corp_session_controller.dart';
 import '../controllers/marketplace_controller.dart';
@@ -22,6 +23,7 @@ class AppBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<AppConfig>(config, permanent: true);
+    Get.put<ClientThemeController>(ClientThemeController(), permanent: true);
     Get.put<SessionController>(SessionController(), permanent: true);
     Get.put<ApiClient>(
       ApiClient(
