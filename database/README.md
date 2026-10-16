@@ -64,7 +64,7 @@ REDIS_URL=redis://127.0.0.1:6379
 MONGO_URL=mongodb://127.0.0.1:27017
 ```
 
-Networks: `funnyx-db-postgres` `172.20.10.0/24`, `funnyx-db-redis` `172.20.11.0/24`, `funnyx-db-mongo` `172.20.12.0/24` ([technology.md](../technology.md) §15). Seed apply: [seed/README.md](seed/README.md) (`run_seed_dev.sql` for local E2E). Smoke: [`scripts/db_smoke.ps1`](../scripts/db_smoke.ps1).
+Networks: `funnyx-db-postgres` `172.33.10.0/24`, `funnyx-db-redis` `172.33.11.0/24`, `funnyx-db-mongo` `172.33.12.0/24` (local compose; avoids overlap with other Docker stacks on `172.20.0.0/16`). Seed apply: [seed/README.md](seed/README.md) (`run_seed_dev.sql` for local E2E). Smoke: [`scripts/db_smoke.ps1`](../scripts/db_smoke.ps1).
 
 ## Layout
 

@@ -23,6 +23,19 @@ cargo run
 
 Default: `http://127.0.0.1:18200` · quote `USDT` · bootstrap `BTC/USDT`, `ETH/USDT` · admin key `demo-admin-key`.
 
+## CPU-only (cloud / Docker)
+
+Matching is **CPU-only** — no GPU/CUDA path. On cloud CPU instances and Docker:
+
+| Knob | Default | Purpose |
+| --- | --- | --- |
+| `CPU_ONLY` | `1` | Cap Tokio workers (max 4 unless `TOKIO_WORKER_THREADS` is set) |
+| `TOKIO_WORKER_THREADS` | `2` in images | Explicit worker count for the host CPU budget |
+| Compose `deploy.resources.limits.cpus` | `2.0` | Cgroup CPU ceiling (`CORE_ENGINE_CPUS`) |
+| Compose `deploy.resources.limits.memory` | `1G` | Memory ceiling (`CORE_ENGINE_MEMORY`) |
+
+Do **not** attach NVIDIA/GPU devices to the `core-engine` service. Override budgets via env when composing, e.g. `CORE_ENGINE_CPUS=4 CORE_ENGINE_TOKIO_WORKER_THREADS=4`.
+
 ## APIs
 
 | Method | Path | Purpose |

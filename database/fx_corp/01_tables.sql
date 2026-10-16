@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS fx_corp.partner_endpoints (
             'deposit',
             'withdrawal',
             'transfer',
+            'item_list',
             'payment',
             'callback'
         )),

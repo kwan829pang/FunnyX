@@ -1,4 +1,4 @@
-ARG RUST_IMAGE=rust:1.88-bookworm
+ARG RUST_IMAGE=rust:1.90-bookworm
 ARG RUNTIME_IMAGE=debian:bookworm-slim
 
 FROM ${RUST_IMAGE} AS builder

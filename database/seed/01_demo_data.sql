@@ -6,52 +6,94 @@
 -- Idempotent: safe to re-run (ON CONFLICT).
 --
 -- Contents (smoke / local demo):
---   - demo corporate user + API key + transfer endpoint
+--   - 2 corporate users + API keys (+ corp A transfer/item_list endpoints)
+--   - 2 platform end users (demo_user, alice_plat) — total 4 demo identities
 --   - demo game + company coin + game balance
 --   - demo corp e-shop product
---   - demo end user + game account + wallet
+--   - demo game accounts + wallets
 --   - demo market pair DEMO_COIN/PLT (pending_locked) for Admin approve + Session exchange E2E
+-- password_hash NULL → Client Center fills Argon2id for password "demo" on boot
 
 \set ON_ERROR_STOP on
 
 -- 2024-01-02T00:00:00.000Z
 \set demo_ts 1704153600000
 
-\echo '=== demo: corporate_users ==='
+\echo '=== demo: corporate_users (2) ==='
 INSERT INTO fx_corp.corporate_users (
     id, company_name, master_code, master_id, status, api_enabled,
-    license_deadline_at, created_at, updated_at
+    license_deadline_at, contact_email, contact_name, password_hash,
+    created_at, updated_at
 )
-VALUES (
+VALUES
+(
     1, 'Demo Game Partner Co.', 'DEMO_MASTER_CODE', 'DEMO_MASTER_ID',
-    'active', TRUE, 0, :demo_ts, 0
+    'active', TRUE, 0,
+    'demo_corp@example.local', 'Demo Corp Admin', NULL,
+    :demo_ts, 0
+),
+(
+    2, 'Second Studio Ltd.', 'DEMO_CORP_B_CODE', 'DEMO_CORP_B_ID',
+    'active', TRUE, 0,
+    'corp_b@example.local', 'Corp B Admin', NULL,
+    :demo_ts, 0
 )
 ON CONFLICT (master_code) DO UPDATE
 SET company_name = EXCLUDED.company_name,
     master_id = EXCLUDED.master_id,
     status = EXCLUDED.status,
     api_enabled = EXCLUDED.api_enabled,
+    contact_email = EXCLUDED.contact_email,
+    contact_name = EXCLUDED.contact_name,
     updated_at = :demo_ts;
 
 SELECT setval(
     pg_get_serial_sequence('fx_corp.corporate_users', 'id'),
-    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_corp.corporate_users), 1)
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_corp.corporate_users), 2)
 );
 
-\echo '=== demo: corp_api_keys ==='
+\echo '=== demo: corp_api_keys (2) ==='
 INSERT INTO fx_corp.corp_api_keys (
     corporate_user_id, api_key, secret_hash, status, created_at, updated_at
 )
-VALUES (
+VALUES
+(
     1, 'demo_api_key_do_not_use_live',
     -- placeholder hash only (not a real secret)
     'demo_secret_hash_placeholder',
+    'active', :demo_ts, 0
+),
+(
+    2, 'demo_api_key_corp_b',
+    'demo_secret_hash_corp_b_placeholder',
     'active', :demo_ts, 0
 )
 ON CONFLICT (api_key) DO UPDATE
 SET secret_hash = EXCLUDED.secret_hash,
     status = EXCLUDED.status,
+    corporate_user_id = EXCLUDED.corporate_user_id,
     updated_at = :demo_ts;
+
+\echo '=== demo: allow partner_endpoints type item_list (idempotent) ==='
+DO $$
+BEGIN
+  ALTER TABLE fx_corp.partner_endpoints DROP CONSTRAINT IF EXISTS partner_endpoints_type_check;
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+ALTER TABLE fx_corp.partner_endpoints DROP CONSTRAINT IF EXISTS partner_endpoints_type_check;
+ALTER TABLE fx_corp.partner_endpoints
+  ADD CONSTRAINT partner_endpoints_type_check
+  CHECK (type IN (
+      'oauth_authorize',
+      'oauth_token',
+      'oauth_userinfo',
+      'deposit',
+      'withdrawal',
+      'transfer',
+      'item_list',
+      'payment',
+      'callback'
+  ));
 
 \echo '=== demo: partner_endpoints (transfer + item_list) ==='
 INSERT INTO fx_corp.partner_endpoints (
@@ -185,16 +227,13 @@ SET name = EXCLUDED.name,
     status = EXCLUDED.status,
     updated_at = :demo_ts;
 
-\echo '=== demo: end_users ==='
+\echo '=== demo: end_users (2) ==='
 INSERT INTO fx_user.end_users (
     id, username, email, password_hash, status, created_at, updated_at
 )
-VALUES (
-    1, 'demo_user', 'demo_user@example.local', NULL, 'active', :demo_ts, 0
-),
-    (
-    2, 'alice_plat', 'alice_plat@example.local', NULL, 'active', :demo_ts, 0
-)
+VALUES
+    (1, 'demo_user', 'demo_user@example.local', NULL, 'active', :demo_ts, 0),
+    (2, 'alice_plat', 'alice_plat@example.local', NULL, 'active', :demo_ts, 0)
 ON CONFLICT (username) DO UPDATE
 SET email = EXCLUDED.email,
     status = EXCLUDED.status,
@@ -205,14 +244,14 @@ SELECT setval(
     GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_user.end_users), 2)
 );
 
-\echo '=== demo: game_accounts ==='
+\echo '=== demo: game_accounts (one per end user) ==='
 INSERT INTO fx_game.game_accounts (
     id, game_id, end_user_id, game_account_id, partner_user_id, bind_source,
     status, created_at, updated_at
 )
-VALUES (
-    1, 1, 1, 'demo_player_9001', 'pu_9001', 'direct', 'active', :demo_ts, 0
-)
+VALUES
+    (1, 1, 1, 'demo_player_9001', 'pu_9001', 'direct', 'active', :demo_ts, 0),
+    (2, 1, 2, 'demo_player_9002', 'pu_9002', 'direct', 'active', :demo_ts, 0)
 ON CONFLICT (game_id, game_account_id) DO UPDATE
 SET end_user_id = EXCLUDED.end_user_id,
     partner_user_id = EXCLUDED.partner_user_id,
@@ -222,7 +261,7 @@ SET end_user_id = EXCLUDED.end_user_id,
 
 SELECT setval(
     pg_get_serial_sequence('fx_game.game_accounts', 'id'),
-    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_game.game_accounts), 1)
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_game.game_accounts), 2)
 );
 
 \echo '=== demo: user_wallets (PLT + DEMO_COIN) ==='
@@ -231,7 +270,9 @@ INSERT INTO fx_user.user_wallets (
 )
 VALUES
     (1, 1, 100, 0, :demo_ts),
-    (1, 2, 50, 0, :demo_ts)
+    (1, 2, 50, 0, :demo_ts),
+    (2, 1, 80, 0, :demo_ts),
+    (2, 2, 40, 0, :demo_ts)
 ON CONFLICT (game_account_id, game_coin_id) DO UPDATE
 SET available = EXCLUDED.available,
     locked = EXCLUDED.locked,

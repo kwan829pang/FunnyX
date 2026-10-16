@@ -9,22 +9,24 @@
 
 name: funnyx-db
 
+# Subnets avoid common Docker defaults (172.17–172.21) that often collide
+# with other local stacks (e.g. 172.20.0.0/16).
 networks:
   funnyx-db-postgres:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.10.0/24
+        - subnet: 172.33.10.0/24
   funnyx-db-redis:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.11.0/24
+        - subnet: 172.33.11.0/24
   funnyx-db-mongo:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.12.0/24
+        - subnet: 172.33.12.0/24
 
 volumes:
   postgres_data:
@@ -37,7 +39,7 @@ services:
     container_name: funnyx-postgres
     networks:
       funnyx-db-postgres:
-        ipv4_address: 172.20.10.10
+        ipv4_address: 172.33.10.10
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     environment:
@@ -61,7 +63,7 @@ services:
     container_name: funnyx-redis
     networks:
       funnyx-db-redis:
-        ipv4_address: 172.20.11.10
+        ipv4_address: 172.33.11.10
     ports:
       - "${REDIS_PORT:-6379}:6379"
     command: ["redis-server", "--appendonly", "yes"]
@@ -80,7 +82,7 @@ services:
     container_name: funnyx-mongo
     networks:
       funnyx-db-mongo:
-        ipv4_address: 172.20.12.10
+        ipv4_address: 172.33.12.10
     ports:
       - "${MONGO_PORT:-27017}:27017"
     volumes:

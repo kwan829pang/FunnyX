@@ -1,5 +1,8 @@
 # FunnyX platform mesh (Phase 5 §21) — run AFTER database/docker-compose.yml.
-# From repo root:
+# Prefer the full stack (DB + platform + simulators):
+#   docker compose -f deploy/docker-compose.all.yml up --build -d
+#
+# Split mode from repo root:
 #   docker compose -f database/docker-compose.yml up -d
 #   docker compose -f deploy/docker-compose.yml up --build -d
 #   docker compose -f deploy/docker-compose.yml down
@@ -42,8 +45,11 @@ services:
     environment:
       <<: *common-env
       HTTP_PORT: "8090"
-      PUBLIC_BASE_URL: http://127.0.0.1:8090
+      PUBLIC_BASE_URL: http://config-server:8090
       SERVICE_NAME: funnyx-config-server
+      WHITELIST_PATH: /config/whitelist.sample.json
+    volumes:
+      - ../config/whitelist.sample.json:/config/whitelist.sample.json:ro
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8090/health"]
       interval: 10s
@@ -66,7 +72,7 @@ services:
     environment:
       <<: *common-env
       HTTP_PORT: "8082"
-      PUBLIC_BASE_URL: http://127.0.0.1:8082
+      PUBLIC_BASE_URL: http://session-token-server:8082
       SERVICE_NAME: funnyx-session-token-server
       SESSION_STORE: memory
     depends_on:
@@ -95,7 +101,7 @@ services:
       <<: *common-env
       HTTP_PORT: "8083"
       SOCKET_PORT: "9001"
-      PUBLIC_BASE_URL: http://127.0.0.1:8083
+      PUBLIC_BASE_URL: http://client-center:8083
       SERVICE_NAME: funnyx-client-center
       SESSION_TOKEN_SERVER_URL: http://session-token-server:8082
       CORE_ENGINE_URL: http://core-engine:18200
@@ -130,7 +136,7 @@ services:
       <<: *common-env
       HTTP_PORT: "18300"
       SOCKET_PORT: "9003"
-      PUBLIC_BASE_URL: http://127.0.0.1:18300
+      PUBLIC_BASE_URL: http://admin-api:18300
       SERVICE_NAME: funnyx-admin-api
       SESSION_TOKEN_SERVER_URL: http://session-token-server:8082
       CORE_ENGINE_URL: http://core-engine:18200
@@ -160,7 +166,7 @@ services:
       <<: *common-env
       HTTP_PORT: "8084"
       SOCKET_PORT: "9004"
-      PUBLIC_BASE_URL: http://127.0.0.1:8084
+      PUBLIC_BASE_URL: http://webhook-server:8084
       SERVICE_NAME: funnyx-webhook-server
       CLIENT_CENTER_URL: http://client-center:8083
     depends_on:
@@ -189,7 +195,7 @@ services:
       <<: *common-env
       HTTP_PORT: "8085"
       SOCKET_PORT: "9005"
-      PUBLIC_BASE_URL: http://127.0.0.1:8085
+      PUBLIC_BASE_URL: http://message-center:8085
       SERVICE_NAME: funnyx-message-center
       GATEWAY_URL: http://gateway:8080
     depends_on:
@@ -204,6 +210,7 @@ services:
     restart: unless-stopped
     extra_hosts: ["host.docker.internal:host-gateway"]
 
+  # CPU-only matching engine — no GPU devices; cgroup caps for cloud/Docker hosts.
   core-engine:
     build:
       context: ../backend/core_engine
@@ -220,6 +227,8 @@ services:
       MESSAGE_CENTER_URL: http://message-center:8085
       RUST_LOG: ${RUST_LOG:-info}
       DATA_DIR: /data
+      CPU_ONLY: "1"
+      TOKIO_WORKER_THREADS: ${CORE_ENGINE_TOKIO_WORKER_THREADS:-2}
     volumes:
       - core_engine_data:/data
     healthcheck:
@@ -229,6 +238,15 @@ services:
       retries: 8
       start_period: 15s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "${CORE_ENGINE_CPUS:-2.0}"
+          memory: ${CORE_ENGINE_MEMORY:-1G}
+        reservations:
+          cpus: "${CORE_ENGINE_CPUS_RESERVE:-0.5}"
+          memory: ${CORE_ENGINE_MEMORY_RESERVE:-256M}
+
 
   gateway:
     build:

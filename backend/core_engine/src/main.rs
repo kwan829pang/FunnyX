@@ -12,12 +12,65 @@ use funnyx_core_engine::notice::NoticePublisher;
 use funnyx_core_engine::persist::EngineSnapshot;
 use funnyx_core_engine::types::{self, MaintenanceStatus, TradingPair};
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+/// Resolve Tokio worker threads for CPU-only cloud/Docker hosts.
+///
+/// Order: `TOKIO_WORKER_THREADS` → capped `available_parallelism` (max 4 when
+/// `CPU_ONLY` is set, which is the default for container images).
+fn worker_threads() -> usize {
+    if let Ok(n) = std::env::var("TOKIO_WORKER_THREADS") {
+        if let Ok(parsed) = n.parse::<usize>() {
+            return parsed.max(1);
+        }
+    }
+    let available = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(2);
+    if cpu_only() {
+        available.min(4).max(1)
+    } else {
+        available.max(1)
+    }
+}
+
+fn cpu_only() -> bool {
+    match std::env::var("CPU_ONLY") {
+        Ok(v) => {
+            let v = v.trim().to_ascii_lowercase();
+            !(v == "0" || v == "false" || v == "no" || v == "off")
+        }
+        // Default on: matching engine never targets GPU accelerators.
+        Err(_) => true,
+    }
+}
+
+fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
+
+    let workers = worker_threads();
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(workers)
+        .enable_all()
+        .build()?;
+
+    rt.block_on(async_main(workers))
+}
+
+async fn async_main(workers: usize) -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive("info".parse()?))
         .init();
+
+    if cpu_only() {
+        tracing::info!(
+            worker_threads = workers,
+            "CPU-only mode (no GPU) — sized for cloud/Docker CPU instances"
+        );
+    } else {
+        tracing::warn!(
+            worker_threads = workers,
+            "CPU_ONLY disabled — still no GPU code path; workers uncapped by CPU_ONLY policy"
+        );
+    }
 
     let host = std::env::var("HTTP_HOST").unwrap_or_else(|_| "0.0.0.0".into());
     let port: u16 = std::env::var("HTTP_PORT")

@@ -1,6 +1,6 @@
 # Shared image for FunnyX local Rust services.
 # Build context = crate directory; pass BIN_NAME (cargo package / binary name).
-ARG RUST_IMAGE=rust:1.88-bookworm
+ARG RUST_IMAGE=rust:1.90-bookworm
 ARG RUNTIME_IMAGE=debian:bookworm-slim
 
 FROM ${RUST_IMAGE} AS builder

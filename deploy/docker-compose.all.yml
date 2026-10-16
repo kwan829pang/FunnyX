@@ -1,0 +1,540 @@
+# FunnyX full local stack — DB + platform + simulators (one network).
+# From repo root:
+#   docker compose -f deploy/docker-compose.all.yml up --build -d
+#   docker compose -f deploy/docker-compose.all.yml down
+#   pwsh -File scripts/docker_up_all.ps1
+#
+# First Postgres boot applies schema (run_all.sql). db-seed then loads
+# seed/run_seed_dev.sql (idempotent). Tear down volumes with:
+#   docker compose -f deploy/docker-compose.all.yml down -v
+
+name: funnyx-all
+
+networks:
+  funnyx-all:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.32.0.0/24
+
+volumes:
+  postgres_data:
+  redis_data:
+  mongo_data:
+  core_engine_data:
+
+x-common-env: &common-env
+  INTERNAL_API_KEY: ${INTERNAL_API_KEY:-demo-internal-key}
+  SESSION_INTERNAL_API_KEY: ${INTERNAL_API_KEY:-demo-internal-key}
+  CONFIG_SERVER_URL: http://config-server:8090
+  RUST_LOG: ${RUST_LOG:-info}
+  POSTGRES_URL: postgres://funnyx:funnyx@postgres:5432/funnyx
+  HTTP_HOST: "0.0.0.0"
+
+x-build-service: &build-service
+  context: ..
+  dockerfile: deploy/Dockerfile.service
+
+services:
+  # ─── stores ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: funnyx-postgres
+    networks: [funnyx-all]
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: funnyx
+      POSTGRES_PASSWORD: funnyx
+      POSTGRES_DB: funnyx
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../database:/ddl:ro
+      - ../database/docker/postgres-init.sh:/docker-entrypoint-initdb.d/01-schema.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U funnyx -d funnyx"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: funnyx-redis
+    networks: [funnyx-all]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: funnyx-mongo
+    networks: [funnyx-all]
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  # Idempotent baseline + demo seed (00 + 01). Re-runs safely on every up.
+  db-seed:
+    image: postgres:16-alpine
+    container_name: funnyx-db-seed
+    networks: [funnyx-all]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../database:/ddl:ro
+    environment:
+      PGPASSWORD: funnyx
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        echo "funnyx db-seed: waiting for postgres (post-init restart window)"
+        i=0
+        while [ "$$i" -lt 60 ]; do
+          if pg_isready -h postgres -U funnyx -d funnyx >/dev/null 2>&1 \
+            && psql -h postgres -U funnyx -d funnyx -c 'SELECT 1' >/dev/null 2>&1; then
+            break
+          fi
+          i=$$((i + 1))
+          sleep 2
+        done
+        if ! psql -h postgres -U funnyx -d funnyx -c 'SELECT 1' >/dev/null 2>&1; then
+          echo "funnyx db-seed: postgres not ready" >&2
+          exit 1
+        fi
+        echo "funnyx db-seed: applying seed/run_seed_dev.sql"
+        cd /ddl
+        psql -h postgres -U funnyx -d funnyx -v ON_ERROR_STOP=1 -f seed/run_seed_dev.sql
+        # Compose mesh callbacks come from container IPs, not 127.0.0.1.
+        psql -h postgres -U funnyx -d funnyx -v ON_ERROR_STOP=1 -c \
+          "UPDATE fx_events.webhook_post_auth SET allowed_ips = '*', updated_at = EXTRACT(EPOCH FROM NOW())::bigint WHERE status = 'active';"
+        echo "funnyx db-seed: complete"
+    restart: "no"
+
+  # ─── platform ─────────────────────────────────────────────────────────────
+  config-server:
+    build:
+      <<: *build-service
+      args:
+        SERVICE_DIR: backend/config_server
+        BIN_NAME: funnyx-config-server
+    image: funnyx/config-server:local
+    container_name: funnyx-config-server
+    networks: [funnyx-all]
+    ports: ["8090:8090"]
+    environment:
+      <<: *common-env
+      HTTP_PORT: "8090"
+      # Mesh-internal URL for Config registry (Gateway upstream pick).
+      PUBLIC_BASE_URL: http://config-server:8090
+      SERVICE_NAME: funnyx-config-server
+      WHITELIST_PATH: /config/whitelist.sample.json
+    volumes:
+      - ../config/whitelist.sample.json:/config/whitelist.sample.json:ro
+    depends_on:
+      db-seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8090/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 20s
+    restart: unless-stopped
+
+  session-token-server:
+    build:
+      <<: *build-service
+      args:
+        SERVICE_DIR: backend/session_token_server
+        BIN_NAME: funnyx-session-token-server
+    image: funnyx/session-token-server:local
+    container_name: funnyx-session-token-server
+    networks: [funnyx-all]
+    ports: ["8082:8082"]
+    environment:
+      <<: *common-env
+      HTTP_PORT: "8082"
+      PUBLIC_BASE_URL: http://session-token-server:8082
+      SERVICE_NAME: funnyx-session-token-server
+      SESSION_STORE: memory
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8082/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 25s
+    restart: unless-stopped
+
+  client-center:
+    build:
+      <<: *build-service
+      args:
+        SERVICE_DIR: backend/client_center
+        BIN_NAME: funnyx-client-center
+    image: funnyx/client-center:local
+    container_name: funnyx-client-center
+    networks: [funnyx-all]
+    ports: ["8083:8083", "9001:9001"]
+    environment:
+      <<: *common-env
+      HTTP_PORT: "8083"
+      SOCKET_PORT: "9001"
+      PUBLIC_BASE_URL: http://client-center:8083
+      SERVICE_NAME: funnyx-client-center
+      SESSION_TOKEN_SERVER_URL: http://session-token-server:8082
+      CORE_ENGINE_URL: http://core-engine:18200
+      MESSAGE_CENTER_URL: http://message-center:8085
+      MONGO_URL: mongodb://mongo:27017
+      MONGO_DB: funnyx_client
+      DEFAULT_PARTNER_ID: partner_2001
+      PARTNER_A_BASE_URL: http://company-a-server:18102
+      PARTNER_A_API_KEY: demo-api-key
+      PAYMENT_GATE_URL: http://payment-gate:18100
+      SHOP_PAYMENT_CALLBACK_URL: http://webhook-server:8084/v1/webhook/shop/payment
+    depends_on:
+      session-token-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      company-a-server:
+        condition: service_healthy
+      payment-gate:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8083/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 35s
+    restart: unless-stopped
+
+  admin-api:
+    build:
+      <<: *build-service
+      args:
+        SERVICE_DIR: backend/admin_api
+        BIN_NAME: funnyx-admin-api
+    image: funnyx/admin-api:local
+    container_name: funnyx-admin-api
+    networks: [funnyx-all]
+    ports: ["18300:18300", "9003:9003"]
+    environment:
+      <<: *common-env
+      HTTP_PORT: "18300"
+      SOCKET_PORT: "9003"
+      PUBLIC_BASE_URL: http://admin-api:18300
+      SERVICE_NAME: funnyx-admin-api
+      SESSION_TOKEN_SERVER_URL: http://session-token-server:8082
+      CORE_ENGINE_URL: http://core-engine:18200
+    depends_on:
+      session-token-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18300/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 35s
+    restart: unless-stopped
+
+  webhook-server:
+    build:
+      <<: *build-service
+      args:
+        SERVICE_DIR: backend/webhook_server
+        BIN_NAME: funnyx-webhook-server
+    image: funnyx/webhook-server:local
+    container_name: funnyx-webhook-server
+    networks: [funnyx-all]
+    ports: ["8084:8084", "9004:9004"]
+    environment:
+      <<: *common-env
+      HTTP_PORT: "8084"
+      SOCKET_PORT: "9004"
+      PUBLIC_BASE_URL: http://webhook-server:8084
+      SERVICE_NAME: funnyx-webhook-server
+      CLIENT_CENTER_URL: http://client-center:8083
+      CALLBACK_SIGNATURE: test-signature
+      POST_AUTH_DEMO_SOURCES: "payment_gate:payment-gate.local:demo_key:ppk_payment_gate:*,partner_2001:api.company-a.local:demo_key:ppk_partner_2001:*"
+    depends_on:
+      client-center:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8084/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 30s
+    restart: unless-stopped
+
+  message-center:
+    build:
+      <<: *build-service
+      args:
+        SERVICE_DIR: backend/message_center
+        BIN_NAME: funnyx-message-center
+    image: funnyx/message-center:local
+    container_name: funnyx-message-center
+    networks: [funnyx-all]
+    ports: ["8085:8085", "9005:9005"]
+    environment:
+      <<: *common-env
+      HTTP_PORT: "8085"
+      SOCKET_PORT: "9005"
+      PUBLIC_BASE_URL: http://message-center:8085
+      SERVICE_NAME: funnyx-message-center
+      GATEWAY_URL: http://gateway:8080
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8085/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 30s
+    restart: unless-stopped
+
+  # CPU-only matching engine — no GPU devices; cgroup caps for cloud/Docker hosts.
+  core-engine:
+    build:
+      context: ../backend/core_engine
+      dockerfile: Dockerfile
+      args:
+        BIN_NAME: funnyx-core-engine
+    image: funnyx/core-engine:local
+    container_name: funnyx-core-engine
+    networks: [funnyx-all]
+    ports: ["18200:18200"]
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18200"
+      ENGINE_ID: core-engine-plt-1
+      QUOTE_ASSET: PLT
+      BOOTSTRAP_PAIRS: DEMO_COIN/PLT
+      MESSAGE_CENTER_URL: http://message-center:8085
+      PARTNER_NOTICE_URL: http://company-a-server:18102/api/callback
+      ADMIN_API_KEY: demo-admin-key
+      DATA_DIR: /data
+      SNAPSHOT_INTERVAL_SECS: "30"
+      RUST_LOG: ${RUST_LOG:-info}
+      CPU_ONLY: "1"
+      TOKIO_WORKER_THREADS: ${CORE_ENGINE_TOKIO_WORKER_THREADS:-2}
+    volumes:
+      - core_engine_data:/data
+    depends_on:
+      message-center:
+        condition: service_healthy
+      company-a-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18200/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 20s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "${CORE_ENGINE_CPUS:-2.0}"
+          memory: ${CORE_ENGINE_MEMORY:-1G}
+        reservations:
+          cpus: "${CORE_ENGINE_CPUS_RESERVE:-0.5}"
+          memory: ${CORE_ENGINE_MEMORY_RESERVE:-256M}
+
+
+  gateway:
+    build:
+      <<: *build-service
+      args:
+        SERVICE_DIR: backend/gateway
+        BIN_NAME: funnyx-gateway
+    image: funnyx/gateway:local
+    container_name: funnyx-gateway
+    networks: [funnyx-all]
+    ports: ["8080:8080", "9000:9000"]
+    environment:
+      <<: *common-env
+      HTTP_PORT: "8080"
+      SOCKET_PORT: "9000"
+      PUBLIC_BASE_URL: http://gateway:8080
+      SERVICE_NAME: funnyx-gateway
+      INSTANCE_ID: gateway-1
+      SOCKET_ADVERTISE_URL: tcp://gateway:9000
+      CLIENT_CENTER_URL: http://client-center:8083
+      ADMIN_API_URL: http://admin-api:18300
+      MESSAGE_CENTER_URL: http://message-center:8085
+      SESSION_TOKEN_SERVER_URL: http://session-token-server:8082
+      REGISTRY_REFRESH_MS: "5000"
+    depends_on:
+      client-center:
+        condition: service_healthy
+      message-center:
+        condition: service_healthy
+      admin-api:
+        condition: service_healthy
+      session-token-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 30s
+    restart: unless-stopped
+
+  # ─── simulators ───────────────────────────────────────────────────────────
+  payment-gate:
+    build:
+      context: ../dev_simulator/payment-gate
+      dockerfile: ../Dockerfile
+      args:
+        BIN_NAME: payment-gate
+    image: funnyx/payment-gate:local
+    container_name: funnyx-payment-gate
+    networks: [funnyx-all]
+    ports: ["18100:18100"]
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18100"
+      PUBLIC_BASE_URL: http://127.0.0.1:18100
+      CALLBACK_SIGNATURE: test-signature
+      POST_AUTH_KEY: demo_key
+      CALLBACK_SOURCE: ppk_payment_gate
+      CALLBACK_HOST: payment-gate.local
+      PAYMENT_TTL_SECS: "1800"
+      RUST_LOG: ${RUST_LOG:-info}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18100/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+  message-queue:
+    build:
+      context: ../dev_simulator/message-queue
+      dockerfile: ../Dockerfile
+      args:
+        BIN_NAME: message-queue
+    image: funnyx/message-queue:local
+    container_name: funnyx-message-queue
+    networks: [funnyx-all]
+    ports: ["18101:18101"]
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18101"
+      RUST_LOG: ${RUST_LOG:-info}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18101/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+  company-a-server:
+    build:
+      context: ../dev_simulator/company-a-server
+      dockerfile: ../Dockerfile
+      args:
+        BIN_NAME: company-a-server
+    image: funnyx/company-a-server:local
+    container_name: funnyx-company-a-server
+    networks: [funnyx-all]
+    ports: ["18102:18102"]
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18102"
+      PUBLIC_BASE_URL: http://127.0.0.1:18102
+      PARTNER_ID: partner_2001
+      COMPANY_NAME: Company A Game Partner
+      API_KEY: demo-api-key
+      OAUTH_CLIENT_ID: company_a_client
+      OAUTH_CLIENT_SECRET: company_a_secret
+      FUNNYX_WEBHOOK_URL: http://webhook-server:8084
+      CALLBACK_SIGNATURE: test-signature
+      POST_AUTH_KEY: demo_key
+      CALLBACK_SOURCE: ppk_partner_2001
+      CALLBACK_HOST: api.company-a.local
+      RUST_LOG: ${RUST_LOG:-info}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18102/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+  market-bot:
+    build:
+      context: ../dev_simulator/market-bot
+      dockerfile: ../Dockerfile
+      args:
+        BIN_NAME: market-bot
+    image: funnyx/market-bot:local
+    container_name: funnyx-market-bot
+    networks: [funnyx-all]
+    ports: ["18103:18103"]
+    environment:
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "18103"
+      CORE_ENGINE_URL: http://core-engine:18200
+      GATEWAY_URL: http://gateway:8080
+      BOT_USERNAME: demo_user
+      BOT_PASSWORD: demo
+      GAME_ACCOUNT_ID: "1"
+      SYMBOLS: DEMO_COIN/PLT
+      POLL_INTERVAL_MS: "800"
+      JITTER_MS: "1200"
+      MIN_QTY: "1"
+      MAX_QTY: "3"
+      DEFAULT_PRICE: "1"
+      TAKE_PARTIAL_PCT: "40"
+      TAKE_FULL_PCT: "25"
+      MAKE_PCT: "25"
+      ACCOUNT_ID: market_bot
+      END_USER_ID: "9001"
+      RUST_LOG: ${RUST_LOG:-info}
+    depends_on:
+      gateway:
+        condition: service_healthy
+      core-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18103/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped

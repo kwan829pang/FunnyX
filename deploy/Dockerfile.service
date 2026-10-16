@@ -1,22 +1,24 @@
 # Build any FunnyX backend crate that depends on common/ (context = repo root).
 # Args: SERVICE_DIR (e.g. backend/gateway), BIN_NAME (e.g. funnyx-gateway)
-ARG RUST_IMAGE=rust:1.88-bookworm
+# Layout mirrors repo paths so Cargo.toml `../../common/...` resolves.
+ARG RUST_IMAGE=rust:1.90-bookworm
 ARG RUNTIME_IMAGE=debian:bookworm-slim
 
 FROM ${RUST_IMAGE} AS builder
 ARG SERVICE_DIR
 WORKDIR /app
 COPY common /app/common
-COPY ${SERVICE_DIR} /app/service
-WORKDIR /app/service
+COPY ${SERVICE_DIR} /app/${SERVICE_DIR}
+WORKDIR /app/${SERVICE_DIR}
 RUN cargo build --release
 
 FROM ${RUNTIME_IMAGE}
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
+ARG SERVICE_DIR
 ARG BIN_NAME
-COPY --from=builder /app/service/target/release/${BIN_NAME} /usr/local/bin/service
+COPY --from=builder /app/${SERVICE_DIR}/target/release/${BIN_NAME} /usr/local/bin/service
 ENV HTTP_HOST=0.0.0.0
 ENV RUST_LOG=info
 ENTRYPOINT ["/usr/local/bin/service"]

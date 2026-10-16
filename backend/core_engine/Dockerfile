@@ -1,5 +1,6 @@
-# FunnyX Core Engine — same layout as dev_simulator/Dockerfile
-ARG RUST_IMAGE=rust:1.88-bookworm
+# FunnyX Core Engine — CPU-only matching (no GPU / CUDA).
+# Intended for cloud CPU instances and Docker. Do not attach nvidia devices.
+ARG RUST_IMAGE=rust:1.90-bookworm
 ARG RUNTIME_IMAGE=debian:bookworm-slim
 
 FROM ${RUST_IMAGE} AS builder
@@ -18,5 +19,8 @@ COPY --from=builder /app/target/release/${BIN_NAME} /usr/local/bin/service
 ENV HTTP_HOST=0.0.0.0
 ENV RUST_LOG=info
 ENV DATA_DIR=/data
+# CPU-only policy for cloud/Docker (no GPU reservation in compose either).
+ENV CPU_ONLY=1
+ENV TOKIO_WORKER_THREADS=2
 EXPOSE 18200
 ENTRYPOINT ["/usr/local/bin/service"]

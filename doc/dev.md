@@ -51,11 +51,17 @@ The bot is intended to operate with random timing intervals so that the platform
 
 ## 4. Local Development (Docker-based)
 
-**Scope:** this section is **DB stores + `dev_simulator`** only. Platform cargo/Docker mesh (Gateway, Client Center, Webhook, …) → [`deploy/README.md`](../deploy/README.md). Deep E2E against cargo services → [`local_e2e_checklist.md`](local_e2e_checklist.md).
+**Recommended:** full stack (DB + platform + simulators) → [`deploy/docker-compose.all.yml`](../deploy/docker-compose.all.yml) / [`deploy/README.md`](../deploy/README.md). Deep E2E → [`local_e2e_checklist.md`](local_e2e_checklist.md).
 
-### 4.1 Shared DB stores
+```bash
+# From repo root
+docker compose -f deploy/docker-compose.all.yml up --build -d
+# Or: pwsh -File scripts/docker_up_all.ps1
+```
 
-PostgreSQL + Redis + MongoDB under [`database/docker-compose.yml`](../database/docker-compose.yml). First Postgres boot applies schema (`run_all.sql`) only — no seed. Apply seeds after boot (canonical: [`database/seed/README.md`](../database/seed/README.md)); local E2E needs `run_seed_dev.sql` (00 + 01).
+### 4.1 Shared DB stores (split)
+
+PostgreSQL + Redis + MongoDB under [`database/docker-compose.yml`](../database/docker-compose.yml). First Postgres boot applies schema (`run_all.sql`) only — no seed. Apply seeds after boot (canonical: [`database/seed/README.md`](../database/seed/README.md)); local E2E needs `run_seed_dev.sql` (00 + 01). Skip this if you use `docker-compose.all.yml` (it seeds automatically).
 
 ```bash
 cd database
@@ -71,11 +77,11 @@ docker compose up -d
 | `funnyx-redis` | `6379` | AOF |
 | `funnyx-mongo` | `27017` | Local, no auth |
 
-Networks: `172.20.10.0/24` · `172.20.11.0/24` · `172.20.12.0/24`. Details: [`database/README.md`](../database/README.md).
+Networks: `172.33.10.0/24` · `172.33.11.0/24` · `172.33.12.0/24`. Details: [`database/README.md`](../database/README.md).
 
-### 4.2 Dev simulators + Core Engine
+### 4.2 Dev simulators + Core Engine (split)
 
-Dev simulators + Core Engine compose stack lives under [`dev_simulator/docker-compose.yml`](../dev_simulator/docker-compose.yml).
+Simulators-only compose under [`dev_simulator/docker-compose.yml`](../dev_simulator/docker-compose.yml). Do not run together with `docker-compose.all.yml` (name collisions). Prefer the full stack for partner/payment/market-bot wired to Gateway + Webhook.
 
 ```bash
 cd dev_simulator
