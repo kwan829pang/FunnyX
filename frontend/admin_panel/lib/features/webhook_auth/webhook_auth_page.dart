@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 
 import '../../controllers/webhook_auth_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/page_frame.dart';
+import '../../widgets/scrollable_data_table.dart';
 
 class WebhookAuthPage extends GetView<WebhookAuthController> {
   const WebhookAuthPage({super.key});
@@ -22,7 +24,7 @@ class WebhookAuthPage extends GetView<WebhookAuthController> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text(existing == null ? 'Create Post_Auth' : 'Edit Post_Auth'),
+          title: Text(existing == null ? 'Create auth mapping' : 'Edit auth mapping'),
           content: SizedBox(
             width: 480,
             child: SingleChildScrollView(
@@ -107,101 +109,82 @@ class WebhookAuthPage extends GetView<WebhookAuthController> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Webhook Post_Auth',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ),
-              IconButton(
-                onPressed: controller.reload,
-                icon: const Icon(Icons.refresh),
-              ),
-              FilledButton.icon(
-                onPressed: () => _showForm(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Create'),
-              ),
+    return PageFrame(
+      title: 'Webhook auth',
+      subtitle:
+          'Inbound partner callback auth (source, domain, IP allowlist, auth key).',
+      actions: [
+        IconButton(
+          onPressed: controller.reload,
+          icon: const Icon(Icons.refresh),
+        ),
+        FilledButton.icon(
+          onPressed: () => _showForm(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Create'),
+        ),
+      ],
+      child: Obx(() {
+        if (controller.loading.value && controller.items.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final rows = controller.items;
+        if (rows.isEmpty) {
+          return const Center(child: Text('No auth mappings yet'));
+        }
+        return ScrollableDataTable(
+          table: DataTable(
+            columns: [
+              const DataColumn(label: Text('source_code')),
+              const DataColumn(label: Text('domain')),
+              const DataColumn(label: Text('suffix')),
+              const DataColumn(label: Text('ppk')),
+              const DataColumn(label: Text('allowed_ips')),
+              DataColumn(label: Text(l10n.status)),
+              DataColumn(label: Text(l10n.actions)),
             ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Inbound partner auth mapping (source / domain / IP / auth key).',
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Obx(() {
-              if (controller.loading.value && controller.items.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final rows = controller.items;
-              if (rows.isEmpty) {
-                return const Center(child: Text('No Post_Auth rows'));
-              }
-              return SingleChildScrollView(
-                child: DataTable(
-                  columns: [
-                    const DataColumn(label: Text('source_code')),
-                    const DataColumn(label: Text('domain')),
-                    const DataColumn(label: Text('suffix')),
-                    const DataColumn(label: Text('ppk')),
-                    const DataColumn(label: Text('allowed_ips')),
-                    DataColumn(label: Text(l10n.status)),
-                    DataColumn(label: Text(l10n.actions)),
-                  ],
-                  rows: [
-                    for (final row in rows)
-                      DataRow(
-                        cells: [
-                          DataCell(Text(row.sourceCode)),
-                          DataCell(Text(row.domainPattern)),
-                          DataCell(Text(row.authKeySuffix)),
-                          DataCell(Text(row.ppk ?? '—')),
-                          DataCell(Text(row.allowedIps)),
-                          DataCell(Text(row.status)),
-                          DataCell(
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  tooltip: 'Edit',
-                                  onPressed: () =>
-                                      _showForm(context, existing: row),
-                                  icon: const Icon(Icons.edit_outlined),
-                                ),
-                                PopupMenuButton<String>(
-                                  onSelected: (s) =>
-                                      controller.setStatus(row, s),
-                                  itemBuilder: (_) => [
-                                    PopupMenuItem(
-                                      value: 'active',
-                                      child: Text(l10n.statusActive),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'inactive',
-                                      child: Text(l10n.statusInactive),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+            rows: [
+              for (final row in rows)
+                DataRow(
+                  cells: [
+                    DataCell(Text(row.sourceCode)),
+                    DataCell(Text(row.domainPattern)),
+                    DataCell(Text(row.authKeySuffix)),
+                    DataCell(Text(row.ppk ?? '—')),
+                    DataCell(Text(row.allowedIps)),
+                    DataCell(Text(row.status)),
+                    DataCell(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Edit',
+                            onPressed: () =>
+                                _showForm(context, existing: row),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                          PopupMenuButton<String>(
+                            onSelected: (s) => controller.setStatus(row, s),
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                value: 'active',
+                                child: Text(l10n.statusActive),
+                              ),
+                              PopupMenuItem(
+                                value: 'inactive',
+                                child: Text(l10n.statusInactive),
+                              ),
+                            ],
                           ),
                         ],
                       ),
+                    ),
                   ],
                 ),
-              );
-            }),
+            ],
           ),
-        ],
-      ),
+        );
+      }),
     );
   }
 }

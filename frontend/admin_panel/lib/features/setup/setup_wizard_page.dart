@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../controllers/setup_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/admin_theme.dart';
 
 /// First-run wizard for required system variables (base fiat + PLT prices).
 class SetupWizardPage extends GetView<SetupController> {
@@ -12,6 +13,7 @@ class SetupWizardPage extends GetView<SetupController> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
+      backgroundColor: AdminColors.bg,
       appBar: AppBar(
         title: Text(l10n.setupWizardTitle),
       ),
@@ -23,59 +25,77 @@ class SetupWizardPage extends GetView<SetupController> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    l10n.setupWizardSubtitle,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  Obx(
-                    () => Stepper(
-                      currentStep: controller.step.value,
-                      onStepTapped: (i) => controller.step.value = i,
-                      controlsBuilder: (context, details) {
-                        return const SizedBox.shrink();
-                      },
-                      steps: [
-                        Step(
-                          title: Text(l10n.setupStepWelcome),
-                          isActive: controller.step.value >= 0,
-                          state: controller.step.value > 0
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _WelcomeStep(l10n: l10n),
-                        ),
-                        Step(
-                          title: Text(l10n.setupStepBaseFiat),
-                          isActive: controller.step.value >= 1,
-                          state: (controller.setup.value?.baseFiatReady ?? false)
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _BaseFiatStep(l10n: l10n),
-                        ),
-                        Step(
-                          title: Text(l10n.setupStepPackages),
-                          isActive: controller.step.value >= 2,
-                          state: (controller.setup.value?.packagesReady ?? false)
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _PackagesStep(l10n: l10n),
-                        ),
-                        Step(
-                          title: Text(l10n.setupStepConfirm),
-                          isActive: controller.step.value >= 3,
-                          state: (controller.setup.value?.initialized ?? false)
-                              ? StepState.complete
-                              : StepState.indexed,
-                          content: _ConfirmStep(l10n: l10n),
-                        ),
-                      ],
+              padding: const EdgeInsets.all(AdminColors.padding),
+              child: Container(
+                padding: const EdgeInsets.all(AdminColors.padding),
+                decoration: BoxDecoration(
+                  color: AdminColors.secondary,
+                  borderRadius:
+                      BorderRadius.circular(AdminColors.radius),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l10n.setupWizardSubtitle,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.white70,
+                          ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: Obx(
+                        () => Stepper(
+                          currentStep: controller.step.value,
+                          onStepTapped: (i) => controller.step.value = i,
+                          controlsBuilder: (context, details) {
+                            return const SizedBox.shrink();
+                          },
+                          steps: [
+                            Step(
+                              title: Text(l10n.setupStepWelcome),
+                              isActive: controller.step.value >= 0,
+                              state: controller.step.value > 0
+                                  ? StepState.complete
+                                  : StepState.indexed,
+                              content: _WelcomeStep(l10n: l10n),
+                            ),
+                            Step(
+                              title: Text(l10n.setupStepBaseFiat),
+                              isActive: controller.step.value >= 1,
+                              state:
+                                  (controller.setup.value?.baseFiatReady ??
+                                          false)
+                                      ? StepState.complete
+                                      : StepState.indexed,
+                              content: _BaseFiatStep(l10n: l10n),
+                            ),
+                            Step(
+                              title: Text(l10n.setupStepPackages),
+                              isActive: controller.step.value >= 2,
+                              state:
+                                  (controller.setup.value?.packagesReady ??
+                                          false)
+                                      ? StepState.complete
+                                      : StepState.indexed,
+                              content: _PackagesStep(l10n: l10n),
+                            ),
+                            Step(
+                              title: Text(l10n.setupStepConfirm),
+                              isActive: controller.step.value >= 3,
+                              state:
+                                  (controller.setup.value?.initialized ?? false)
+                                      ? StepState.complete
+                                      : StepState.indexed,
+                              content: _ConfirmStep(l10n: l10n),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

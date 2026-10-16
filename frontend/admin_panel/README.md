@@ -2,6 +2,10 @@
 
 Flutter Web admin UI for the platform control plane. Shared code lives under [`../common`](../common) and the shared setup steps are kept in [`../setup-reference.md`](../setup-reference.md).
 
+## UI
+
+Dark shell inspired by [smart-admin-dashboard](https://github.com/deniscolak/smart-admin-dashboard) (sidebar drawer, split login, mini dashboard cards, card-framed tables). Theme lives in `lib/theme/admin_theme.dart` — GetX routes and Admin API providers are unchanged. `ThemeMode.dark` only (does not affect Client Web).
+
 ## Auth
 
 Admin Panel calls **Admin API directly** (default `http://127.0.0.1:18300`) — not via Gateway. Gateway remains for Client Web / Partner public ingress and validates session tokens on Session Token Server.
@@ -35,7 +39,8 @@ Demo: `seed_admin` / `demo` (or `admin` / `demo`; `viewer` / `demo` is read-limi
 ## App notes
 
 - Public route: `/login`
-- Session routes: `/dashboard`, `/markets`, `/corp-onboard`, `/webhook-auth`, `/fees`, `/setup`
+- Session routes: `/dashboard`, `/markets`, `/corp-onboard`, `/webhook-auth`, `/fees`
+- **System setup** (`/setup`) only appears in the nav until first-time init completes; after that the link is hidden and `/setup` redirects to the dashboard
 - State and routing use **GetX** (`AdminApiAuthProvider`)
 - Locales: `en`, `zh_TW`, `zh_CN`
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../controllers/corp_onboard_controller.dart';
+import '../../widgets/page_frame.dart';
 
 class CorpOnboardPage extends StatefulWidget {
   const CorpOnboardPage({super.key});
@@ -32,16 +33,12 @@ class _CorpOnboardPageState extends State<CorpOnboardPage>
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<CorpOnboardController>();
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return PageFrame(
+      title: 'Corp onboarding',
+      subtitle: 'Approve or reject pending companies (BR) and games.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Corp onboarding',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
           TabBar(
             controller: _tabs,
             tabs: const [

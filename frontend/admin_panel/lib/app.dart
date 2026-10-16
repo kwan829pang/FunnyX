@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import 'l10n/app_localizations.dart';
 import 'routes/app_pages.dart';
+import 'theme/admin_theme.dart';
 
 class AdminApp extends StatelessWidget {
   const AdminApp({super.key});
@@ -14,9 +15,10 @@ class AdminApp extends StatelessWidget {
     final config = Get.find<AppConfig>();
     return GetMaterialApp(
       title: config.appName,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      debugShowCheckedModeBanner: false,
+      theme: AdminTheme.dark(),
+      darkTheme: AdminTheme.dark(),
+      themeMode: ThemeMode.dark,
       initialRoute: AppPages.initial,
       getPages: AppPages.routes,
       locale: const Locale('en'),

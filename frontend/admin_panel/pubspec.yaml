@@ -15,6 +15,7 @@ dependencies:
   dio: ^5.8.0
   envied: ^1.1.1
   get: ^4.7.2
+  google_fonts: ^6.2.1
   intl: any
   toastification: ^3.0.2
   funnyx_common:

@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 import '../../controllers/packages_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/page_frame.dart';
+import '../../widgets/scrollable_data_table.dart';
 
 class PackagesPage extends GetView<PackagesController> {
   const PackagesPage({super.key});
@@ -74,98 +76,81 @@ class PackagesPage extends GetView<PackagesController> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.packages,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ),
-              IconButton(
-                onPressed: controller.reload,
-                icon: const Icon(Icons.refresh),
-              ),
-              FilledButton.icon(
-                onPressed: () => _showCreateDialog(context),
-                icon: const Icon(Icons.add),
-                label: Text(l10n.packagesCreate),
-              ),
+    return PageFrame(
+      title: l10n.packages,
+      subtitle: l10n.packagesHint,
+      actions: [
+        IconButton(
+          onPressed: controller.reload,
+          icon: const Icon(Icons.refresh),
+        ),
+        FilledButton.icon(
+          onPressed: () => _showCreateDialog(context),
+          icon: const Icon(Icons.add),
+          label: Text(l10n.packagesCreate),
+        ),
+      ],
+      child: Obx(() {
+        if (controller.loading.value && controller.packages.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final rows = controller.packages;
+        if (rows.isEmpty) {
+          return Center(child: Text(l10n.packagesEmpty));
+        }
+        return ScrollableDataTable(
+          table: DataTable(
+            columns: [
+              DataColumn(label: Text(l10n.packagesCode)),
+              DataColumn(label: Text(l10n.packagesName)),
+              DataColumn(label: Text(l10n.packagesCoinAmount)),
+              DataColumn(label: Text(l10n.setupFiatPrice)),
+              DataColumn(label: Text(l10n.status)),
+              DataColumn(label: Text(l10n.actions)),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(l10n.packagesHint),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Obx(() {
-              if (controller.loading.value && controller.packages.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final rows = controller.packages;
-              if (rows.isEmpty) {
-                return Center(child: Text(l10n.packagesEmpty));
-              }
-              return SingleChildScrollView(
-                child: DataTable(
-                  columns: [
-                    DataColumn(label: Text(l10n.packagesCode)),
-                    DataColumn(label: Text(l10n.packagesName)),
-                    DataColumn(label: Text(l10n.packagesCoinAmount)),
-                    DataColumn(label: Text(l10n.setupFiatPrice)),
-                    DataColumn(label: Text(l10n.status)),
-                    DataColumn(label: Text(l10n.actions)),
-                  ],
-                  rows: [
-                    for (final p in rows)
-                      DataRow(
-                        cells: [
-                          DataCell(Text(p.code)),
-                          DataCell(Text(p.name)),
-                          DataCell(Text(p.coinAmount.toStringAsFixed(0))),
-                          DataCell(
-                            SizedBox(
-                              width: 100,
-                              child: _PriceEditor(
-                                key: ValueKey('price-${p.id}-${p.fiatPrice}'),
-                                initial: p.fiatPrice.toString(),
-                                onSave: (v) => controller.savePrice(p, v),
-                              ),
-                            ),
+            rows: [
+              for (final p in rows)
+                DataRow(
+                  cells: [
+                    DataCell(Text(p.code)),
+                    DataCell(Text(p.name)),
+                    DataCell(Text(p.coinAmount.toStringAsFixed(0))),
+                    DataCell(
+                      SizedBox(
+                        width: 100,
+                        child: _PriceEditor(
+                          key: ValueKey('price-${p.id}-${p.fiatPrice}'),
+                          initial: p.fiatPrice.toString(),
+                          onSave: (v) => controller.savePrice(p, v),
+                        ),
+                      ),
+                    ),
+                    DataCell(Text(p.status)),
+                    DataCell(
+                      PopupMenuButton<String>(
+                        onSelected: (s) => controller.setStatus(p, s),
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'active',
+                            child: Text(l10n.statusActive),
                           ),
-                          DataCell(Text(p.status)),
-                          DataCell(
-                            PopupMenuButton<String>(
-                              onSelected: (s) => controller.setStatus(p, s),
-                              itemBuilder: (_) => [
-                                PopupMenuItem(
-                                  value: 'active',
-                                  child: Text(l10n.statusActive),
-                                ),
-                                PopupMenuItem(
-                                  value: 'inactive',
-                                  child: Text(l10n.statusInactive),
-                                ),
-                                PopupMenuItem(
-                                  value: 'archived',
-                                  child: Text(l10n.statusArchived),
-                                ),
-                              ],
-                            ),
+                          PopupMenuItem(
+                            value: 'inactive',
+                            child: Text(l10n.statusInactive),
+                          ),
+                          PopupMenuItem(
+                            value: 'archived',
+                            child: Text(l10n.statusArchived),
                           ),
                         ],
                       ),
+                    ),
                   ],
                 ),
-              );
-            }),
+            ],
           ),
-        ],
-      ),
+        );
+      }),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../controllers/fees_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/page_frame.dart';
 
 class FeesPage extends GetView<FeesController> {
   const FeesPage({super.key});
@@ -187,44 +188,29 @@ class FeesPage extends GetView<FeesController> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Fees & license',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ),
-              FilledButton.icon(
-                onPressed: () => _createFee(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Create fee'),
-              ),
-              IconButton(
-                onPressed: controller.reload,
-                icon: const Icon(Icons.refresh),
-              ),
-            ],
+    return Obx(() {
+      final c = controller.catalog;
+      final y1 = c['year1_package'] ?? 80000;
+      final ren = c['license_renewal'] ?? 10000;
+      final pair = c['new_pair'] ?? 10000;
+      return PageFrame(
+        title: 'Fees & license',
+        subtitle:
+            'Fee schedule: Year-1 $y1 / renewal $ren / extra pair $pair '
+            '(HKD, USD, or USDT). Turn off API access to block partner APIs '
+            '(including new market submissions).',
+        actions: [
+          FilledButton.icon(
+            onPressed: () => _createFee(context),
+            icon: const Icon(Icons.add),
+            label: const Text('Create fee'),
           ),
-          const SizedBox(height: 8),
-          Obx(() {
-            final c = controller.catalog;
-            final y1 = c['year1_package'] ?? 80000;
-            final ren = c['license_renewal'] ?? 10000;
-            final pair = c['new_pair'] ?? 10000;
-            return Text(
-              'C6/C9 catalog: Year-1 $y1 / renewal $ren / extra pair $pair (HKD/USD/USDT). '
-              'Disable api_enabled to block Corp MasterSigned (including new markets).',
-            );
-          }),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Obx(() {
+          IconButton(
+            onPressed: controller.reload,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+        child: Obx(() {
               if (controller.loading.value &&
                   controller.fees.isEmpty &&
                   controller.corps.isEmpty) {
@@ -324,9 +310,7 @@ class FeesPage extends GetView<FeesController> {
                 ],
               );
             }),
-          ),
-        ],
-      ),
-    );
+      );
+    });
   }
 }

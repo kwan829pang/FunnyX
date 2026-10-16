@@ -35,7 +35,7 @@ abstract class AppPages {
     GetPage(
       name: '/setup',
       page: () => const SetupWizardPage(),
-      middlewares: [authGuard],
+      middlewares: [authGuard, setupGuard],
     ),
     GetPage(
       name: '/dashboard',
