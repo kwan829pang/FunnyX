@@ -1,6 +1,7 @@
 import 'package:funnyx_common/funnyx_common.dart';
 import 'package:get/get.dart';
 
+import '../controllers/corp_auth_middleware.dart';
 import '../features/auth/login_page.dart';
 import '../features/auth/oauth_callback_page.dart';
 import '../features/auth/register_page.dart';
@@ -25,12 +26,20 @@ import '../widgets/client_shell.dart';
 abstract class AppPages {
   static const initial = '/login';
 
+  /// End-user Session portal (`sts_…` Bearer).
   static final authGuard = AuthMiddleware(
     loginRoute: '/login',
     homeRoute: '/home',
   );
 
+  /// Corporate portal (`corp_…` Bearer).
+  static final corpGuard = CorpAuthMiddleware(
+    loginRoute: '/corp/login',
+    homeRoute: '/corp/home',
+  );
+
   static final routes = <GetPage<dynamic>>[
+    // —— Normal user (ClientShell + user theme) ——
     GetPage(
       name: '/login',
       page: () => const LoginPage(),
@@ -112,9 +121,27 @@ abstract class AppPages {
       },
       middlewares: [authGuard],
     ),
-    GetPage(name: '/corp/register', page: () => const CorpRegisterPage()),
-    GetPage(name: '/corp/login', page: () => const CorpLoginPage()),
-    GetPage(name: '/corp/home', page: () => const CorpHomePage()),
-    GetPage(name: '/corp/games/new', page: () => const CorpGameWizardPage()),
+
+    // —— Corp user (CorpShell / AuthLayout + corp theme) ——
+    GetPage(
+      name: '/corp/register',
+      page: () => const CorpRegisterPage(),
+      middlewares: [corpGuard],
+    ),
+    GetPage(
+      name: '/corp/login',
+      page: () => const CorpLoginPage(),
+      middlewares: [corpGuard],
+    ),
+    GetPage(
+      name: '/corp/home',
+      page: () => const CorpHomePage(),
+      middlewares: [corpGuard],
+    ),
+    GetPage(
+      name: '/corp/games/new',
+      page: () => const CorpGameWizardPage(),
+      middlewares: [corpGuard],
+    ),
   ];
 }

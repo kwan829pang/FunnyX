@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../models/api_error.dart';
 import '../models/session_token.dart';
+import '../security/password_digest.dart';
 import 'api_client.dart';
 
 /// Swappable data layer. UI/GetX should depend on this, not Dio types.
@@ -120,7 +121,7 @@ class ClientCenterAuthProvider implements AuthDataProvider {
         path,
         data: <String, dynamic>{
           'username': username.trim(),
-          'password': password,
+          'password': PasswordDigest.sha256Hex(password),
         },
         options: Options(extra: const {'skipAuth': true}),
       );
@@ -169,7 +170,7 @@ class AdminApiAuthProvider implements AuthDataProvider {
         _loginPath,
         data: <String, dynamic>{
           'username': username.trim(),
-          'password': password,
+          'password': PasswordDigest.sha256Hex(password),
         },
         options: Options(extra: const {'skipAuth': true}),
       );

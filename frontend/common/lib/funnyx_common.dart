@@ -18,6 +18,7 @@ export 'src/models/corp_models.dart';
 export 'src/models/marketplace_models.dart';
 export 'src/models/session_token.dart';
 export 'src/models/shop_models.dart';
+export 'src/security/password_digest.dart';
 export 'src/theme/app_theme.dart';
 export 'src/theme/breakpoints.dart';
 export 'src/widgets/responsive_scope.dart';

@@ -9,8 +9,13 @@ use argon2::{
 };
 use password_hash::rand_core::OsRng;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use sqlx::{PgPool, Row};
 use tokio::sync::RwLock;
+
+/// SHA-256 hex of UTF-8 `"demo"` (Flutter [PasswordDigest.sha256Hex]).
+const DEMO_PASSWORD_DIGEST: &str =
+    "2a97516c354b68848cdbd8f54a226a0a55b21ed138e207ad6c5cbb9c00aa5aea";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdminUser {
@@ -38,21 +43,21 @@ impl AdminDirectory {
             AdminUser {
                 admin_user_id: 1,
                 username: "seed_admin".into(),
-                password: "demo".into(),
+                password: DEMO_PASSWORD_DIGEST.into(),
                 role: "super_admin".into(),
                 status: "active".into(),
             },
             AdminUser {
                 admin_user_id: 2,
                 username: "admin".into(),
-                password: "demo".into(),
+                password: DEMO_PASSWORD_DIGEST.into(),
                 role: "admin".into(),
                 status: "active".into(),
             },
             AdminUser {
                 admin_user_id: 3,
                 username: "viewer".into(),
-                password: "demo".into(),
+                password: DEMO_PASSWORD_DIGEST.into(),
                 role: "viewer".into(),
                 status: "active".into(),
             },
@@ -82,15 +87,16 @@ impl AdminDirectory {
                     return None;
                 }
                 let hash: Option<String> = row.get("password_hash");
+                let digest = normalize_client_password(password);
                 let ok = match hash.as_deref().filter(|s| !s.is_empty()) {
-                    Some(h) => verify_password(password, h),
-                    None => password == "demo",
+                    Some(h) => verify_password(&digest, h),
+                    None => digest == DEMO_PASSWORD_DIGEST,
                 };
                 if !ok {
                     return None;
                 }
                 if hash.as_deref().filter(|s| !s.is_empty()).is_none() {
-                    if let Ok(new_hash) = hash_password(password) {
+                    if let Ok(new_hash) = hash_password(&digest) {
                         let _ = sqlx::query(
                             "UPDATE fx_admin.admin_users SET password_hash = $2, updated_at = $3 \
                              WHERE id = $1",
@@ -114,10 +120,11 @@ impl AdminDirectory {
             }
         }
 
+        let digest = normalize_client_password(password);
         let users = self.by_username.read().await;
         users
             .get(username)
-            .filter(|u| u.password == password && u.status == "active")
+            .filter(|u| u.password == digest && u.status == "active")
             .cloned()
     }
 
@@ -158,20 +165,40 @@ pub fn role_allowed(role: &str, allowed: &[&str]) -> bool {
     allowed.iter().any(|r| *r == role)
 }
 
-fn hash_password(password: &str) -> Result<String, String> {
+fn sha256_hex(input: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(input.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+fn looks_like_sha256_hex(s: &str) -> bool {
+    s.len() == 64 && s.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// Flutter sends SHA-256 hex; plaintext (curl) is hashed here.
+fn normalize_client_password(password: &str) -> String {
+    let t = password.trim();
+    if looks_like_sha256_hex(t) {
+        t.to_ascii_lowercase()
+    } else {
+        sha256_hex(t)
+    }
+}
+
+fn hash_password(client_digest: &str) -> Result<String, String> {
     let salt = SaltString::generate(&mut OsRng);
     Argon2::default()
-        .hash_password(password.as_bytes(), &salt)
+        .hash_password(client_digest.as_bytes(), &salt)
         .map(|h| h.to_string())
         .map_err(|e| e.to_string())
 }
 
-fn verify_password(password: &str, hash: &str) -> bool {
+fn verify_password(client_digest: &str, hash: &str) -> bool {
     let Ok(parsed) = PasswordHash::new(hash) else {
         return false;
     };
     Argon2::default()
-        .verify_password(password.as_bytes(), &parsed)
+        .verify_password(client_digest.as_bytes(), &parsed)
         .is_ok()
 }
 

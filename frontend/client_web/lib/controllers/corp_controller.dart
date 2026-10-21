@@ -1,6 +1,7 @@
 import 'package:funnyx_common/funnyx_common.dart';
 import 'package:get/get.dart';
 
+import '../services/portal_session.dart';
 import 'corp_session_controller.dart';
 
 class CorpController extends GetxController {
@@ -34,7 +35,8 @@ class CorpController extends GetxController {
         brBytes: brBytes,
         brFileName: brFileName,
       );
-      _session.setAuth(result);
+      // Isolate from end-user Session (corp_… vs sts_…).
+      PortalSession.enterCorp(result);
       return true;
     } catch (e) {
       error.value = e is ApiError ? e.message : e.toString();
@@ -49,7 +51,7 @@ class CorpController extends GetxController {
     error.value = null;
     try {
       final result = await _api.login(login: login, password: password);
-      _session.setAuth(result);
+      PortalSession.enterCorp(result);
       return true;
     } catch (e) {
       error.value = e is ApiError ? e.message : e.toString();
@@ -108,7 +110,7 @@ class CorpController extends GetxController {
   }
 
   void logout() {
-    _session.clear();
+    PortalSession.clearCorp();
     games.clear();
   }
 }

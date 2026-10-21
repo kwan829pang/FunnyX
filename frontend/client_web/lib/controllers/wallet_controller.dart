@@ -14,14 +14,22 @@ class WalletController extends GetxController {
 
   WalletDataProvider get _wallet => Get.find<WalletDataProvider>();
   ShopDataProvider get _shop => Get.find<ShopDataProvider>();
+  SessionController get _session => Get.find<SessionController>();
 
   @override
   void onInit() {
     super.onInit();
-    reload();
+    // Only load after login — unauthenticated calls become 401 at Gateway.
+    if (_session.isAuthenticated) {
+      reload();
+    }
   }
 
   Future<void> reload() async {
+    if (!_session.isAuthenticated) {
+      error.value = 'login required';
+      return;
+    }
     loading.value = true;
     error.value = null;
     try {

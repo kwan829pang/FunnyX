@@ -11,7 +11,9 @@ anyhow = "1"
 argon2 = "0.5"
 axum = "0.8"
 dotenvy = "0.15"
+hex = "0.4"
 password-hash = "0.5"
+sha2 = "0.10"
 funnyx-config = { path = "../../common/funnyx-config" }
 funnyx-health = { path = "../../common/funnyx-health" }
 funnyx-heartbeat = { path = "../../common/funnyx-heartbeat" }

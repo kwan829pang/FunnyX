@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:funnyx_common/funnyx_common.dart';
 import 'package:get/get.dart';
 import 'package:toastification/toastification.dart';
 
 import '../services/oauth_flow.dart';
+import '../services/portal_session.dart';
+import 'wallet_controller.dart';
 
 class AuthController extends GetxController {
   AuthController({this.homeRoute = '/home'});
@@ -28,8 +32,7 @@ class AuthController extends GetxController {
         username: username.value.trim(),
         password: password.value,
       );
-      session.setToken(token.token);
-      Get.offAllNamed(homeRoute);
+      await _enterSession(token);
     } catch (e) {
       _toastError(e);
     } finally {
@@ -47,13 +50,25 @@ class AuthController extends GetxController {
         username: username.value.trim(),
         password: password.value,
       );
-      session.setToken(token.token);
-      Get.offAllNamed(homeRoute);
+      await _enterSession(token);
     } catch (e) {
       _toastError(e);
     } finally {
       busy.value = false;
     }
+  }
+
+  Future<void> _enterSession(SessionToken token) async {
+    final access = token.token.trim();
+    if (access.isEmpty) {
+      throw const ApiError('login succeeded but access_token was empty');
+    }
+    // Isolate from Corp portal (sts_… vs corp_…).
+    PortalSession.enterEndUser(access);
+    if (Get.isRegistered<WalletController>()) {
+      unawaited(Get.find<WalletController>().reload());
+    }
+    Get.offAllNamed(homeRoute);
   }
 
   /// Path B: browser leaves Client Web → Partner OAuth via Client Center / STS.
@@ -71,8 +86,7 @@ class AuthController extends GetxController {
   }
 
   void applyOauthSession(SessionToken token) {
-    session.setToken(token.token);
-    Get.offAllNamed(homeRoute);
+    unawaited(_enterSession(token));
   }
 
   Future<void> logout() async {
@@ -82,7 +96,7 @@ class AuthController extends GetxController {
     } catch (_) {
       // Local clear even if revoke fails.
     }
-    session.clear();
+    PortalSession.clearEndUser();
     username.value = '';
     password.value = '';
     Get.offAllNamed('/login');

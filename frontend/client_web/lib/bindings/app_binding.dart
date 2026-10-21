@@ -24,50 +24,52 @@ class AppBinding extends Bindings {
   void dependencies() {
     Get.put<AppConfig>(config, permanent: true);
     Get.put<ClientThemeController>(ClientThemeController(), permanent: true);
-    Get.put<SessionController>(SessionController(), permanent: true);
-    Get.put<ApiClient>(
-      ApiClient(
-        baseUrl: config.apiBaseUrl,
-        tokenStore: Get.find<SessionController>(),
-      ),
-      permanent: true,
+    final session = SessionController();
+    Get.put<SessionController>(session, permanent: true);
+
+    // End-user Session APIs (wallet/profile/shop/…) — must use SessionController token.
+    final sessionApi = ApiClient(
+      baseUrl: config.apiBaseUrl,
+      tokenStore: session,
     );
+    Get.put<ApiClient>(sessionApi, permanent: true);
+    Get.put<ApiClient>(sessionApi, tag: 'session', permanent: true);
+
     Get.put<AuthDataProvider>(
-      ClientCenterAuthProvider(Get.find<ApiClient>()),
+      ClientCenterAuthProvider(sessionApi),
       permanent: true,
     );
     Get.put<ShopDataProvider>(
-      ClientCenterShopProvider(Get.find<ApiClient>()),
+      ClientCenterShopProvider(sessionApi),
       permanent: true,
     );
     Get.put<WalletDataProvider>(
-      ClientCenterWalletProvider(Get.find<ApiClient>()),
+      ClientCenterWalletProvider(sessionApi),
       permanent: true,
     );
     Get.put<ExchangeDataProvider>(
-      ClientCenterExchangeProvider(Get.find<ApiClient>()),
+      ClientCenterExchangeProvider(sessionApi),
       permanent: true,
     );
     Get.put<MarketplaceDataProvider>(
-      ClientCenterMarketplaceProvider(Get.find<ApiClient>()),
+      ClientCenterMarketplaceProvider(sessionApi),
       permanent: true,
     );
-    Get.put<CorpSessionController>(CorpSessionController(), permanent: true);
-    Get.put<ApiClient>(
-      ApiClient(
-        baseUrl: config.apiBaseUrl,
-        tokenStore: Get.find<CorpSessionController>(),
-        publicPathPrefixes: const [
-          '/v1/corp/register',
-          '/v1/corp/login',
-          '/health',
-        ],
-      ),
-      tag: 'corp',
-      permanent: true,
+
+    final corpSession = CorpSessionController();
+    Get.put<CorpSessionController>(corpSession, permanent: true);
+    final corpApi = ApiClient(
+      baseUrl: config.apiBaseUrl,
+      tokenStore: corpSession,
+      publicPathPrefixes: const [
+        '/v1/corp/register',
+        '/v1/corp/login',
+        '/health',
+      ],
     );
+    Get.put<ApiClient>(corpApi, tag: 'corp', permanent: true);
     Get.put<CorpDataProvider>(
-      ClientCenterCorpProvider(Get.find<ApiClient>(tag: 'corp')),
+      ClientCenterCorpProvider(corpApi),
       permanent: true,
     );
     Get.put<CorpController>(

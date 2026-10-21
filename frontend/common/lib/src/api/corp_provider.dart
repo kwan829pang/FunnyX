@@ -3,6 +3,7 @@ import 'package:http_parser/http_parser.dart';
 
 import '../models/api_error.dart';
 import '../models/corp_models.dart';
+import '../security/password_digest.dart';
 import 'api_client.dart';
 
 abstract class CorpDataProvider {
@@ -58,7 +59,7 @@ class ClientCenterCorpProvider implements CorpDataProvider {
         'company_name': companyName,
         'contact_name': contactName,
         'contact_email': contactEmail,
-        'password': password,
+        'password': PasswordDigest.sha256Hex(password),
         'br_file': MultipartFile.fromBytes(
           brBytes,
           filename: brFileName,
@@ -84,7 +85,10 @@ class ClientCenterCorpProvider implements CorpDataProvider {
     try {
       final res = await api.dio.post<Map<String, dynamic>>(
         '/v1/corp/login',
-        data: {'login': login, 'password': password},
+        data: {
+          'login': login,
+          'password': PasswordDigest.sha256Hex(password),
+        },
         options: Options(extra: {'skipAuth': true}),
       );
       return _authFrom(res.data);

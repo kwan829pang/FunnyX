@@ -94,7 +94,12 @@ impl CorpOnboardStore {
         br_bytes: &[u8],
     ) -> Result<RegisterResult, String> {
         let pool = self.pool()?;
-        if company_name.trim().is_empty() || contact_email.trim().is_empty() || password.len() < 6 {
+        let digest_len_ok = password.trim().len() == 64
+            && password.trim().chars().all(|c| c.is_ascii_hexdigit());
+        if company_name.trim().is_empty()
+            || contact_email.trim().is_empty()
+            || (!digest_len_ok && password.len() < 6)
+        {
             return Err("company_name, contact_email, and password (min 6) required".into());
         }
         if br_bytes.is_empty() {
@@ -202,13 +207,29 @@ impl CorpOnboardStore {
         .ok_or_else(|| "invalid login or password".to_string())?;
 
         let hash: Option<String> = row.get("password_hash");
-        let Some(hash) = hash.filter(|s| !s.is_empty()) else {
-            return Err("password login not configured for this corp".into());
+        let stored = hash.as_deref().filter(|s| !s.is_empty());
+        let ok = match stored {
+            Some(h) => verify_password(password, h),
+            // Seeded corp rows may still be NULL until ensure_demo / first login.
+            None => {
+                crate::password::normalize_client_password(password)
+                    == crate::password::DEMO_PASSWORD_DIGEST
+            }
         };
-        if !verify_password(password, &hash) {
+        if !ok {
             return Err("invalid login or password".into());
         }
         let corp_id: i64 = row.get("id");
+        if stored.is_none() {
+            if let Ok(new_hash) = hash_password(password) {
+                let _ = sqlx::query(crate::query::users::UPDATE_CORP_PASSWORD_HASH)
+                    .bind(&new_hash)
+                    .bind(now_ms())
+                    .bind(corp_id)
+                    .execute(pool)
+                    .await;
+            }
+        }
         let now = now_ms();
         let token = format!("corp_{}", Uuid::new_v4().simple());
         let expires_at = now + SESSION_TTL_MS;

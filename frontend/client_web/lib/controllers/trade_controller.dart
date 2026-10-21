@@ -14,14 +14,20 @@ class TradeController extends GetxController {
 
   ExchangeDataProvider get _api => Get.find<ExchangeDataProvider>();
   ShopDataProvider get _shop => Get.find<ShopDataProvider>();
+  SessionController get _session => Get.find<SessionController>();
 
   @override
   void onInit() {
     super.onInit();
-    reload();
+    if (_session.isAuthenticated) {
+      reload();
+    }
   }
 
   Future<void> reload() async {
+    if (!_session.isAuthenticated) {
+      return;
+    }
     loading.value = true;
     try {
       final results = await Future.wait([

@@ -4,7 +4,7 @@
 
 Load seeds: full stack (`deploy/docker-compose.all.yml`) runs `seed/run_seed_dev.sql` automatically; otherwise see [`database/seed/README.md`](database/seed/README.md).
 
-Default password for seeded logins with a null hash is **`demo`** (first login may persist an Argon2id hash).
+Default password for seeded logins is **`demo`**. Flutter Client Web / Admin Panel send **SHA-256 hex** of the password (never plaintext); servers store **Argon2id of that digest**. Curl with plaintext `demo` still works (server normalizes).
 
 ---
 
@@ -17,6 +17,8 @@ Login: Admin Panel → Admin API `POST /v1/admin/login` (default `http://127.0.0
 | `seed_admin` | `demo` | `super_admin` | Full ops (markets, fees, Post_Auth, …) |
 | `admin` | `demo` | `admin` | Ops writes allowed |
 | `viewer` | `demo` | `viewer` | Read-limited; ops writes rejected |
+
+Admin Panel hashes the password (SHA-256) before POST; Admin API Argon2-verifies the digest.
 
 Source: [`database/seed/00_seed_data.sql`](database/seed/00_seed_data.sql).
 
@@ -127,6 +129,25 @@ Health: `http://127.0.0.1:18103/health`. Session place needs the market **Admin-
 
 ---
 
+## Matching order history (seed)
+
+Sample `fx_market.orders` / `trades` on `DEMO_COIN/PLT` (`market_pair_id=1`) between `demo_user` (ga `1`) and `alice_plat` (ga `2`). Status: `0` pending · `1` cancel · `2` filled · `3` partial. Type: `1` market · `2` price.
+
+| Orders | Side / type | Account | Qty @ price | Status |
+| --- | --- | --- | --- | --- |
+| 1 → 2 | sell/buy price | alice → demo | 10 @ 1.00 | filled (trade `1`) |
+| 3 | sell price | demo | 5 @ 1.20 | cancelled |
+| 4 | buy price | alice | 20 @ 0.95 | pending (resting) |
+| 5 → 6 | sell/buy price | demo → alice | 5 of 8 @ 1.05 | partial + filled (trade `2`) |
+| 7 → 8 | sell price / buy market | alice → demo | 3 @ 1.10 | filled (trade `3`) |
+
+Also seeds `fx_market_data.market_ohlcvs` (`15m`/`1h`) and sent `outbound_notices` / `notifications` for those fills.
+
+```sql
+SELECT id, side, price, qty, status FROM fx_market.orders ORDER BY id;
+SELECT id, buyer_order_id, seller_order_id, executed_price, executed_qty FROM fx_market.trades ORDER BY id;
+```
+
 ## Demo catalog (reference)
 
 | Item | Value |
@@ -138,6 +159,7 @@ Health: `http://127.0.0.1:18103/health`. Session place needs the market **Admin-
 | Corp shop product | `DEMO_PACK_100` |
 | Market pair | `DEMO_COIN/PLT` (seed status `pending_locked`) |
 | Core Engine quote (full stack) | `PLT` |
+| Seed trades | 3 prints · 8 orders (see above) |
 
 ---
 

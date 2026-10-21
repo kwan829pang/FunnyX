@@ -55,7 +55,10 @@ impl UserDirectory {
             let u = EndUser {
                 end_user_id: id,
                 username: username.into(),
-                password_hash: Some(hash_password("demo").map_err(anyhow::Error::msg)?),
+                password_hash: Some(
+                    hash_password(crate::password::DEMO_PASSWORD_DIGEST)
+                        .map_err(anyhow::Error::msg)?,
+                ),
                 email: Some(email.into()),
                 status: "active".into(),
             };
@@ -96,7 +99,8 @@ impl UserDirectory {
                 continue;
             }
             let id: i64 = row.get("id");
-            let hashed = hash_password("demo").map_err(|e| anyhow::anyhow!(e))?;
+            let hashed = hash_password(crate::password::DEMO_PASSWORD_DIGEST)
+                .map_err(|e| anyhow::anyhow!(e))?;
             sqlx::query(
                 crate::query::users::UPDATE_PASSWORD_HASH,
             )
@@ -116,7 +120,8 @@ impl UserDirectory {
                 continue;
             }
             let id: i64 = row.get("id");
-            let hashed = hash_password("demo").map_err(|e| anyhow::anyhow!(e))?;
+            let hashed = hash_password(crate::password::DEMO_PASSWORD_DIGEST)
+                .map_err(|e| anyhow::anyhow!(e))?;
             sqlx::query(crate::query::users::UPDATE_CORP_PASSWORD_HASH)
                 .bind(&hashed)
                 .bind(now_ms())
@@ -128,16 +133,36 @@ impl UserDirectory {
     }
 
     pub async fn authenticate(&self, username: &str, password: &str) -> Option<EndUser> {
-        let user = self.get_by_username(username).await?;
+        let mut user = self.get_by_username(username).await?;
         if user.status != "active" {
             return None;
         }
-        let hash = user.password_hash.as_deref()?;
-        if verify_password(password, hash) {
-            Some(user)
-        } else {
-            None
+        let stored = user.password_hash.as_deref().filter(|s| !s.is_empty());
+        let ok = match stored {
+            Some(h) => verify_password(password, h),
+            // Seeded rows may still be NULL until ensure_demo / first login.
+            None => {
+                crate::password::normalize_client_password(password)
+                    == crate::password::DEMO_PASSWORD_DIGEST
+            }
+        };
+        if !ok {
+            return None;
         }
+        if stored.is_none() {
+            if let Ok(new_hash) = hash_password(password) {
+                if let Some(pool) = &self.pool {
+                    let _ = sqlx::query(crate::query::users::UPDATE_PASSWORD_HASH)
+                        .bind(&new_hash)
+                        .bind(now_ms())
+                        .bind(user.end_user_id)
+                        .execute(pool)
+                        .await;
+                }
+                user.password_hash = Some(new_hash);
+            }
+        }
+        Some(user)
     }
 
     pub async fn get_by_id(&self, end_user_id: i64) -> Option<EndUser> {

@@ -12,7 +12,11 @@
 --   - demo corp e-shop product
 --   - demo game accounts + wallets
 --   - demo market pair DEMO_COIN/PLT (pending_locked) for Admin approve + Session exchange E2E
--- password_hash NULL → Client Center fills Argon2id for password "demo" on boot
+--   - matching order history (fx_market.orders / trades) + sample OHLCV + trade notices
+-- password_hash: Argon2id of SHA-256("demo") hex (Flutter posts SHA-256; server Argon2-verifies)
+--
+-- Order status: 0 Pending | 1 Cancel | 2 Filled | 3 Partial Filled
+-- Order type:   1 Market | 2 Price
 
 \set ON_ERROR_STOP on
 
@@ -29,13 +33,15 @@ VALUES
 (
     1, 'Demo Game Partner Co.', 'DEMO_MASTER_CODE', 'DEMO_MASTER_ID',
     'active', TRUE, 0,
-    'demo_corp@example.local', 'Demo Corp Admin', NULL,
+    'demo_corp@example.local', 'Demo Corp Admin',
+    '$argon2id$v=19$m=19456,t=2,p=1$2hf7+kFan1D1FRBvaj6Z/g$qDo/e/JPv0zDLjAL3R17lOqh6PMFVyKNRd5NjZ+E/uU',
     :demo_ts, 0
 ),
 (
     2, 'Second Studio Ltd.', 'DEMO_CORP_B_CODE', 'DEMO_CORP_B_ID',
     'active', TRUE, 0,
-    'corp_b@example.local', 'Corp B Admin', NULL,
+    'corp_b@example.local', 'Corp B Admin',
+    '$argon2id$v=19$m=19456,t=2,p=1$2hf7+kFan1D1FRBvaj6Z/g$qDo/e/JPv0zDLjAL3R17lOqh6PMFVyKNRd5NjZ+E/uU',
     :demo_ts, 0
 )
 ON CONFLICT (master_code) DO UPDATE
@@ -45,6 +51,7 @@ SET company_name = EXCLUDED.company_name,
     api_enabled = EXCLUDED.api_enabled,
     contact_email = EXCLUDED.contact_email,
     contact_name = EXCLUDED.contact_name,
+    password_hash = EXCLUDED.password_hash,
     updated_at = :demo_ts;
 
 SELECT setval(
@@ -232,11 +239,16 @@ INSERT INTO fx_user.end_users (
     id, username, email, password_hash, status, created_at, updated_at
 )
 VALUES
-    (1, 'demo_user', 'demo_user@example.local', NULL, 'active', :demo_ts, 0),
-    (2, 'alice_plat', 'alice_plat@example.local', NULL, 'active', :demo_ts, 0)
+    (1, 'demo_user', 'demo_user@example.local',
+     '$argon2id$v=19$m=19456,t=2,p=1$2hf7+kFan1D1FRBvaj6Z/g$qDo/e/JPv0zDLjAL3R17lOqh6PMFVyKNRd5NjZ+E/uU',
+     'active', :demo_ts, 0),
+    (2, 'alice_plat', 'alice_plat@example.local',
+     '$argon2id$v=19$m=19456,t=2,p=1$2hf7+kFan1D1FRBvaj6Z/g$qDo/e/JPv0zDLjAL3R17lOqh6PMFVyKNRd5NjZ+E/uU',
+     'active', :demo_ts, 0)
 ON CONFLICT (username) DO UPDATE
 SET email = EXCLUDED.email,
     status = EXCLUDED.status,
+    password_hash = EXCLUDED.password_hash,
     updated_at = :demo_ts;
 
 SELECT setval(
@@ -363,6 +375,174 @@ SET pool_depth = EXCLUDED.pool_depth,
 SELECT setval(
     pg_get_serial_sequence('fx_market.market_pools', 'id'),
     GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_market.market_pools), 1)
+);
+
+-- ---------------------------------------------------------------------------
+-- Matching order history (DEMO_COIN/PLT between demo_user ga=1 and alice_plat ga=2)
+-- Sample past prints for Admin/history UIs; market pair may still be pending_locked
+-- until Admin approve — history rows do not change pair status.
+-- ---------------------------------------------------------------------------
+\echo '=== demo: fx_market.orders (match history) ==='
+-- Timestamps relative to :demo_ts (2024-01-02T00:00:00Z)
+INSERT INTO fx_market.orders (
+    id, game_account_id, market_pair_id, order_type, side, price, qty,
+    status, created_at, updated_at
+)
+VALUES
+    -- Full match @ 1.00: alice sells 10, demo_user buys 10
+    (1, 2, 1, 2, 'sell', 1.00000000, 10.00000000, 2, :demo_ts,           :demo_ts + 1000),
+    (2, 1, 1, 2, 'buy',  1.00000000, 10.00000000, 2, :demo_ts + 1000,    :demo_ts + 1000),
+    -- Cancelled resting sell (demo_user)
+    (3, 1, 1, 2, 'sell', 1.20000000,  5.00000000, 1, :demo_ts + 3600000, :demo_ts + 3900000),
+    -- Open bid still resting (alice)
+    (4, 2, 1, 2, 'buy',  0.95000000, 20.00000000, 0, :demo_ts + 7200000, :demo_ts + 7200000),
+    -- Partial then fill: demo_user sells 8 @ 1.05; alice takes 5 → seller partial
+    (5, 1, 1, 2, 'sell', 1.05000000,  8.00000000, 3, :demo_ts + 10800000, :demo_ts + 10801000),
+    (6, 2, 1, 2, 'buy',  1.05000000,  5.00000000, 2, :demo_ts + 10801000, :demo_ts + 10801000),
+    -- Market buy fills against price sell @ 1.10
+    (7, 2, 1, 2, 'sell', 1.10000000,  3.00000000, 2, :demo_ts + 14400000, :demo_ts + 14401000),
+    (8, 1, 1, 1, 'buy',  0.00000000,  3.00000000, 2, :demo_ts + 14401000, :demo_ts + 14401000)
+ON CONFLICT (id) DO UPDATE
+SET game_account_id = EXCLUDED.game_account_id,
+    market_pair_id = EXCLUDED.market_pair_id,
+    order_type = EXCLUDED.order_type,
+    side = EXCLUDED.side,
+    price = EXCLUDED.price,
+    qty = EXCLUDED.qty,
+    status = EXCLUDED.status,
+    created_at = EXCLUDED.created_at,
+    updated_at = EXCLUDED.updated_at;
+
+SELECT setval(
+    pg_get_serial_sequence('fx_market.orders', 'id'),
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_market.orders), 8)
+);
+
+\echo '=== demo: fx_market.trades (match prints) ==='
+INSERT INTO fx_market.trades (
+    id, market_pair_id, buyer_order_id, seller_order_id,
+    executed_price, executed_qty, executed_at, created_at, updated_at
+)
+VALUES
+    (1, 1, 2, 1, 1.00000000, 10.00000000, :demo_ts + 1000,     :demo_ts + 1000,     :demo_ts + 1000),
+    (2, 1, 6, 5, 1.05000000,  5.00000000, :demo_ts + 10801000, :demo_ts + 10801000, :demo_ts + 10801000),
+    (3, 1, 8, 7, 1.10000000,  3.00000000, :demo_ts + 14401000, :demo_ts + 14401000, :demo_ts + 14401000)
+ON CONFLICT (id) DO UPDATE
+SET market_pair_id = EXCLUDED.market_pair_id,
+    buyer_order_id = EXCLUDED.buyer_order_id,
+    seller_order_id = EXCLUDED.seller_order_id,
+    executed_price = EXCLUDED.executed_price,
+    executed_qty = EXCLUDED.executed_qty,
+    executed_at = EXCLUDED.executed_at,
+    created_at = EXCLUDED.created_at,
+    updated_at = EXCLUDED.updated_at;
+
+SELECT setval(
+    pg_get_serial_sequence('fx_market.trades', 'id'),
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_market.trades), 3)
+);
+
+\echo '=== demo: fx_market_data.market_ohlcvs (from match prints) ==='
+INSERT INTO fx_market_data.market_ohlcvs (
+    market_pair_id, timeframe, open_time, close_time,
+    open, high, low, close, volume, quote_volume, trade_count,
+    created_at, updated_at
+)
+VALUES
+    -- 1h bars covering seeded trades (open_time aligned to hour starts from demo_ts)
+    (1, '1h', :demo_ts,           :demo_ts + 3600000 - 1,
+        1.00000000, 1.00000000, 1.00000000, 1.00000000,
+        10.00000000, 10.00000000, 1, :demo_ts + 1000, :demo_ts + 1000),
+    (1, '1h', :demo_ts + 10800000, :demo_ts + 14400000 - 1,
+        1.05000000, 1.05000000, 1.05000000, 1.05000000,
+        5.00000000, 5.25000000, 1, :demo_ts + 10801000, :demo_ts + 10801000),
+    (1, '1h', :demo_ts + 14400000, :demo_ts + 18000000 - 1,
+        1.10000000, 1.10000000, 1.10000000, 1.10000000,
+        3.00000000, 3.30000000, 1, :demo_ts + 14401000, :demo_ts + 14401000),
+    (1, '15m', :demo_ts, :demo_ts + 900000 - 1,
+        1.00000000, 1.00000000, 1.00000000, 1.00000000,
+        10.00000000, 10.00000000, 1, :demo_ts + 1000, :demo_ts + 1000)
+ON CONFLICT (market_pair_id, timeframe, open_time) DO UPDATE
+SET close_time = EXCLUDED.close_time,
+    open = EXCLUDED.open,
+    high = EXCLUDED.high,
+    low = EXCLUDED.low,
+    close = EXCLUDED.close,
+    volume = EXCLUDED.volume,
+    quote_volume = EXCLUDED.quote_volume,
+    trade_count = EXCLUDED.trade_count,
+    updated_at = EXCLUDED.updated_at;
+
+\echo '=== demo: trade notifications + outbound_notices ==='
+INSERT INTO fx_events.notifications (
+    id, end_user_id, type, payload, read_at, created_at, updated_at
+)
+VALUES
+    (1, 1, 'trade_filled',
+     '{"symbol":"DEMO_COIN/PLT","trade_id":1,"side":"buy","price":"1","qty":"10"}'::jsonb,
+     0, :demo_ts + 1000, 0),
+    (2, 2, 'trade_filled',
+     '{"symbol":"DEMO_COIN/PLT","trade_id":1,"side":"sell","price":"1","qty":"10"}'::jsonb,
+     0, :demo_ts + 1000, 0),
+    (3, 1, 'trade_partial_filled',
+     '{"symbol":"DEMO_COIN/PLT","trade_id":2,"side":"sell","price":"1.05","qty":"5"}'::jsonb,
+     0, :demo_ts + 10801000, 0),
+    (4, 2, 'trade_filled',
+     '{"symbol":"DEMO_COIN/PLT","trade_id":2,"side":"buy","price":"1.05","qty":"5"}'::jsonb,
+     0, :demo_ts + 10801000, 0)
+ON CONFLICT (id) DO UPDATE
+SET end_user_id = EXCLUDED.end_user_id,
+    type = EXCLUDED.type,
+    payload = EXCLUDED.payload,
+    updated_at = EXCLUDED.updated_at;
+
+SELECT setval(
+    pg_get_serial_sequence('fx_events.notifications', 'id'),
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_events.notifications), 4)
+);
+
+INSERT INTO fx_events.outbound_notices (
+    id, end_user_id, source_type, source_id, event_type, title, body, payload,
+    delivery_status, retry_count, scheduled_at, sent_at, notification_id,
+    created_at, updated_at
+)
+VALUES
+    (1, 1, 'trade', 1, 'filled', 'Trade filled',
+     'Bought 10 DEMO_COIN @ 1 PLT',
+     '{"symbol":"DEMO_COIN/PLT","trade_id":1}'::jsonb,
+     'sent', 0, 0, :demo_ts + 1000, 1, :demo_ts + 1000, :demo_ts + 1000),
+    (2, 2, 'trade', 1, 'filled', 'Trade filled',
+     'Sold 10 DEMO_COIN @ 1 PLT',
+     '{"symbol":"DEMO_COIN/PLT","trade_id":1}'::jsonb,
+     'sent', 0, 0, :demo_ts + 1000, 2, :demo_ts + 1000, :demo_ts + 1000),
+    (3, 1, 'trade', 2, 'partial_filled', 'Trade partial fill',
+     'Sold 5 of 8 DEMO_COIN @ 1.05 PLT',
+     '{"symbol":"DEMO_COIN/PLT","trade_id":2,"order_id":5}'::jsonb,
+     'sent', 0, 0, :demo_ts + 10801000, 3, :demo_ts + 10801000, :demo_ts + 10801000),
+    (4, 2, 'trade', 2, 'filled', 'Trade filled',
+     'Bought 5 DEMO_COIN @ 1.05 PLT',
+     '{"symbol":"DEMO_COIN/PLT","trade_id":2}'::jsonb,
+     'sent', 0, 0, :demo_ts + 10801000, 4, :demo_ts + 10801000, :demo_ts + 10801000),
+    (5, 1, 'order', 3, 'cancelled', 'Order cancelled',
+     'Sell 5 DEMO_COIN @ 1.20 cancelled',
+     '{"symbol":"DEMO_COIN/PLT","order_id":3}'::jsonb,
+     'sent', 0, 0, :demo_ts + 3900000, NULL, :demo_ts + 3900000, :demo_ts + 3900000)
+ON CONFLICT (id) DO UPDATE
+SET end_user_id = EXCLUDED.end_user_id,
+    source_type = EXCLUDED.source_type,
+    source_id = EXCLUDED.source_id,
+    event_type = EXCLUDED.event_type,
+    title = EXCLUDED.title,
+    body = EXCLUDED.body,
+    payload = EXCLUDED.payload,
+    delivery_status = EXCLUDED.delivery_status,
+    sent_at = EXCLUDED.sent_at,
+    notification_id = EXCLUDED.notification_id,
+    updated_at = EXCLUDED.updated_at;
+
+SELECT setval(
+    pg_get_serial_sequence('fx_events.outbound_notices', 'id'),
+    GREATEST((SELECT COALESCE(MAX(id), 1) FROM fx_events.outbound_notices), 5)
 );
 
 \echo '=== demo: 01_demo_data done (development only) ==='
