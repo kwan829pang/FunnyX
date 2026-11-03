@@ -18,11 +18,25 @@ class AppBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<AppConfig>(config, permanent: true);
-    Get.put<SessionController>(SessionController(), permanent: true);
+    Get.put<SessionController>(
+      SessionController(
+        prefsAccessKey: 'fx_admin_access',
+        prefsRefreshKey: 'fx_admin_refresh',
+      ),
+      permanent: true,
+    );
     Get.put<ApiClient>(
       ApiClient(
         baseUrl: config.apiBaseUrl,
         tokenStore: Get.find<SessionController>(),
+        onUnauthorized: () {
+          final session = Get.find<SessionController>();
+          if (!session.isAuthenticated) return;
+          session.clear();
+          final route = Get.currentRoute;
+          if (route == '/login') return;
+          Get.offAllNamed('/login');
+        },
       ),
       permanent: true,
     );

@@ -7,6 +7,7 @@ class ApiClient {
   ApiClient({
     required String baseUrl,
     required this.tokenStore,
+    this.onUnauthorized,
     Iterable<String> publicPathPrefixes = const [
       '/v1/client/login',
       '/v1/client/register',
@@ -28,7 +29,10 @@ class ApiClient {
          ),
        ) {
     dio.interceptors.add(
-      InterceptorsWrapper(onRequest: _onRequest),
+      InterceptorsWrapper(
+        onRequest: _onRequest,
+        onError: _onError,
+      ),
     );
   }
 
@@ -36,12 +40,16 @@ class ApiClient {
   final List<String> _publicPathPrefixes;
   final Dio dio;
 
+  /// Invoked when a protected call has no token or the server returns 401.
+  final void Function()? onUnauthorized;
+
   void _onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final skipAuth =
         options.extra['skipAuth'] == true || _isPublic(_requestPath(options));
     if (!skipAuth) {
       final token = tokenStore.token;
       if (token == null || token.isEmpty) {
+        onUnauthorized?.call();
         handler.reject(
           DioException(
             requestOptions: options,
@@ -64,6 +72,34 @@ class ApiClient {
     handler.next(options);
   }
 
+  void _onError(DioException err, ErrorInterceptorHandler handler) {
+    final skipAuth = err.requestOptions.extra['skipAuth'] == true ||
+        _isPublic(_requestPath(err.requestOptions));
+    if (!skipAuth && _isAuthExpired(err)) {
+      onUnauthorized?.call();
+    }
+    handler.next(err);
+  }
+
+  /// 401 or STS/Gateway body like `{ "error": "invalid_or_expired" }`.
+  static bool _isAuthExpired(DioException err) {
+    if (err.response?.statusCode == 401) {
+      return true;
+    }
+    final data = err.response?.data;
+    if (data is Map) {
+      for (final key in ['error', 'reason', 'message']) {
+        final value = data[key]?.toString().toLowerCase() ?? '';
+        if (value.contains('invalid_or_expired') ||
+            value.contains('invalid or expired') ||
+            value.contains('invalid session')) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /// Path only (no host/query), always leading `/`.
   static String _requestPath(RequestOptions options) {
     var path = options.path;
@@ -81,7 +117,6 @@ class ApiClient {
   }
 
   bool _isPublic(String path) {
-    // Prefix match only — never substring (`contains`) which can false-positive.
     for (final prefix in _publicPathPrefixes) {
       if (path == prefix || path.startsWith('$prefix/')) {
         return true;

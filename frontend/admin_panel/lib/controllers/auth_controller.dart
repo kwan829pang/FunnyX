@@ -31,7 +31,10 @@ class AuthController extends GetxController {
         username: username.value.trim(),
         password: password.value,
       );
-      session.setToken(token.token);
+      session.setSession(
+        accessToken: token.token,
+        refreshToken: token.refreshToken,
+      );
       await _routeAfterAuth();
     } catch (e) {
       toastification.show(
@@ -72,7 +75,10 @@ class AuthController extends GetxController {
         username: username.value.trim(),
         password: password.value,
       );
-      session.setToken(token.token);
+      session.setSession(
+        accessToken: token.token,
+        refreshToken: token.refreshToken,
+      );
       Get.offAllNamed(homeRoute);
     } catch (e) {
       toastification.show(
