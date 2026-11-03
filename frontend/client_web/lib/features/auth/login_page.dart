@@ -38,7 +38,7 @@ class LoginPage extends GetView<AuthController> {
               onChanged: (v) => controller.username.value = v,
               onSubmitted: (_) => controller.login(),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               obscureText: true,
               decoration: InputDecoration(labelText: l10n.password),

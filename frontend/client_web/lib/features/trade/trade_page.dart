@@ -52,17 +52,21 @@ class TradePage extends GetView<TradeController> {
                 if (m != null) controller.selectMarket(m);
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Text(l10n.tradeBook, style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
             Container(
               height: 120,
-              padding: const EdgeInsets.all(8),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: SingleChildScrollView(
                 child: Text(controller.bookText.value),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -72,7 +76,7 @@ class TradePage extends GetView<TradeController> {
                     keyboardType: TextInputType.number,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: priceCtrl,
@@ -82,7 +86,7 @@ class TradePage extends GetView<TradeController> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             if (accounts.isEmpty)
               Text(l10n.shopNoGameAccount)
             else

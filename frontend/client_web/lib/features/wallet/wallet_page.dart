@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../controllers/wallet_controller.dart';
 import '../../l10n/app_localizations.dart';
+import '../../theme/client_colors.dart';
 
 class WalletPage extends GetView<WalletController> {
   const WalletPage({super.key});
@@ -29,14 +30,21 @@ class WalletPage extends GetView<WalletController> {
         return StatefulBuilder(
           builder: (ctx, setLocal) {
             return AlertDialog(
+              titlePadding: ClientSpacing.dialogTitle,
+              contentPadding: ClientSpacing.dialogContent,
+              actionsPadding: ClientSpacing.dialogActions,
+              buttonPadding: const EdgeInsets.symmetric(horizontal: 8),
+              actionsAlignment: MainAxisAlignment.end,
               title: Text(deposit ? l10n.walletDeposit : l10n.walletWithdraw),
               content: SizedBox(
                 width: 420,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     InputDecorator(
-                      decoration: InputDecoration(labelText: l10n.shopGameAccount),
+                      decoration:
+                          InputDecoration(labelText: l10n.shopGameAccount),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<GameAccountBinding>(
                           isExpanded: true,
@@ -51,10 +59,13 @@ class WalletPage extends GetView<WalletController> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: ClientSpacing.fieldGap),
                     TextField(
                       controller: coinCtrl,
-                      decoration: InputDecoration(labelText: l10n.walletGameCoin),
+                      decoration:
+                          InputDecoration(labelText: l10n.walletGameCoin),
                     ),
+                    const SizedBox(height: ClientSpacing.fieldGap),
                     TextField(
                       controller: amountCtrl,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -72,7 +83,9 @@ class WalletPage extends GetView<WalletController> {
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(ctx).pop(true),
-                  child: Text(deposit ? l10n.walletDeposit : l10n.walletWithdraw),
+                  child: Text(
+                    deposit ? l10n.walletDeposit : l10n.walletWithdraw,
+                  ),
                 ),
               ],
             );

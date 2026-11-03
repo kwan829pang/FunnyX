@@ -12,6 +12,7 @@ import '../controllers/shop_checkout_controller.dart';
 import '../controllers/shop_orders_controller.dart';
 import '../controllers/trade_controller.dart';
 import '../controllers/wallet_controller.dart';
+import '../services/auth_failure_handler.dart';
 import '../services/gateway_socket_service.dart';
 import '../services/oauth_flow.dart';
 
@@ -24,13 +25,17 @@ class AppBinding extends Bindings {
   void dependencies() {
     Get.put<AppConfig>(config, permanent: true);
     Get.put<ClientThemeController>(ClientThemeController(), permanent: true);
-    final session = SessionController();
+    final session = SessionController(
+      prefsAccessKey: 'fx_client_access',
+      prefsRefreshKey: 'fx_client_refresh',
+    );
     Get.put<SessionController>(session, permanent: true);
 
     // End-user Session APIs (wallet/profile/shop/…) — must use SessionController token.
     final sessionApi = ApiClient(
       baseUrl: config.apiBaseUrl,
       tokenStore: session,
+      onUnauthorized: AuthFailureHandler.sessionUnauthorized,
     );
     Get.put<ApiClient>(sessionApi, permanent: true);
     Get.put<ApiClient>(sessionApi, tag: 'session', permanent: true);
@@ -61,6 +66,7 @@ class AppBinding extends Bindings {
     final corpApi = ApiClient(
       baseUrl: config.apiBaseUrl,
       tokenStore: corpSession,
+      onUnauthorized: AuthFailureHandler.corpUnauthorized,
       publicPathPrefixes: const [
         '/v1/corp/register',
         '/v1/corp/login',

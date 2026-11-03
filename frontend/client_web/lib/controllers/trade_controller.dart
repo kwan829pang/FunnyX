@@ -3,6 +3,8 @@ import 'package:funnyx_common/funnyx_common.dart';
 import 'package:get/get.dart';
 import 'package:toastification/toastification.dart';
 
+import '../services/auth_failure_handler.dart';
+
 class TradeController extends GetxController {
   final loading = false.obs;
   final busy = false.obs;
@@ -43,11 +45,13 @@ class TradeController extends GetxController {
         await loadBook();
       }
     } catch (e) {
-      toastification.show(
-        title: Text('$e'),
-        type: ToastificationType.error,
-        autoCloseDuration: const Duration(seconds: 3),
-      );
+      if (!AuthFailureHandler.isAuthFailure(e)) {
+        toastification.show(
+          title: Text('$e'),
+          type: ToastificationType.error,
+          autoCloseDuration: const Duration(seconds: 3),
+        );
+      }
     } finally {
       loading.value = false;
     }
@@ -65,6 +69,10 @@ class TradeController extends GetxController {
       final data = await _api.getBook(m.id);
       bookText.value = data['book']?.toString() ?? data.toString();
     } catch (e) {
+      if (AuthFailureHandler.isAuthFailure(e)) {
+        bookText.value = '';
+        return;
+      }
       bookText.value = '$e';
     }
   }
@@ -117,11 +125,13 @@ class TradeController extends GetxController {
       );
       await reload();
     } catch (e) {
-      toastification.show(
-        title: Text('$e'),
-        type: ToastificationType.error,
-        autoCloseDuration: const Duration(seconds: 3),
-      );
+      if (!AuthFailureHandler.isAuthFailure(e)) {
+        toastification.show(
+          title: Text('$e'),
+          type: ToastificationType.error,
+          autoCloseDuration: const Duration(seconds: 3),
+        );
+      }
     } finally {
       busy.value = false;
     }
@@ -134,11 +144,13 @@ class TradeController extends GetxController {
       await _api.cancelOrder(o.id);
       await reload();
     } catch (e) {
-      toastification.show(
-        title: Text('$e'),
-        type: ToastificationType.error,
-        autoCloseDuration: const Duration(seconds: 3),
-      );
+      if (!AuthFailureHandler.isAuthFailure(e)) {
+        toastification.show(
+          title: Text('$e'),
+          type: ToastificationType.error,
+          autoCloseDuration: const Duration(seconds: 3),
+        );
+      }
     } finally {
       busy.value = false;
     }

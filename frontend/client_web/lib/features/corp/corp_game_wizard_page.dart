@@ -59,25 +59,25 @@ class _CorpGameWizardPageState extends State<CorpGameWizardPage> {
                         decoration:
                             InputDecoration(labelText: l10n.corpGameName),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       TextField(
                         controller: _code,
                         decoration:
                             InputDecoration(labelText: l10n.corpGameCode),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       TextField(
                         controller: _partnerCode,
                         decoration:
                             InputDecoration(labelText: l10n.corpPartnerCode),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       TextField(
                         controller: _partnerGameId,
                         decoration:
                             InputDecoration(labelText: l10n.corpPartnerGameId),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       TextField(
                         controller: _description,
                         maxLines: 3,
@@ -85,7 +85,7 @@ class _CorpGameWizardPageState extends State<CorpGameWizardPage> {
                           labelText: l10n.corpGameDescription,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       OutlinedButton.icon(
                         onPressed: () => _pick(true),
                         icon: const Icon(Icons.gavel),

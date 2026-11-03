@@ -51,7 +51,7 @@ class _CorpLoginPageState extends State<CorpLoginPage> {
             controller: _login,
             decoration: InputDecoration(labelText: l10n.corpLoginField),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _password,
             obscureText: true,

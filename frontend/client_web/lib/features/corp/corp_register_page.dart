@@ -54,23 +54,23 @@ class _CorpRegisterPageState extends State<CorpRegisterPage> {
             controller: _company,
             decoration: InputDecoration(labelText: l10n.corpCompanyName),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _contact,
             decoration: InputDecoration(labelText: l10n.corpContactName),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _email,
             decoration: InputDecoration(labelText: l10n.corpContactEmail),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _password,
             obscureText: true,
             decoration: InputDecoration(labelText: l10n.password),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: _pickBr,
             icon: const Icon(Icons.upload_file),

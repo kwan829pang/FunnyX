@@ -70,14 +70,40 @@ abstract final class ClientTheme {
       cardTheme: CardThemeData(
         color: UserColors.surface,
         elevation: 0,
+        margin: ClientSpacing.cardMargin,
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(UserColors.radius),
-          side: BorderSide(color: UserColors.lightGrey),
+          side: const BorderSide(color: UserColors.lightGrey),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: UserColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 6,
+        shadowColor: UserColors.darkAccent.withValues(alpha: 0.12),
+        insetPadding: ClientSpacing.dialogInset,
+        actionsPadding: ClientSpacing.dialogActions,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ClientSpacing.dialogRadius),
+        ),
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: UserColors.darkAccent,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: UserColors.surface,
+        isDense: false,
+        contentPadding: ClientSpacing.inputContent,
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        floatingLabelAlignment: FloatingLabelAlignment.start,
+        labelStyle: textTheme.bodyMedium?.copyWith(color: UserColors.darkGrey),
+        floatingLabelStyle: textTheme.bodySmall?.copyWith(
+          color: UserColors.darkAccent,
+          fontWeight: FontWeight.w600,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(UserColors.radius),
           borderSide: const BorderSide(color: UserColors.lightGrey),
@@ -88,13 +114,15 @@ abstract final class ClientTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(UserColors.radius),
-          borderSide: const BorderSide(color: UserColors.darkAccent, width: 1.4),
+          borderSide:
+              const BorderSide(color: UserColors.darkAccent, width: 1.4),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: UserColors.darkAccent,
           foregroundColor: Colors.white,
+          minimumSize: const Size(64, 44),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(UserColors.radius),
@@ -105,7 +133,8 @@ abstract final class ClientTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: UserColors.darkAccent,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.all(12),
+          minimumSize: const Size(64, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(UserColors.radius),
           ),
@@ -115,6 +144,7 @@ abstract final class ClientTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: UserColors.darkAccent,
           side: const BorderSide(color: UserColors.darkAccent),
+          minimumSize: const Size(64, 44),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(UserColors.radius),
@@ -122,7 +152,11 @@ abstract final class ClientTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: UserColors.darkAccent),
+        style: TextButton.styleFrom(
+          foregroundColor: UserColors.darkAccent,
+          minimumSize: const Size(64, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
       ),
       iconTheme: const IconThemeData(color: UserColors.darkGrey),
       navigationBarTheme: NavigationBarThemeData(
@@ -154,6 +188,11 @@ abstract final class ClientTheme {
         ),
       ),
       dividerTheme: const DividerThemeData(color: UserColors.lightGrey),
+      listTileTheme: const ListTileThemeData(
+        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        minVerticalPadding: 12,
+        horizontalTitleGap: 12,
+      ),
     );
   }
 
@@ -195,20 +234,45 @@ abstract final class ClientTheme {
       cardTheme: CardThemeData(
         color: CorpColors.surface,
         elevation: 0,
+        margin: ClientSpacing.cardMargin,
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(CorpColors.radius),
           side: BorderSide(color: CorpColors.muted.withValues(alpha: 0.25)),
         ),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: CorpColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 6,
+        insetPadding: ClientSpacing.dialogInset,
+        actionsPadding: ClientSpacing.dialogActions,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ClientSpacing.dialogRadius),
+        ),
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: CorpColors.primary,
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: CorpColors.surface,
+        isDense: false,
+        contentPadding: ClientSpacing.inputContent,
+        floatingLabelBehavior: FloatingLabelBehavior.auto,
+        labelStyle: textTheme.bodyMedium?.copyWith(color: CorpColors.muted),
+        floatingLabelStyle: textTheme.bodySmall?.copyWith(
+          color: CorpColors.accent,
+          fontWeight: FontWeight.w600,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(CorpColors.radius),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(CorpColors.radius),
-          borderSide: BorderSide(color: CorpColors.muted.withValues(alpha: 0.35)),
+          borderSide:
+              BorderSide(color: CorpColors.muted.withValues(alpha: 0.35)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(CorpColors.radius),
@@ -219,6 +283,7 @@ abstract final class ClientTheme {
         style: FilledButton.styleFrom(
           backgroundColor: CorpColors.accent,
           foregroundColor: Colors.white,
+          minimumSize: const Size(64, 44),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CorpColors.radius),
@@ -229,6 +294,7 @@ abstract final class ClientTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: CorpColors.primary,
           side: const BorderSide(color: CorpColors.primary),
+          minimumSize: const Size(64, 44),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CorpColors.radius),
@@ -236,7 +302,11 @@ abstract final class ClientTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: CorpColors.accent),
+        style: TextButton.styleFrom(
+          foregroundColor: CorpColors.accent,
+          minimumSize: const Size(64, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
       ),
       drawerTheme: const DrawerThemeData(backgroundColor: CorpColors.sidebar),
       navigationRailTheme: const NavigationRailThemeData(

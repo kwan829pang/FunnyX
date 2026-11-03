@@ -1,5 +1,36 @@
 import 'package:flutter/material.dart';
 
+/// Shared spacing for cards, dialogs, inputs, and page containers.
+abstract final class ClientSpacing {
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 24;
+  static const double xxl = 32;
+
+  /// Gap between stacked form fields (avoids floating-label overlap).
+  static const double fieldGap = 16;
+
+  static const EdgeInsets page = EdgeInsets.all(xl);
+  static const EdgeInsets cardPadding = EdgeInsets.all(20);
+  static const EdgeInsets cardMargin = EdgeInsets.zero;
+
+  static const EdgeInsets inputContent =
+      EdgeInsets.symmetric(horizontal: 16, vertical: 16);
+
+  static const EdgeInsets dialogInset =
+      EdgeInsets.symmetric(horizontal: 24, vertical: 24);
+  static const EdgeInsets dialogTitle =
+      EdgeInsets.fromLTRB(24, 24, 24, 12);
+  static const EdgeInsets dialogContent =
+      EdgeInsets.fromLTRB(24, 8, 24, 8);
+  static const EdgeInsets dialogActions =
+      EdgeInsets.fromLTRB(24, 12, 24, 20);
+
+  static const double dialogRadius = 20;
+}
+
 /// End-user shop palette inspired by
 /// [NexaraCart](https://github.com/Mahmud0808/NexaraCart) `nexara_cart`.
 abstract final class UserColors {

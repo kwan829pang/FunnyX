@@ -16,6 +16,9 @@ class MarketplaceController extends GetxController {
   final selectedDeal = Rxn<MarketplaceDeal>();
 
   Future<void> loadList() async {
+    if (!Get.find<SessionController>().isAuthenticated) {
+      return;
+    }
     loading.value = true;
     error.value = null;
     try {
@@ -28,6 +31,10 @@ class MarketplaceController extends GetxController {
       deals.assignAll(results[1] as List<MarketplaceDeal>);
       gameAccounts.assignAll(results[2] as List<GameAccountBinding>);
     } catch (e) {
+      if (e is ApiError && e.isUnauthorized) {
+        error.value = null;
+        return;
+      }
       error.value = e is ApiError ? e.message : e.toString();
     } finally {
       loading.value = false;

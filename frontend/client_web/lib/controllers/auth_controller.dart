@@ -64,7 +64,7 @@ class AuthController extends GetxController {
       throw const ApiError('login succeeded but access_token was empty');
     }
     // Isolate from Corp portal (sts_… vs corp_…).
-    PortalSession.enterEndUser(access);
+    PortalSession.enterEndUser(token);
     if (Get.isRegistered<WalletController>()) {
       unawaited(Get.find<WalletController>().reload());
     }

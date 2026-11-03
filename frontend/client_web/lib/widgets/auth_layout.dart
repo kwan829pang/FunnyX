@@ -40,7 +40,10 @@ class AuthLayout extends StatelessWidget {
           child: SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: ClientSpacing.xl,
+                  vertical: ClientSpacing.xxl,
+                ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),
                   child: Material(
@@ -67,7 +70,9 @@ class AuthLayout extends StatelessWidget {
                           ),
                         ],
                       ),
-                      padding: const EdgeInsets.all(28),
+                      padding: ClientSpacing.cardPadding.add(
+                        const EdgeInsets.all(8),
+                      ),
                       child: child,
                     ),
                   ),

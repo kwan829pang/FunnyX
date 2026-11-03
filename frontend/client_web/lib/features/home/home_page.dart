@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funnyx_common/funnyx_common.dart';
 import 'package:get/get.dart';
 
 import '../../controllers/auth_controller.dart';
@@ -20,7 +21,9 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     wallet = Get.find<WalletController>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      wallet.reload();
+      if (Get.find<SessionController>().isAuthenticated) {
+        wallet.reload();
+      }
     });
   }
 

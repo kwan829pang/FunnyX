@@ -25,9 +25,12 @@ abstract final class PortalSession {
   }
 
   /// Enter normal-user Session portal — drop any corp Bearer.
-  static void enterEndUser(String accessToken) {
+  static void enterEndUser(SessionToken token) {
     clearCorp();
-    Get.find<SessionController>().setToken(accessToken);
+    Get.find<SessionController>().setSession(
+      accessToken: token.token,
+      refreshToken: token.refreshToken,
+    );
   }
 
   /// Enter corp portal — drop any end-user Session Bearer.

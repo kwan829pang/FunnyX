@@ -86,7 +86,7 @@ class _MarketplacePlacePageState extends State<MarketplacePlacePage> {
               },
             );
           }),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             key: ValueKey('offer_$_offerType'),
             initialValue: _offerType,
@@ -104,7 +104,7 @@ class _MarketplacePlacePageState extends State<MarketplacePlacePage> {
               }
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           if (_offerType == 'game_item')
             Obx(() {
               return DropdownButtonFormField<String>(
@@ -128,13 +128,13 @@ class _MarketplacePlacePageState extends State<MarketplacePlacePage> {
               decoration: InputDecoration(labelText: l10n.marketplaceOfferCoinId),
               keyboardType: TextInputType.number,
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _offerAmount,
             decoration: InputDecoration(labelText: l10n.marketplaceOfferAmount),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             key: ValueKey('want_$_wantType'),
             initialValue: _wantType,
@@ -151,13 +151,13 @@ class _MarketplacePlacePageState extends State<MarketplacePlacePage> {
               });
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _wantCoinId,
             decoration: InputDecoration(labelText: l10n.marketplaceWantCoinId),
             keyboardType: TextInputType.number,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _wantAmount,
             decoration: InputDecoration(labelText: l10n.marketplaceWantAmount),

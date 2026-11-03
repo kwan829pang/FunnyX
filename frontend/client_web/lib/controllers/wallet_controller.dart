@@ -3,6 +3,8 @@ import 'package:funnyx_common/funnyx_common.dart';
 import 'package:get/get.dart';
 import 'package:toastification/toastification.dart';
 
+import '../services/auth_failure_handler.dart';
+
 class WalletController extends GetxController {
   final loading = false.obs;
   final busy = false.obs;
@@ -44,6 +46,10 @@ class WalletController extends GetxController {
       transactions.assignAll(results[2] as List<ClientMoneyTxn>);
       gameAccounts.assignAll(results[3] as List<GameAccountBinding>);
     } catch (e) {
+      if (AuthFailureHandler.isAuthFailure(e)) {
+        error.value = null;
+        return;
+      }
       error.value = e is ApiError ? e.message : e.toString();
       toastification.show(
         title: Text('$e'),
@@ -140,11 +146,13 @@ class WalletController extends GetxController {
       await reload();
       return true;
     } catch (e) {
-      toastification.show(
-        title: Text('$e'),
-        type: ToastificationType.error,
-        autoCloseDuration: const Duration(seconds: 3),
-      );
+      if (!AuthFailureHandler.isAuthFailure(e)) {
+        toastification.show(
+          title: Text('$e'),
+          type: ToastificationType.error,
+          autoCloseDuration: const Duration(seconds: 3),
+        );
+      }
       return false;
     } finally {
       busy.value = false;
